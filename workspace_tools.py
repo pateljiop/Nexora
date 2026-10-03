@@ -133,7 +133,7 @@ class Workspace:
             current.splitlines(keepends=True), content.splitlines(keepends=True),
             fromfile=f"a/{path.relative_to(self.root).as_posix()}" if not created else "/dev/null",
             tofile=f"b/{path.relative_to(self.root).as_posix()}",
-            lineterm="\\n"
+            lineterm="\n"
         ))
         return {"path": path.relative_to(self.root).as_posix(), "diff": diff,
                 "created": created, "proposedBytes": len(encoded), "readOnly": True}
