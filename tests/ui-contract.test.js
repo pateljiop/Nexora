@@ -43,6 +43,12 @@ test("screen observation is opt-in, stoppable, and not uploaded by the current U
   assert.match(main, /addEventListener\("click", startScreenShare\)/);
   assert.match(main, /addEventListener\("click", stopScreenShare\)/);
   assert.match(main, /addEventListener\("pagehide"/);
+  const stopBody = main.match(/function stopScreenShare\(\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.match(stopBody, /screen-frame-image/);
+  assert.match(stopBody, /removeAttribute\("src"\)/);
+  assert.match(stopBody, /screen-frame-result/);
+  assert.match(stopBody, /captured frame was cleared/);
+  assert.doesNotMatch(stopBody, /remains in browser memory/);
   assert.match(html, /frames are not sent to a model or server/);
   assert.doesNotMatch(main, /imageDataUrl|fetch\([^)]*screen-frame-image/);
 });

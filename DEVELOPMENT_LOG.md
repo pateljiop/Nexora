@@ -751,3 +751,24 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Final verification (2026-10-04):** PR #8 merged after CI run #482 passed on the exact PR head. The merge is source-control-only and does not enable new side-effect tools. Main CI for merge commit `6269d40284311c6a7bf4573a0451fcc1bd76e000` is pending; verify it before marking the merged main head green. Target-laptop interactive smoke testing remains pending.
+
+
+### Entry: 2026-10-04 — clear captured screen frame on stop
+**Goal:** Minimize the lifetime of sensitive screen content in the desktop UI.
+
+**Files changed:** `src/main.js`, `tests/ui-contract.test.js`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Stopping a screen share now clears the captured image's `src`, hides the captured-frame result panel, and updates the message to confirm the frame was cleared. The existing page-exit cleanup remains in place. Added UI contract assertions that this cleanup occurs inside `stopScreenShare()`.
+
+**Security/reliability impact:** A manually captured frame no longer remains visible/in browser memory after the user stops sharing. Screen capture remains opt-in and no frames are uploaded or sent to a model.
+
+**Tests run/results:** UI contract regression test added; current PR CI pending. No local test execution is claimed.
+
+**Known issues:** Browser permission/display-picker behavior still requires an interactive test in a desktop browser; GitHub's Windows server smoke test cannot prove real display-capture behavior.
+
+**Next step:** Verify Linux and Windows CI, then continue desktop execution-history error/reconnect UX.
+
+**Commit/branch:** `fix/screen-frame-cleanup`; implementation/test commits through `80a2f1684e54a210c51158bd31dbaa521225090c` before this log update.
+
+
+**CI failure/fix (2026-10-04):** Initial run #485 failed on Linux and Windows because the new UI contract's function-body matcher was over-escaped and matched an empty string. Corrected the matcher in commit `80a2f1684e54a210c51158bd31dbaa521225090c`. Rerun #486 passed on that exact head on both Linux and Windows: https://github.com/pateljiop/Nexora/actions/runs/37156601821. This validates the static contract and server smoke tests, not a real browser display picker interaction.
