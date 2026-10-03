@@ -391,6 +391,9 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"activities": self.store.list_activity()})
             elif path == "/api/plans":
                 self.send_json(200, {"plans": self.store.list_plans()})
+            elif re.fullmatch(r"/api/plans/[^/]+", path):
+                plan = self.store.get_plan(unquote(path.rsplit("/", 1)[-1]))
+                self.send_json(200, {"plan": plan}) if plan else self.send_json(404, {"error": "Plan not found."})
             elif path == "/api/model/status":
                 self.send_json(200, get_model_status())
             elif path == "/api/workspace":
