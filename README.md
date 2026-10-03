@@ -13,7 +13,8 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Read-only workspace explorer for bounded UTF-8 file previews inside the configured project root; private paths, symlinks, binary files, and oversized files are excluded.
 - Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, and `tasks.list` only.
-- Persistent execution records with per-step status/output/error and an explicit note that tool completion is not proof that the overall goal was verified.
+- Persistent execution records with per-step status/output/error, cancellation, bounded status polling, page-refresh reconnection, and an explicit note that tool completion is not proof that the overall goal was verified.
+- Saved run history and a manual “Review plan again” path for failed/cancelled/completed read-only runs; re-running always creates a new run and requires fresh confirmation.
 - Host and Origin checks, request-body limit, parameterized SQL, path traversal protection, and restrictive response headers.
 - JavaScript and Python automated tests in GitHub Actions.
 - Windows launcher: `run-local.bat`.
@@ -86,4 +87,5 @@ Website/mobile access is deferred until the desktop experience is built and test
 
 ## Latest CI verification
 
-- [GitHub Actions run #261](https://github.com/pateljiop/Nexora/actions/runs/37151547853) passed on code commit `51380adf86e7d7deed76cf004e1b93b5a701831c`.
+- [GitHub Actions run #270](https://github.com/pateljiop/Nexora/actions/runs/37151634980) passed on code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` (JavaScript syntax, Node unit tests, and Python API/SQLite/security tests).
+- The following documentation commits do not change application code; the current branch's latest-head CI is checked separately.
