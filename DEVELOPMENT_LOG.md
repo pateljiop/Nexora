@@ -508,3 +508,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Test follow-up (2026-10-04):** The first manager test run caught that the stale-target error text was not classified as a stale proposal (the file itself was not overwritten). Updated the status classifier to recognize “changed after preview” in commit `1780d9dcfb5b89b2c9aad6a0d4cd65395a391f74`. CI is pending; verify the new test result before integration.
+
+
+### Entry: 2026-10-04 — isolated reversible workspace-change manager
+**Goal:** Build and test the file-change transaction layer before connecting any mutation to the agent or desktop UI.
+**Changes made:**
+- Added a persistent `WorkspaceChangeManager` that stores pending proposals, the exact proposed content, unified diff, original content/hash, and lifecycle status in SQLite.
+- Apply requires explicit approval, rechecks the file's hash against the preview, creates a local backup, and atomically replaces the file only if the target still matches the reviewed version.
+- Rollback requires a second explicit approval and only restores/removes the file if its current hash still matches the exact content Nexora applied. Later user edits are not overwritten.
+- Added backup integrity checks, guarded deletion for newly created files, and tests for preview-only behavior, approval denial, stale previews, backup failure, apply/rollback, and post-apply edits.
+- Kept the change manager isolated from the read-only tool registry and HTTP routes. No file-writing endpoint or agent write tool is enabled yet.
+**Tests run:** GitHub Actions run #374 passed on commit `c08d3ba085d8b946dba21c125731c41201048c31`: https://github.com/pateljiop/Nexora/actions/runs/37152374449. The manager and workspace primitive tests passed with the existing JavaScript and API/security suite.
+**Security/reliability impact:** This is a tested primitive, not an enabled capability. The agent still cannot mutate files. Any later integration must add a separate diff-review screen, explicit apply/rollback confirmation, server-side path validation, API tests, and audit logging.
+**Known issues:** The backup and change-manager records currently use separate persistence locations (local backup files plus SQLite proposal state); a future integration must handle backup cleanup/retention and interrupted apply states explicitly. The transaction layer is not yet exposed through the HTTP API.
+**Next step:** Design the two-stage proposal → user review → apply workflow and its UI/API tests. Do not connect model-generated file writes directly to the runner.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
