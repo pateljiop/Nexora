@@ -42,7 +42,8 @@ def run_plan_execution(plan_id, store, workspace, execution_id=None):
     for index, step in enumerate(steps):
         if store.is_execution_cancel_requested(execution["id"]):
             for remaining in steps[index:]:
-                store.set_execution_step_status(execution["id"], remaining["id"], "skipped")
+                store.finish_execution_step(execution["id"], remaining["id"], "skipped",
+                                            error="Skipped because cancellation was requested.")
             store.finish_execution(execution["id"], "cancelled")
             store.add_activity("Read-only run cancelled", plan["goal"])
             return store.get_execution(execution["id"])
@@ -60,6 +61,11 @@ def run_plan_execution(plan_id, store, workspace, execution_id=None):
             store.finish_execution(execution["id"], "failed")
             store.add_activity("Read-only run failed", plan["goal"])
             return store.get_execution(execution["id"])
+    if store.is_execution_cancel_requested(execution["id"]):
+        store.finish_execution(execution["id"], "cancelled",
+                               "Cancellation was requested while the final read-only step was in progress. All completed reads are recorded; the goal is unverified.")
+        store.add_activity("Read-only run cancelled", plan["goal"])
+        return store.get_execution(execution["id"])
     store.finish_execution(execution["id"], "completed")
     store.add_activity("Read-only run completed; goal not verified", plan["goal"])
     return store.get_execution(execution["id"])
