@@ -515,7 +515,7 @@ async function loadExecutionHistory() {
       list.append(button);
     }
     if (runningExecution && !activeExecutionId) {
-      const detail = await api(\`/api/executions/\${encodeURIComponent(runningExecution.id)}\`);
+      const detail = await api(`/api/executions/${encodeURIComponent(runningExecution.id)}`);
       if (detail.execution?.status === "running") {
         activeExecutionId = detail.execution.id;
         $("#cancel-run-button").hidden = false;
