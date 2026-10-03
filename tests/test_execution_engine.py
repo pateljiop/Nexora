@@ -34,6 +34,28 @@ class ExecutionEngineTests(unittest.TestCase):
         self.assertTrue(all(step["status"] == "completed" for step in result["steps"]))
         self.assertIn("goal has not been independently verified", result["verificationNote"])
 
+    def test_cancellation_is_checked_between_steps(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Should be skipped after cancellation.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Should not run.", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.store.save_plan(plan)
+        original_list = self.workspace.list_files
+
+        def list_and_request_cancel(path="."):
+            result = original_list(path)
+            active = self.store.list_executions()[0]
+            self.store.request_execution_cancel(active["id"])
+            return result
+
+        self.workspace.list_files = list_and_request_cancel
+        result = run_plan_execution(plan["id"], self.store, self.workspace)
+        self.assertEqual(result["status"], "cancelled")
+        self.assertEqual(result["steps"][0]["status"], "completed")
+        self.assertEqual(result["steps"][1]["status"], "skipped")
+        self.assertEqual(result["steps"][2]["status"], "skipped")
+
     def test_rejects_local_template_plan(self):
         from planner import build_dry_run_plan
         plan = build_dry_run_plan("Make progress")
