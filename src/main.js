@@ -468,46 +468,6 @@ async function runCurrentPlan() {
 async function loadExecutionHistory() {
   const list = $("#execution-history-list");
   if (!backendAvailable) {
-    list.replaceChildren(makeElement("p", "workspace-empty", "Run history is available when the local SQLite server is connected."));
-    return;
-  }
-  try {
-    const result = await api("/api/executions");
-    list.replaceChildren();
-    if (!result.executions.length) {
-      list.append(makeElement("p", "workspace-empty", "No saved runs yet. Model-generated read-only plans will appear here after you start them."));
-      return;
-    }
-    for (const execution of result.executions) {
-      const item = makeElement("article", "execution-history-item");
-      const main = makeElement("div", "execution-history-main");
-      main.append(makeElement("strong", "", execution.goal), makeElement("p", "", formatTime(execution.createdAt)));
-      const status = makeElement("span", "history-status " + execution.status, execution.status.toUpperCase());
-      const open = makeElement("button", "text-button", "Open report ↗");
-      open.type = "button";
-      open.addEventListener("click", async () => {
-        try {
-          const report = await api("/api/executions/" + encodeURIComponent(execution.id));
-          renderExecution(report.execution);
-        } catch (error) {
-          showToast(error instanceof Error ? error.message : "Could not open the saved run report.");
-        }
-      });
-      const meta = makeElement("div", "execution-history-meta");
-      meta.append(status, open);
-      item.append(main, meta);
-      list.append(item);
-    }
-  } catch (error) {
-    list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Could not load execution history."));
-  }
-}
-
-$("#refresh-execution-history").addEventListener("click", loadExecutionHistory);
-
-async function loadExecutionHistory() {
-  const list = $("#execution-history-list");
-  if (!backendAvailable) {
     list.replaceChildren(makeElement("p", "workspace-empty", "Start the local server to view saved runs."));
     return;
   }
