@@ -768,7 +768,13 @@ async function startScreenShare() {
   } catch (error) {
     screenStream?.getTracks().forEach(track => track.stop());
     screenStream = null;
+    $("#screen-live-video").srcObject = null;
+    $("#screen-live-video").hidden = true;
+    $("#screen-observer-placeholder").hidden = false;
     $("#screen-share-status").textContent = "NOT SHARING";
+    $("#stop-screen-share").hidden = true;
+    $("#capture-screen-frame").disabled = true;
+    start.hidden = false;
     setScreenObserverMessage(error?.name === "NotAllowedError"
       ? "Screen sharing was cancelled or permission was denied. Nothing is being captured."
       : "Could not start screen sharing. Check browser support and try again.", true);
