@@ -696,3 +696,10 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** PR #5 merged as `e51528654e7cda46dbd82c447b76d165c15cbdad`. Main CI run #452 passed: https://github.com/pateljiop/Nexora/actions/runs/37155140024. Ubuntu and Windows jobs passed JavaScript checks/tests, Python API/SQLite tests, static asset policy assertions, Python compilation, and the local loopback-server smoke test. The actual browser screen-share picker and capture flow still needs interactive testing in a desktop browser; screen frames remain local-only and are not connected to vision inference.
+
+
+### Entry: 2026-10-04 — screen observer UI contract tests
+**Goal:** Guard the screen viewer's privacy boundaries against accidental regressions.
+**Changes made:** Added UI contract checks for explicit start/stop controls, browser-mediated capture, cleanup on page exit, and the current no-upload/no-model-transfer behavior.
+**Tests run:** PR CI pending.
+**Next step:** Verify CI, merge if green, then proceed to the next local-first capability.
