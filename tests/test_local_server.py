@@ -48,6 +48,22 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.import_local(payload, []), 0)
         self.assertEqual({x["id"]: x["title"] for x in self.store.list_tasks()}["legacy-1"], "Original")
 
+    def test_startup_recovery_marks_running_execution_failed(self):
+        plan = build_remote_plan("Inspect", [
+            {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "README.md"}},
+            {"title": "Tasks", "detail": "Read only", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "running")
+        self.assertEqual(self.store.recover_interrupted_executions(), 1)
+        recovered = self.store.get_execution(execution["id"])
+        self.assertEqual(recovered["status"], "failed")
+        self.assertIn("Server restarted", recovered["verificationNote"])
+        self.assertEqual(recovered["steps"][0]["status"], "failed")
+        self.assertEqual(recovered["steps"][1]["status"], "skipped")
+
     def test_caps_activity(self):
         for i in range(40):
             self.store.add_activity(f"Event {i}")
@@ -146,6 +162,19 @@ class ApiTests(unittest.TestCase):
         status, payload = self.request("/api/executions", "POST", {"planId": plan["id"]})
         self.assertEqual(status, 400)
         self.assertIn("model-generated", payload["error"])
+
+    def test_cancel_endpoint_sets_persistent_request(self):
+        plan = build_remote_plan("Inspect", [
+            {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "sample.txt"}},
+            {"title": "Tasks", "detail": "Read only", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.httpd.RequestHandlerClass.store.save_plan(plan)
+        execution = self.httpd.RequestHandlerClass.store.start_execution(plan, plan["steps"])
+        status, payload = self.request(f"/api/executions/{execution['id']}/cancel", "POST", {})
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["execution"]["cancelRequested"])
+        self.assertTrue(self.httpd.RequestHandlerClass.store.is_execution_cancel_requested(execution["id"]))
 
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
