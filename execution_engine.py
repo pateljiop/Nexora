@@ -53,11 +53,21 @@ def run_plan_execution(plan_id, store, workspace, execution_id=None):
             store.finish_execution_step(execution["id"], step["id"], "completed", output=output)
         except (ToolExecutionError, ValueError) as exc:
             store.finish_execution_step(execution["id"], step["id"], "failed", error=str(exc)[:500])
+            for remaining in steps[index + 1:]:
+                store.finish_execution_step(
+                    execution["id"], remaining["id"], "skipped",
+                    error="Skipped because an earlier step failed.",
+                )
             store.finish_execution(execution["id"], "failed")
             store.add_activity("Read-only run failed", plan["goal"])
             return store.get_execution(execution["id"])
         except Exception:
             store.finish_execution_step(execution["id"], step["id"], "failed", error="Unexpected tool failure.")
+            for remaining in steps[index + 1:]:
+                store.finish_execution_step(
+                    execution["id"], remaining["id"], "skipped",
+                    error="Skipped because the runner encountered an unexpected failure.",
+                )
             store.finish_execution(execution["id"], "failed")
             store.add_activity("Read-only run failed", plan["goal"])
             return store.get_execution(execution["id"])
