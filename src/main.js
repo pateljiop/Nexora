@@ -466,7 +466,6 @@ async function runCurrentPlan() {
     renderExecution(result.execution);
     await refreshExecutionStatus({ poll: true });
     await refreshFromServer();
-    await loadExecutionHistory();
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not start the read-only plan.");
   } finally {
@@ -527,7 +526,7 @@ async function loadExecutionHistory() {
         $("#run-plan-button").disabled = true;
         $("#run-plan-button").textContent = "Run in progress…";
         renderExecution(detail.execution, false);
-        void refreshExecutionStatus({ poll: true }).then(() => loadExecutionHistory()).catch(error => showToast(error.message));
+        void refreshExecutionStatus({ poll: true }).catch(error => showToast(error.message));
       }
     }
   } catch (error) {
