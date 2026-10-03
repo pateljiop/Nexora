@@ -1,0 +1,11 @@
+{
+  "name": "nexora",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexora — a desktop-first personal AI workspace with a responsive companion web dashboard.",
+  "scripts": {
+    "test": "node --test",
+    "check:syntax": "node --check src/main.js && node --check src/task-state.js"
+  }
+}
