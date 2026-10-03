@@ -70,6 +70,6 @@ test("help dialog accurately describes current local and approval boundaries", (
   assert.match(html, /remote providers receive it only after you confirm each request/);
   assert.match(html, /full-diff review, explicit approval, and backup/);
   assert.match(html, /general mouse\/keyboard control are not enabled/);
-  assert.match(html, /captured frames stay in browser memory and are cleared when sharing stops/);
+  assert.match(html, /Captured frames stay in browser memory and are cleared when sharing stops/);
   assert.doesNotMatch(html, /does not call an AI model or control your laptop yet/);
 });
