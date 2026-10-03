@@ -64,6 +64,17 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(recovered["steps"][0]["status"], "failed")
         self.assertEqual(recovered["steps"][1]["status"], "skipped")
 
+    def test_only_one_read_only_execution_can_be_active(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read file", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "README.md"}},
+            {"title": "List tasks", "detail": "Read-only task list.", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.store.save_plan(plan)
+        self.store.start_execution(plan, plan["steps"])
+        with self.assertRaises(server.ActiveExecutionError):
+            self.store.start_execution(plan, plan["steps"])
+
     def test_caps_activity(self):
         for i in range(40):
             self.store.add_activity(f"Event {i}")
