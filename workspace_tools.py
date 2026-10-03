@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import difflib
 import hashlib
 import tempfile
 from datetime import datetime, timezone
@@ -101,6 +102,41 @@ class Workspace:
             stack.extend(reversed(directories))
         return {"rootName": self.root_name, "relativePath": "." if start == self.root else start.relative_to(self.root).as_posix(),
                 "entries": entries, "truncated": len(entries) >= MAX_ENTRIES}
+
+    def preview_write(self, relative, content):
+        """Build a bounded unified diff without modifying the workspace."""
+        if not isinstance(content, str):
+            raise WorkspaceError("Proposed file content must be text.")
+        encoded = content.encode("utf-8")
+        if len(encoded) > MAX_WRITE_BYTES:
+            raise WorkspaceError("Proposed file content exceeds the 64 KiB preview limit.")
+        path = self._resolve(relative, must_exist=False)
+        if path == self.root:
+            raise WorkspaceError("Workspace root cannot be replaced.")
+        if not path.parent.is_dir():
+            raise WorkspaceError("The destination directory must already exist.")
+        created = not path.exists()
+        current = ""
+        if not created:
+            if not path.is_file():
+                raise WorkspaceError("Diff previews can target text files only.")
+            try:
+                existing = path.read_bytes()
+                if len(existing) > MAX_READ_BYTES:
+                    raise WorkspaceError("Existing file is too large to safely preview.")
+                current = existing.decode("utf-8")
+            except UnicodeDecodeError:
+                raise WorkspaceError("Binary files cannot be diffed by workspace tools.") from None
+            except OSError:
+                raise WorkspaceError("Existing file could not be checked.") from None
+        diff = "".join(difflib.unified_diff(
+            current.splitlines(keepends=True), content.splitlines(keepends=True),
+            fromfile=f"a/{path.relative_to(self.root).as_posix()}" if not created else "/dev/null",
+            tofile=f"b/{path.relative_to(self.root).as_posix()}",
+            lineterm="\\n"
+        ))
+        return {"path": path.relative_to(self.root).as_posix(), "diff": diff,
+                "created": created, "proposedBytes": len(encoded), "readOnly": True}
 
     def write_file(self, relative, content):
         if not isinstance(content, str):
