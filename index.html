@@ -64,11 +64,16 @@
           <form id="task-form">
             <label class="sr-only" for="task-input">Message Virtual Hariom</label>
             <textarea id="task-input" rows="3" maxlength="1200" placeholder="Tell me what you want to get done…&#10;For example: Help me plan the next step of my project." required></textarea>
-            <div class="composer-footer"><span class="composer-hint"><span class="hint-dot"></span> Start with a goal. We’ll make the next step clear.</span><button class="primary-button" type="submit"><span>＋</span> Add to workspace <span class="button-arrow">↗</span></button></div>
+            <div class="composer-footer"><span class="composer-hint"><span class="hint-dot"></span> Start with a goal. We’ll make the next step clear.</span><button class="plan-button" id="plan-button" type="button">Preview plan <span>↗</span></button><button class="primary-button" type="submit"><span>＋</span> Add to workspace <span class="button-arrow">↗</span></button></div>
           </form>
           <p class="notice"><span>ⓘ</span> Preview mode: tasks save in this browser. AI responses, cloud sync, and device control are not connected yet.</p>
         </section>
 
+        <section class="surface plan-preview" id="plan-preview" hidden aria-live="polite" aria-labelledby="plan-preview-title">
+          <div class="surface-heading"><div><h2 id="plan-preview-title">Plan preview</h2><p id="plan-goal"></p></div><span class="stream-mark">DRY RUN</span></div>
+          <p class="plan-disclaimer">Template preview only. No files, apps, or system actions have been touched.</p>
+          <ol id="plan-steps" class="plan-steps"></ol>
+        </section>
         <div class="section-heading"><div><span class="section-index">01</span><h2>Your workspace</h2></div><span class="muted-label" id="session-label">LOCAL SESSION</span></div>
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-head"><span>Things on your list</span><span class="stat-symbol">↗</span></div><div class="stat-value" id="stat-total">00</div><div class="stat-foot">Tasks saved in this browser</div><div class="mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
