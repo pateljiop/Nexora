@@ -434,3 +434,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The browser polls for up to 60 seconds per poll session; longer runs remain visible in persistent history and can be manually refreshed.
 **Next step:** Verify current-head CI and review the PR's final code-vs-documentation commit state.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — strengthen secret redaction for quoted JSON values
+**Goal:** Reduce the chance that read-only file previews expose credentials stored in common JSON or quoted assignment formats.
+**Changes made:** Expanded the heuristic redaction pattern to recognize quoted keys and quoted values (for example `"api_key": "…"`, `'client_secret': '…'`, and `PASSWORD = "…"`). Added regression tests for these formats. This remains best-effort redaction, not a guarantee that arbitrary secrets will be detected.
+**Tests run:** GitHub Actions has been triggered by the code and test commits; current-head result is pending and must be checked before treating this as verified.
+**Security/reliability impact:** The change improves common-format coverage without changing the read-only tool allowlist or expanding file access.
+**Known issues:** Heuristic redaction can miss secrets with uncommon field names, multiline formats, or unusual encodings. Users should not point the workspace root at secret stores.
+**Next step:** Verify current-head CI and inspect the redaction tests' actual results. Then refresh README/PR CI links and continue the approval-gated execution design without enabling writes until diff review, backups, and rollback are tested.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
