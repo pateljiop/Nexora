@@ -37,12 +37,12 @@ test("screen observation is opt-in, stoppable, and not uploaded by the current U
     "screen-frame-image",
     "screen-observer-message"
   ]) {
-    assert.match(html, new RegExp('\\\\bid="' + id + '"'));
+    assert.match(html, new RegExp('\\bid="' + id + '"'));
   }
-  assert.match(main, /navigator\\.mediaDevices\\.getDisplayMedia/);
-  assert.match(main, /addEventListener\\("click", startScreenShare\\)/);
-  assert.match(main, /addEventListener\\("click", stopScreenShare\\)/);
-  assert.match(main, /addEventListener\\("pagehide"/);
+  assert.match(main, /navigator\.mediaDevices\.getDisplayMedia/);
+  assert.match(main, /addEventListener\("click", startScreenShare\)/);
+  assert.match(main, /addEventListener\("click", stopScreenShare\)/);
+  assert.match(main, /addEventListener\("pagehide"/);
   assert.match(html, /frames are not sent to a model or server/);
-  assert.doesNotMatch(main, /imageDataUrl|fetch\\([^)]*screen-frame-image/);
+  assert.doesNotMatch(main, /imageDataUrl|fetch\([^)]*screen-frame-image/);
 });
