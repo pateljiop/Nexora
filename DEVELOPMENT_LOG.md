@@ -768,4 +768,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Verify Linux and Windows CI, then continue desktop execution-history error/reconnect UX.
 
-**Commit/branch:** `fix/screen-frame-cleanup`; implementation/test commits through `f34bd85bf5d9909c11074115d88a8470939f23b9` before this log update.
+**Commit/branch:** `fix/screen-frame-cleanup`; implementation/test commits through `80a2f1684e54a210c51158bd31dbaa521225090c` before this log update.
+
+
+**CI failure/fix (2026-10-04):** Initial run #485 failed on Linux and Windows because the new UI contract's function-body matcher was over-escaped and matched an empty string. Corrected the matcher in commit `80a2f1684e54a210c51158bd31dbaa521225090c`. Rerun #486 passed on that exact head on both Linux and Windows: https://github.com/pateljiop/Nexora/actions/runs/37156601821. This validates the static contract and server smoke tests, not a real browser display picker interaction.
