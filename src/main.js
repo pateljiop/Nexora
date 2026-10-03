@@ -259,7 +259,7 @@ function renderPlan(plan) {
     item.append(copy);
     list.append(item);
   }
-  $(".plan-preview .stream-mark").textContent = plan.source === "remote_model" ? "REMOTE MODEL · DRY RUN" : "LOCAL TEMPLATE · DRY RUN";
+  $(".plan-preview .stream-mark").textContent = plan.source === "remote_model" ? "REMOTE MODEL · DRY RUN" : plan.source === "local_model" ? "LOCAL MODEL · DRY RUN" : "LOCAL TEMPLATE · DRY RUN";
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -286,7 +286,7 @@ async function requestPlanPreview() {
     const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal, useModel, remoteConsent }) });
     renderPlan(result.plan);
     await refreshFromServer();
-    showToast(result.plan.source === "remote_model" ? "Remote plan preview saved. No actions were executed." : "Local template preview saved. No actions were executed.");
+    showToast(result.plan.source === "remote_model" ? "Remote plan preview saved. No actions were executed." : result.plan.source === "local_model" ? "Local model plan saved. No actions were executed." : "Local template preview saved. No actions were executed.");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not create the plan preview.");
   }
