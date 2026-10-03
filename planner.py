@@ -9,7 +9,7 @@ MAX_PLAN_STEPS = 8
 PLAN_MODE = "dry_run"
 PLAN_SOURCE = "local_template"
 ALLOWED_PLAN_SOURCES = {"local_template", "remote_model", "local_model"}
-ALLOWED_READ_ONLY_TOOLS = {"workspace.list", "workspace.read", "tasks.list", "none"}
+ALLOWED_READ_ONLY_TOOLS = {"workspace.list", "workspace.read", "workspace.diff", "tasks.list", "none"}
 
 
 def now_iso():
@@ -72,6 +72,13 @@ def build_remote_plan(goal, model_steps, created_at=None, source="remote_model")
             if not isinstance(path, str) or not path.strip() or len(path) > 1000:
                 raise ValueError("workspace.read requires a relative path.")
             arguments = {"path": path.strip()}
+        elif tool == "workspace.diff":
+            path, content = arguments.get("path"), arguments.get("content")
+            if not isinstance(path, str) or not path.strip() or len(path) > 1000:
+                raise ValueError("workspace.diff requires a relative path.")
+            if not isinstance(content, str) or len(content) > 16000:
+                raise ValueError("workspace.diff content must be text of at most 16000 characters.")
+            arguments = {"path": path.strip(), "content": content}
         elif tool == "workspace.list":
             path = arguments.get("path", ".")
             if not isinstance(path, str) or len(path) > 1000:
@@ -115,6 +122,18 @@ def validate_plan(value):
         if step.get("status") != "not_started" or step.get("sideEffects") is not False or step.get("risk") != "low":
             raise ValueError("Dry-run steps cannot have side effects.")
         if "tool" in step:
-            if step.get("tool") not in ALLOWED_READ_ONLY_TOOLS or not isinstance(step.get("arguments"), dict):
+            tool, arguments = step.get("tool"), step.get("arguments")
+            if tool not in ALLOWED_READ_ONLY_TOOLS or not isinstance(arguments, dict):
                 raise ValueError("Plan tool is outside the read-only allowlist.")
+            if tool == "workspace.list":
+                if set(arguments) - {"path"} or ("path" in arguments and (not isinstance(arguments["path"], str) or len(arguments["path"]) > 1000)):
+                    raise ValueError("workspace.list arguments are invalid.")
+            elif tool == "workspace.read":
+                if set(arguments) != {"path"} or not isinstance(arguments.get("path"), str) or not arguments["path"].strip() or len(arguments["path"]) > 1000:
+                    raise ValueError("workspace.read arguments are invalid.")
+            elif tool == "workspace.diff":
+                if set(arguments) != {"path", "content"} or not isinstance(arguments.get("path"), str) or not arguments["path"].strip() or len(arguments["path"]) > 1000 or not isinstance(arguments.get("content"), str) or len(arguments["content"]) > 16000:
+                    raise ValueError("workspace.diff arguments are invalid.")
+            elif tool in {"tasks.list", "none"} and arguments:
+                raise ValueError("This tool does not accept arguments.")
     return value
