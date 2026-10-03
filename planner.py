@@ -9,6 +9,7 @@ MAX_PLAN_STEPS = 8
 PLAN_MODE = "dry_run"
 PLAN_SOURCE = "local_template"
 ALLOWED_PLAN_SOURCES = {"local_template", "remote_model", "local_model"}
+ALLOWED_READ_ONLY_TOOLS = {"workspace.list", "workspace.read", "tasks.list", "none"}
 
 
 def now_iso():
@@ -60,7 +61,28 @@ def build_remote_plan(goal, model_steps, created_at=None, source="remote_model")
             raise ValueError("Model plan step title is invalid.")
         if not isinstance(detail, str) or len(detail.strip()) > 500:
             raise ValueError("Model plan step detail is invalid.")
+        tool = item.get("tool", "none")
+        arguments = item.get("arguments", {})
+        if not isinstance(tool, str) or tool not in ALLOWED_READ_ONLY_TOOLS:
+            raise ValueError("Model plan requested a tool outside the read-only allowlist.")
+        if not isinstance(arguments, dict):
+            raise ValueError("Plan tool arguments must be an object.")
+        if tool == "workspace.read":
+            path = arguments.get("path")
+            if not isinstance(path, str) or not path.strip() or len(path) > 1000:
+                raise ValueError("workspace.read requires a relative path.")
+            arguments = {"path": path.strip()}
+        elif tool == "workspace.list":
+            path = arguments.get("path", ".")
+            if not isinstance(path, str) or len(path) > 1000:
+                raise ValueError("workspace.list path is invalid.")
+            arguments = {"path": path.strip() or "."}
+        else:
+            if arguments:
+                raise ValueError("This tool does not accept arguments.")
+            arguments = {}
         steps.append({"id": f"step-{index}", "title": title.strip(), "detail": detail.strip(),
+                      "tool": tool, "arguments": arguments,
                       "status": "not_started", "risk": "low", "sideEffects": False})
     if source not in {"remote_model", "local_model"}:
         raise ValueError("Model plan source is invalid.")
@@ -92,4 +114,7 @@ def validate_plan(value):
             raise ValueError("Plan step detail is invalid.")
         if step.get("status") != "not_started" or step.get("sideEffects") is not False or step.get("risk") != "low":
             raise ValueError("Dry-run steps cannot have side effects.")
+        if "tool" in step:
+            if step.get("tool") not in ALLOWED_READ_ONLY_TOOLS or not isinstance(step.get("arguments"), dict):
+                raise ValueError("Plan tool is outside the read-only allowlist.")
     return value
