@@ -108,8 +108,7 @@ class WorkspaceChangeManager:
             proposed = bytes(record["proposed_content"]).decode("utf-8")
             self.workspace.write_file(
                 record["path"], proposed,
-                expected_sha256=record["original_sha256"],
-                expected_exists=bool(record["original_exists"]),
+                expected_sha256=record["original_sha256"] or "missing",
             )
             applied = self.workspace.read_file(record["path"])
             applied_sha = self._sha(applied["content"].encode("utf-8"))
@@ -121,7 +120,7 @@ class WorkspaceChangeManager:
             result["appliedSha256"] = applied_sha
             return result
         except WorkspaceError as exc:
-            status = "stale" if "changed since the proposal" in str(exc).lower() else "failed"
+            status = "stale" if any(marker in str(exc).lower() for marker in ("changed after preview", "changed during approval", "appeared after preview", "changed since the proposal")) else "failed"
             with self.store.connect() as db:
                 db.execute("UPDATE workspace_changes SET status=?,error=? WHERE id=? AND status='applying'",
                            (status, str(exc)[:500], proposal_id))
