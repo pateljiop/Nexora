@@ -44,7 +44,7 @@ This runs JavaScript syntax checks, JavaScript unit tests, and Python tests for 
 
 ## Optional model planning
 
-The planner works without a provider by showing a clearly labelled deterministic local template. To use a compatible model for plan drafts:
+The planner works without a provider by showing a clearly labelled deterministic local template. The optional workspace explorer can list and preview UTF-8 text files under the configured root, and a model-generated plan can run a bounded sequence of allowlisted read-only tools (`workspace.list`, `workspace.read`, `tasks.list`). Tool outputs are recorded locally, failures stop the sequence, and a completed tool run explicitly does **not** mean the overall goal was verified. No file writes, shell commands, browser actions, or desktop controls are enabled. To use a compatible model for plan drafts:
 
 1. Copy `.env.example` to `.env` in the repository root.
 2. Set `NEXORA_MODEL_BASE_URL`, `NEXORA_MODEL_NAME`, and (for remote providers) `NEXORA_MODEL_API_KEY`.
