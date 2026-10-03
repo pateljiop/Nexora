@@ -93,9 +93,19 @@ class ApiTests(unittest.TestCase):
         req = Request(self.base + path, data=data, method=method, headers=headers or {})
         try:
             with urlopen(req, timeout=2) as response:
-                return response.status, json.loads(response.read().decode())
+                raw = response.read().decode()
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError:
+                    payload = raw
+                return response.status, payload
         except HTTPError as exc:
-            return exc.code, json.loads(exc.read().decode())
+            raw = exc.read().decode()
+            try:
+                payload = json.loads(raw)
+            except json.JSONDecodeError:
+                payload = raw
+            return exc.code, payload
 
     def test_health_and_task_crud(self):
         status, health = self.request("/api/health")
