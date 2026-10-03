@@ -144,7 +144,7 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
             with self.assertRaises(WorkspaceChangeError):
                 self.manager.rollback(proposal["id"], True)
         self.assertEqual(target.read_text(encoding="utf-8"), "human edit\n")
-        self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
+        self.assertEqual(self.manager.get(proposal["id"])["status"], "stale")
 
     def test_recovery_marks_unknown_new_file_state_stale_not_missing(self):
         proposal = self.manager.preview("generated.txt", "generated\n")
