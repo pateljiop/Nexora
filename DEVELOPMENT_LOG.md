@@ -454,3 +454,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Tokens can use unknown formats or appear split/encoded; previews should not be treated as a secure secret vault.
 **Next step:** Verify current-head CI, then audit the current plan and tool argument validation before considering any write-capable tools.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**CI follow-up (2026-10-04):** The first credential-shape patch omitted a tuple comma; Python tests caught the import-time error. Fixed in commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`. CI for the fix is pending. This is precisely why the change remains behind the allowlisted redaction helper and why CI must pass before proceeding.
