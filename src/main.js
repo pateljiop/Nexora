@@ -503,6 +503,10 @@ async function loadExecutionHistory() {
       const status = makeElement("span", `execution-history-status ${execution.status}`, execution.status.toUpperCase());
       button.append(copy, status);
       button.addEventListener("click", async () => {
+        if (activeExecutionId && activeExecutionId !== execution.id) {
+          showToast("Another run is active. Keep its controls selected until it stops.");
+          return;
+        }
         try {
           const detail = await api(`/api/executions/${encodeURIComponent(execution.id)}`);
           activeExecutionId = detail.execution.status === "running" ? detail.execution.id : null;
