@@ -48,6 +48,26 @@ class WorkspaceToolTests(unittest.TestCase):
         with self.assertRaises(WorkspaceError):
             self.workspace.read_file("binary.bin")
 
+    def test_preview_write_shows_diff_without_modifying_file(self):
+        original = (self.root / "notes.txt").read_text(encoding="utf-8")
+        result = self.workspace.preview_write("notes.txt", "hello updated workspace")
+        self.assertTrue(result["readOnly"])
+        self.assertFalse(result["created"])
+        self.assertIn("-hello workspace", result["diff"])
+        self.assertIn("+hello updated workspace", result["diff"])
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), original)
+
+    def test_preview_new_file_and_reject_unsafe_or_oversized_proposals(self):
+        result = self.workspace.preview_write("src/new.py", "print('preview only')")
+        self.assertTrue(result["created"])
+        self.assertIn("+print('preview only')", result["diff"])
+        self.assertFalse((self.root / "src" / "new.py").exists())
+        for path in ("../outside.txt", ".env", "missing/new.py"):
+            with self.subTest(path=path), self.assertRaises(WorkspaceError):
+                self.workspace.preview_write(path, "content")
+        with self.assertRaises(WorkspaceError):
+            self.workspace.preview_write("notes.txt", "x" * (64 * 1024 + 1))
+
     def test_rejects_symlink_outside_root(self):
         outside = Path(self.temp.name) / "outside.txt"
         outside.write_text("outside", encoding="utf-8")
