@@ -100,8 +100,8 @@ class ApiTests(unittest.TestCase):
         status, model_status = self.request("/api/model/status")
         self.assertEqual(status, 200)
         self.assertNotIn("apiKey", model_status)
-        with patch.dict("os.environ", {"NEXORA_ALLOW_REMOTE_MODEL": "0"}):
-            code, payload = self.request("/api/plans", "POST", {"goal": "Test", "remoteConsent": True})
+        with patch.dict("os.environ", {"NEXORA_MODEL_BASE_URL": "https://models.example/v1", "NEXORA_MODEL_API_KEY": "test-key", "NEXORA_MODEL_NAME": "test-model", "NEXORA_ALLOW_REMOTE_MODEL": "0"}):
+            code, payload = self.request("/api/plans", "POST", {"goal": "Test", "useModel": True, "remoteConsent": True})
         self.assertEqual(code, 400)
         self.assertIn("not enabled", payload["error"])
 
