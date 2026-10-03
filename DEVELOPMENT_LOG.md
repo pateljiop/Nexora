@@ -487,3 +487,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Workspace roots can be configured to any existing directory; the user must choose a project/workspace root carefully. No mutation tool is enabled.
 **Next step:** Verify current-head CI, inspect any remaining failures, then refresh PR verification only after green checks.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** The diff-preview and sensitive-path validation changes passed GitHub Actions run #342 on commit `e34d40c2c2b947d8af809461cfdfd05ecb99b16f`: https://github.com/pateljiop/Nexora/actions/runs/37152108435. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed. The README and draft PR verification sections now point to that green run. No file-writing tool has been enabled; `workspace.diff` remains a read-only preview.
