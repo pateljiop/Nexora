@@ -8,7 +8,8 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 
 - Desktop-first workspace UI.
 - Local Python HTTP server bound to `127.0.0.1` by default.
-- SQLite persistence for tasks and a bounded activity trail.
+- SQLite persistence for tasks, a bounded activity trail, and saved plan previews.
+- A transparent structured dry-run planner (`local_template` source), with bounded steps and explicit `executionEnabled: false`.
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Host and Origin checks, request-body limit, parameterized SQL, path traversal protection, and restrictive response headers.
 - JavaScript and Python automated tests in GitHub Actions.
@@ -43,6 +44,7 @@ This is a working local-storage foundation, **not yet a working AI agent**.
 - No LLM provider or structured task planner is connected.
 - No model-generated tool execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
 - No background orchestration, checkpoints, or crash recovery yet.
+- Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
 - Marking a task complete is a manual list update, not evidence of AI execution or verification.
 - If the local server is unavailable, the UI falls back to browser storage; the connection panel explains which mode is active.
 
