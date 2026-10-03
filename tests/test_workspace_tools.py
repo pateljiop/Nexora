@@ -97,6 +97,16 @@ class WorkspaceToolTests(unittest.TestCase):
         with self.assertRaises(WorkspaceError):
             self.workspace.rollback_write(receipt, backup_root=backups)
 
+    def test_backup_failure_prevents_target_mutation(self):
+        backup_blocker = Path(self.temp.name) / "not-a-directory"
+        backup_blocker.write_text("occupied", encoding="utf-8")
+        before = (self.root / "notes.txt").read_text(encoding="utf-8")
+        preview = self.workspace.preview_write("notes.txt", "must not be written")
+        with self.assertRaises(WorkspaceError):
+            self.workspace.write_file("notes.txt", "must not be written",
+                                      expected_sha256=preview["expectedSha256"], backup_root=backup_blocker)
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), before)
+
     def test_created_file_rollback_removes_only_unchanged_created_file(self):
         backups = Path(self.temp.name) / "backups"
         preview = self.workspace.preview_write("src/new.py", "print('new')")
