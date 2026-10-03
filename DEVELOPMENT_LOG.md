@@ -297,3 +297,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Cancellation is cooperative, not forceful. There is no shell, browser, mouse/keyboard, or write/delete execution. A model plan that chooses `none` for any step cannot run; the UI leaves it as a preview.
 **Next step:** Verify current-head CI, then audit startup and error behavior and update the PR description to reflect the actual implemented scope. Do not merge until the foundation PR's current-head checks are green and its description is accurate.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — execution history UI cleanup and verification
+**Goal:** Finish the persisted run history interface without duplicate DOM IDs or duplicate handler registration.
+**Changes made:**
+- Kept one Recent runs panel and removed duplicate markup discovered during a fresh DOM audit.
+- Verified the run-history loader is defined once and the refresh control is wired once.
+- The report list uses stored execution records, shows run state, and opens the saved step report; active runs can still be polled/cancelled through the same persisted record.
+**Tests run:** GitHub Actions run #214 passed on commit `b7628a4eb681602dca61fc25e726bb45bfca8379`: https://github.com/pateljiop/Nexora/actions/runs/37151131923. This verifies the current code after removing the duplicate markup. The development-log update itself will trigger a fresh run.
+**Known issues:** Visual interaction has not yet been verified on the user's Windows laptop. The project remains a local desktop foundation; it does not yet control the real desktop or run arbitrary shell/file-writing actions.
+**Next step:** Perform a final code/security review of the local API and update the draft PR summary with the verified scope. Keep it unmerged until a real desktop smoke test is possible.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
