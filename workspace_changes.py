@@ -138,7 +138,7 @@ class WorkspaceChangeManager:
         except WorkspaceError as exc:
             message = str(exc)
             status = "stale" if any(token in message.lower() for token in
-                                    ("changed since", "changed after preview", "changed during", "appeared after preview", "stale")) else "failed"
+                                    ("changed since", "changed after preview", "changed during", "appeared after preview", "changed during review", "stale")) else "failed"
             with self.store.connect() as db:
                 db.execute("UPDATE workspace_changes SET status=?,error=? WHERE id=? AND status='applying'",
                            (status, message[:500], proposal_id))
