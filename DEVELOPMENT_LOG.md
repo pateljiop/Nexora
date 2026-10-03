@@ -814,3 +814,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Next step:** Run Linux and Windows CI, inspect failures, update the log with exact results, and merge only if the current head is green.
 
 **Commit/branch:** `fix/execution-cancel-finalization`; implementation/test commits through `0741d0c6164bb63f3686a1e354cdff6b627b9ef2` before this log update.
+
+
+**CI failure/fix (2026-10-04):** Initial run #493 failed in one new regression test because its fixture used a one-step model plan, while the planner contract requires 3–8 steps. The production code and Windows smoke job passed; the fixture now uses three valid read-only steps and completes all of them before testing a post-terminal cancellation request. Rerun CI is required on commit `c9eb3014688dcf38051e1380b9741f60badadff4` before merge.
