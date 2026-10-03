@@ -581,3 +581,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** GitHub Actions run #396 passed on branch head `803fdc8f1ceb83244086d7a54952bb96ad908471`: https://github.com/pateljiop/Nexora/actions/runs/37152728033. JavaScript syntax, Node unit tests, Python API/SQLite tests, and workspace-change manager recovery tests passed. README and PR verification references were refreshed. The next task is to verify the latest docs commit and continue auditing the file-change lifecycle; the Windows desktop smoke test remains outstanding.
+
+
+### Entry: 2026-10-04 — close rollback time-of-check windows
+**Goal:** Reduce the chance of rollback overwriting or deleting a file that a person edited after the first verification check.
+**Changes made:** Existing-file restore now rechecks the target hash immediately before atomic replacement. Rollback of a newly created file rechecks its hash immediately before unlinking. Added a race-simulation regression test that edits a created file between rollback checks and verifies the human edit is preserved.
+**Tests run:** Implementation and regression-test commits are in CI; current-head result is pending.
+**Security/reliability impact:** This narrows the race window and fails closed when the file differs from the recorded write receipt. A local filesystem race cannot be eliminated completely with portable Python path operations, so the code uses repeated checks and atomic replacement rather than claiming perfect locking.
+**Known issues:** The desktop UI has not yet been smoke-tested on the target Windows laptop. Backup and restore behavior still requires a real local filesystem test.
+**Next step:** Verify current-head CI, then review Windows compatibility and update docs/PR verification links.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
