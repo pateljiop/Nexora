@@ -160,12 +160,14 @@ class ExecutionEngineTests(unittest.TestCase):
     def test_cancel_request_after_terminal_state_does_not_set_control_flag(self):
         plan = build_remote_plan("Inspect workspace", [
             {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}},
         ])
         self.store.save_plan(plan)
         execution = self.store.start_execution(plan, plan["steps"])
-        step = plan["steps"][0]
-        self.store.set_execution_step_status(execution["id"], step["id"], "running")
-        self.store.finish_execution_step(execution["id"], step["id"], "completed", output={"ok": True})
+        for step in plan["steps"]:
+            self.store.set_execution_step_status(execution["id"], step["id"], "running")
+            self.store.finish_execution_step(execution["id"], step["id"], "completed", output={"ok": True})
         self.assertEqual(self.store.finish_execution(execution["id"], "completed"), "completed")
 
         result = self.store.request_execution_cancel(execution["id"])
