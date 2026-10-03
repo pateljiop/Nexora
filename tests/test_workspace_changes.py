@@ -146,16 +146,17 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         self.assertEqual(target.read_text(encoding="utf-8"), "human edit\n")
         self.assertEqual(self.manager.get(proposal["id"])["status"], "stale")
 
-    def test_recovery_marks_unknown_new_file_state_stale_not_missing(self):
-        proposal = self.manager.preview("generated.txt", "generated\n")
+    def test_recovery_marks_missing_parent_stale_not_missing(self):
+        nested = self.root / "nested"
+        nested.mkdir()
+        proposal = self.manager.preview("nested/generated.txt", "generated\n")
         with self.store.connect() as db:
             db.execute(
                 "UPDATE workspace_changes SET status='applying',operation='rollback' WHERE id=?",
                 (proposal["id"],),
             )
-        with patch.object(self.manager.workspace, "file_sha256_or_missing",
-                          side_effect=WorkspaceError("target state could not be read")):
-            self.manager.recover_interrupted_changes()
+        nested.rmdir()
+        self.manager.recover_interrupted_changes()
         self.assertEqual(self.manager.get(proposal["id"])["status"], "stale")
 
     def test_concurrent_proposals_for_same_file_do_not_overwrite_each_other(self):
