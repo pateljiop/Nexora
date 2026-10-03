@@ -1,11 +1,12 @@
 {
   "name": "nexora",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Nexora — a desktop-first personal AI workspace with a responsive companion web dashboard.",
+  "description": "Nexora — a desktop-first personal AI workspace for Virtual Hariom with a responsive mobile companion.",
   "scripts": {
     "test": "node --test",
-    "check:syntax": "node --check src/main.js && node --check src/task-state.js"
+    "check:syntax": "node --check src/main.js && node --check src/task-state.js",
+    "check": "npm run check:syntax && npm test"
   }
 }
