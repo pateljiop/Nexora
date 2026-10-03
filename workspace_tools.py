@@ -242,6 +242,8 @@ class Workspace:
             raise WorkspaceError("Rollback stopped because the file changed after the write.")
         if receipt.get("created") is True:
             try:
+                if hashlib.sha256(path.read_bytes()).hexdigest() != receipt.get("sha256"):
+                    raise WorkspaceError("Rollback stopped because the file changed after the write.")
                 path.unlink()
             except OSError:
                 raise WorkspaceError("Could not remove the file created by the reviewed write.") from None
@@ -259,6 +261,12 @@ class Workspace:
             raise WorkspaceError("Backup could not be read.") from None
         if hashlib.sha256(original).hexdigest() != receipt.get("originalSha256"):
             raise WorkspaceError("Backup integrity check failed; rollback was stopped.")
+        try:
+            current_before_restore = path.read_bytes()
+        except OSError:
+            raise WorkspaceError("Rollback target could not be rechecked before restore.") from None
+        if hashlib.sha256(current_before_restore).hexdigest() != receipt.get("sha256"):
+            raise WorkspaceError("Rollback stopped because the file changed after the write.")
         self._atomic_replace(path, original, ".nexora-rollback-")
         return {"path": receipt["path"], "rolledBack": True, "removedCreatedFile": False}
 
