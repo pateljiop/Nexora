@@ -112,7 +112,7 @@ function renderTasks() {
     check.type = "button";
     check.setAttribute("aria-label", task.status === "completed" ? "Mark task as pending" : "Mark task as completed");
     check.setAttribute("aria-pressed", String(task.status === "completed"));
-    check.addEventListener("click", () => toggleTask(task.id));
+    check.addEventListener("click", () => toggleTask(task.id).catch(error => showToast(error.message)));
 
     const main = makeElement("div", "task-main");
     main.append(makeElement("p", "task-title", task.title));
@@ -125,7 +125,7 @@ function renderTasks() {
     remove.type = "button";
     remove.setAttribute("aria-label", "Delete task");
     remove.title = "Delete task";
-    remove.addEventListener("click", () => removeTask(task.id));
+    remove.addEventListener("click", () => removeTask(task.id).catch(error => showToast(error.message)));
     actions.append(remove);
     row.append(check, main, actions);
     taskList.append(row);
@@ -278,10 +278,15 @@ async function bootstrap() {
     const health = await api("/api/health");
     backendAvailable = health.status === "ok" && health.storage === "sqlite";
     if (backendAvailable && !localStorage.getItem(MIGRATION_KEY)) {
-      await api("/api/import-local", { method: "POST", body: JSON.stringify({
-        tasks: normalizeTasks(readJson(STORAGE_KEY, [])),
-        activities: normalizeActivities(readJson(ACTIVITY_KEY, []))
-      }) });
+      const legacyTasks = normalizeTasks(readJson(STORAGE_KEY, []));
+      const legacyActivities = normalizeActivities(readJson(ACTIVITY_KEY, []));
+      for (let offset = 0; offset < legacyTasks.length || offset === 0; offset += 20) {
+        await api("/api/import-local", { method: "POST", body: JSON.stringify({
+          tasks: legacyTasks.slice(offset, offset + 20),
+          activities: offset === 0 ? legacyActivities : []
+        }) });
+        if (legacyTasks.length === 0) break;
+      }
       localStorage.setItem(MIGRATION_KEY, "complete");
     }
     if (backendAvailable) await refreshFromServer();
