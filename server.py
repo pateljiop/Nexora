@@ -51,6 +51,10 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
+class ActiveExecutionError(ValueError):
+    """Raised when another persisted run is still active."""
+
+
 class Store:
     def __init__(self, path=DB_PATH):
         self.path = Path(path)
@@ -224,13 +228,16 @@ class Store:
         created = now_iso()
         note = "Read-only tool steps completed; the user's overall goal has not been independently verified."
         with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            active = db.execute("SELECT id FROM executions WHERE status='running' LIMIT 1").fetchone()
+            if active:
+                raise ActiveExecutionError("Another read-only run is already active.")
             db.execute("INSERT INTO executions(id,plan_id,goal,status,goal_verified,verification_note,created_at) VALUES(?,?,?,'running',0,?,?)",
                        (execution_id, plan["id"], plan["goal"], note, created))
             for ordinal, step in enumerate(steps, start=1):
                 db.execute("INSERT INTO execution_steps(id,execution_id,ordinal,plan_step_id,title,tool,arguments_json,status) VALUES(?,?,?,?,?,?,?,'not_started')",
                            (str(uuid.uuid4()), execution_id, ordinal, step["id"], step["title"], step["tool"],
                             json.dumps(step.get("arguments", {}), ensure_ascii=False)))
-        with self.connect() as db:
             db.execute("INSERT INTO execution_controls(execution_id,cancel_requested) VALUES(?,0)", (execution_id,))
         return self.get_execution(execution_id)
 
@@ -466,6 +473,8 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"execution": result})
             else:
                 self.send_json(404, {"error": "API route not found."})
+        except ActiveExecutionError as exc:
+            self.send_json(409, {"error": str(exc)})
         except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
         except ModelProviderError as exc:
