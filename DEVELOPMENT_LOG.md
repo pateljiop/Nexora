@@ -825,7 +825,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 ### Entry: 2026-10-04 — safer Windows launcher port handling
 **Goal:** Make first-run startup predictable when the optional local port is configured and fail clearly on invalid port values.
 
-**Files changed:** `run-local.bat`, `server.py`, `tests/test_local_server.py`, `DEVELOPMENT_LOG.md`.
+**Files changed:** `run-local.bat`, `server.py`, `tests/test_local_server.py`, `.env.example`, `DEVELOPMENT_LOG.md`.
 
 **Approach:** Added strict `NEXORA_PORT` validation (1024–65535) in the server and Windows launcher. The launcher now honors the configured port consistently for readiness checks and browser launch, and only considers startup healthy when the endpoint reports Nexora's expected SQLite health response.
 
@@ -837,4 +837,4 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run Linux/Windows CI, inspect failures, update the log, and merge only after the latest PR head is green.
 
-**Commit/branch:** `fix/windows-launcher-port`; implementation/test commits through `59bf5db31be08e85ef4827238f3a81d142f5c705` before this log update.
+**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `1b62910e3aa1dc4ad8b533170ea797313a22acba` before this log update.
