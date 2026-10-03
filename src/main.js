@@ -365,6 +365,7 @@ function renderExecution(execution, scroll = true) {
   const panel = $("#execution-result");
   $("#execution-title").textContent = execution.status === "running" ? "Read-only run in progress" : execution.status === "completed" ? "Read-only run finished" : "Read-only run stopped";
   $("#execution-note").textContent = execution.verificationNote;
+  $("#execution-note").classList.remove("error");
   $("#execution-status").textContent = execution.status.toUpperCase();
   const list = $("#execution-steps");
   list.replaceChildren();
@@ -403,15 +404,32 @@ function renderExecution(execution, scroll = true) {
   if (scroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function setExecutionStatusError(message) {
+  const note = $("#execution-note");
+  if (!note) return;
+  note.textContent = message + " The saved run was not retried; use Refresh status to check its current state.";
+  note.classList.add("error");
+}
+
 async function refreshExecutionStatus({ poll = false } = {}) {
   if (!activeExecutionId) return null;
   const id = activeExecutionId;
   const maxPolls = poll ? 120 : 1;
   let execution = null;
   for (let attempt = 0; attempt < maxPolls; attempt++) {
-    const result = await api(`/api/executions/${encodeURIComponent(id)}`);
+    let result;
+    try {
+      result = await api(`/api/executions/${encodeURIComponent(id)}`);
+    } catch (error) {
+      setExecutionStatusError("Could not refresh run status: " + (error instanceof Error ? error.message : "Local API unavailable."));
+      throw error;
+    }
     execution = result.execution;
-    if (!execution) throw new Error("Execution record was not found.");
+    if (!execution) {
+      const error = new Error("Execution record was not found.");
+      setExecutionStatusError(error.message);
+      throw error;
+    }
     renderExecution(execution, false);
     if (execution.status !== "running") {
       activeExecutionId = null;
@@ -441,6 +459,7 @@ async function cancelCurrentExecution() {
     showToast(result.execution.cancelRequested ? "Cancellation requested. The current read-only step may finish first." : "This run has already stopped.");
     await refreshExecutionStatus({ poll: true });
   } catch (error) {
+    setExecutionStatusError("Could not confirm cancellation: " + (error instanceof Error ? error.message : "Local API unavailable."));
     showToast(error instanceof Error ? error.message : "Could not cancel this run.");
   } finally {
     button.disabled = false;
