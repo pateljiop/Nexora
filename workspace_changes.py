@@ -139,12 +139,12 @@ class WorkspaceChangeManager:
             # Reconcile against the actual target after any failed write attempt.
             # This also handles a low-level operation that raised after replacing
             # the file: disk state, not the exception text, determines the status.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise WorkspaceChangeError(str(exc)) from None
         except Exception:
             # A low-level failure may happen after the atomic replace but before the
             # receipt/status commit. Observe disk and reconcile; never guess or replay.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise
 
     def rollback(self, proposal_id, approved):
@@ -192,10 +192,21 @@ class WorkspaceChangeManager:
             self.recover_interrupted_changes()
             raise
 
-    def recover_interrupted_changes(self):
-        """Reconcile disk state after interruption without repeating any mutation."""
+    def recover_interrupted_changes(self, proposal_id=None):
+        """Reconcile interrupted operations without repeating any mutation.
+
+        Startup calls recover all in-flight records. An operation's exception path
+        must reconcile only its own proposal so it cannot misclassify another live
+        concurrent mutation as interrupted.
+        """
         with self.store.connect() as db:
-            rows = db.execute("SELECT * FROM workspace_changes WHERE status='applying'").fetchall()
+            if proposal_id is None:
+                rows = db.execute("SELECT * FROM workspace_changes WHERE status='applying'").fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT * FROM workspace_changes WHERE status='applying' AND id=?",
+                    (proposal_id,),
+                ).fetchall()
         for row in rows:
             try:
                 current_sha = self.workspace.file_sha256_or_missing(row["path"])
