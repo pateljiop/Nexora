@@ -860,6 +860,9 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run Linux/Windows CI and merge only after the latest head is green; continue first-run UI clarity.
 
-**Commit/branch:** `fix/accurate-capability-help`; implementation/test commits through `8ca2afeb22ee09a11201953908d02039b6005661` before this log update.
+**Commit/branch:** PR #13 (`fix/accurate-capability-help`) merged into `main` as `658f3fd572e505ecfec2b791ea13aa861a8abdcc`.
 
 **CI failure/fix (2026-10-04):** Initial run #509 failed because the static test expected a lowercase initial letter while the approved help copy correctly starts the sentence with uppercase `Captured`. Updated the assertion to match the actual copy. Rerun required on commit `8ca2afeb22ee09a11201953908d02039b6005661` before merge.
+
+
+**Post-merge verification (2026-10-04):** PR #13 merged after CI run #511 passed on its exact head. Merge commit: `658f3fd572e505ecfec2b791ea13aa861a8abdcc`. Main CI for the merge and this log update is pending; verify the current main HEAD. Help copy is now aligned with implemented capabilities, but the actual laptop smoke test remains pending.
