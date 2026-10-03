@@ -642,3 +642,26 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Hosted Windows CI is not a substitute for the target Windows 10 laptop smoke test. The PR remains draft.
 **Next step:** Verify the newest documentation commit's CI, then continue final desktop integration hardening without merging before the real-laptop smoke test.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — reconcile unexpected post-write failures
+**Goal:** Preserve a safe, explicit rollback path when an unexpected runtime/database exception occurs after an atomic file operation.
+**Changes made:** Apply and rollback now invoke disk-state reconciliation on unexpected exceptions instead of blindly stamping the operation failed or leaving a misleading state. Added regression tests that simulate exceptions immediately after the atomic apply write and immediately after rollback restores the original file.
+**Tests run:** GitHub Actions runs #424 and #425 are associated with the code/test commits; run #425 is the newest commit and is queued at the time of this entry. Do not consider this change verified until run #425 completes successfully.
+**Security/reliability impact:** The recovery logic compares the current content hash to saved original/proposed hashes; it does not replay mutations. When an apply reached disk but its receipt was not persisted, the existing SQLite snapshot supports an explicitly approved rollback.
+**Known issues:** OS-level race windows around path validation and atomic replacement still warrant a separate security audit; this is not a claim of full transactional filesystem semantics.
+**Next step:** Confirm current-head CI; if green, audit symlink/path race handling and local API request limits, then rerun CI.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — final workspace target revalidation
+**Goal:** Narrow the time window between path validation and a reviewed file mutation.
+**Changes made:** Added a final workspace-root/path/symlink revalidation immediately before atomic replacement, before rollback restoration, and before removing a file created by a reviewed proposal. Added a regression test proving a rejected final revalidation leaves a new-file target absent. Final path-change failures are classified as stale proposals rather than generic failures.
+**Tests run:** New tests are committed; latest CI is pending.
+**Security/reliability impact:** This is defense-in-depth against path redirection, not a claim that portable path-based filesystem operations eliminate every possible OS-level TOCTOU race.
+**Known issues:** Windows and POSIX filesystems have different locking/symlink semantics; the smoke workflow validates startup and loopback API, not adversarial concurrent filesystem mutation.
+**Next step:** Verify current-head CI and inspect any failures before continuing.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification (2026-10-04):** CI run #429 passed on commit `fdd570501bf01df7773a3faecf4d87cd28f9f822`. Ubuntu and Windows jobs passed, including Python compilation, path-revalidation tests, and the local server smoke test. The latest documentation-only commit has its own CI run pending.
