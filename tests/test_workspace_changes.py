@@ -177,6 +177,19 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         current = (self.root / "notes.txt").read_text(encoding="utf-8")
         self.assertIn(current, {"first approved version\n", "second approved version\n"})
 
+    def test_operation_failure_recovery_does_not_reclassify_other_in_flight_proposals(self):
+        first = self.manager.preview("notes.txt", "first version\n")
+        second = self.manager.preview("notes.txt", "second version\n")
+        with self.store.connect() as db:
+            db.execute(
+                "UPDATE workspace_changes SET status='applying',operation='apply' WHERE id IN (?,?)",
+                (first["id"], second["id"]),
+            )
+
+        self.manager.recover_interrupted_changes(first["id"])
+        self.assertEqual(self.manager.get(first["id"])["status"], "failed")
+        self.assertEqual(self.manager.get(second["id"])["status"], "applying")
+
     def test_pending_proposals_are_bounded(self):
         for index in range(50):
             self.manager.preview("notes.txt", f"proposal number {index}\n")
