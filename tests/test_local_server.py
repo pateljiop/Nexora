@@ -193,6 +193,20 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("model-generated", payload["error"])
 
+    def test_saved_plan_can_be_loaded_for_review_without_execution(self):
+        plan = build_remote_plan("Inspect", [
+            {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "sample.txt"}},
+            {"title": "Tasks", "detail": "Read only", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.httpd.RequestHandlerClass.store.save_plan(plan)
+        status, payload = self.request(f"/api/plans/{plan['id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["plan"]["id"], plan["id"])
+        self.assertEqual(payload["plan"]["executionEnabled"], False)
+        missing_status, _ = self.request("/api/plans/missing-plan")
+        self.assertEqual(missing_status, 404)
+
     def test_cancel_endpoint_sets_persistent_request(self):
         plan = build_remote_plan("Inspect", [
             {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
