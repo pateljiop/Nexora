@@ -42,6 +42,7 @@
 .execution-result[hidden]{display:none}
 .execution-result h3{margin:0;color:var(--text,#edf2ff);font-size:13px}
 .execution-result #execution-note{max-width:720px;color:var(--muted,#9ca9c5);font-size:10px;line-height:1.6}
+.execution-result #execution-note.error{color:#ffb3b3}
 .execution-steps{display:grid;gap:9px;margin-top:13px}
 .execution-step{min-width:0;padding:12px;border:1px solid rgba(126,145,184,.16);border-radius:9px;background:rgba(8,13,27,.32)}
 .execution-step-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
