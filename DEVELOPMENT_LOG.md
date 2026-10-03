@@ -688,3 +688,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The GitHub Windows runner can validate app startup but does not prove the user's real browser permission flow, multi-monitor selection, or display capture behavior on the target laptop. Captured frames are not yet connected to a vision model.
 **Next step:** Run CI; if green, review the diff and merge. Then build an explicitly user-approved vision-analysis path before adding computer actions.
 **Commit/PR:** Branch `feat/local-screen-observer`.
+
+
+**CSP verification:** Updated the local page policy for the in-memory frame preview and added a response-header regression test. CI is pending.
