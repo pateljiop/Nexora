@@ -751,3 +751,21 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Final verification (2026-10-04):** PR #8 merged after CI run #482 passed on the exact PR head. The merge is source-control-only and does not enable new side-effect tools. Main CI for merge commit `6269d40284311c6a7bf4573a0451fcc1bd76e000` is pending; verify it before marking the merged main head green. Target-laptop interactive smoke testing remains pending.
+
+
+### Entry: 2026-10-04 — clear captured screen frame on stop
+**Goal:** Minimize the lifetime of sensitive screen content in the desktop UI.
+
+**Files changed:** `src/main.js`, `tests/ui-contract.test.js`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Stopping a screen share now clears the captured image's `src`, hides the captured-frame result panel, and updates the message to confirm the frame was cleared. The existing page-exit cleanup remains in place. Added UI contract assertions that this cleanup occurs inside `stopScreenShare()`.
+
+**Security/reliability impact:** A manually captured frame no longer remains visible/in browser memory after the user stops sharing. Screen capture remains opt-in and no frames are uploaded or sent to a model.
+
+**Tests run/results:** UI contract regression test added; current PR CI pending. No local test execution is claimed.
+
+**Known issues:** Browser permission/display-picker behavior still requires an interactive test in a desktop browser; GitHub's Windows server smoke test cannot prove real display-capture behavior.
+
+**Next step:** Verify Linux and Windows CI, then continue desktop execution-history error/reconnect UX.
+
+**Commit/branch:** `fix/screen-frame-cleanup`; implementation/test commits through `f34bd85bf5d9909c11074115d88a8470939f23b9` before this log update.
