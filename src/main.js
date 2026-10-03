@@ -371,6 +371,26 @@ function renderExecution(execution) {
 
 async function runCurrentPlan() {
   if (!currentPlan || $("#run-plan-button").disabled) return;
+  const selectedSteps = currentPlan.steps.filter(step => step.tool && step.tool !== "none");
+  if (!selectedSteps.length || selectedSteps.length !== currentPlan.steps.length) {
+    showToast("This plan contains steps without an approved read-only tool. Nothing was run.");
+    return;
+  }
+  const toolSummary = selectedSteps.map((step, index) => {
+    const args = step.arguments && Object.keys(step.arguments).length
+      ? " (" + Object.entries(step.arguments).map(([key, value]) => key + "=" + String(value)).join(", ") + ")"
+      : "";
+    return (index + 1) + ". " + step.tool + args;
+  }).join("\\n");
+  const approved = window.confirm(
+    "Review the read-only run before continuing.\\n\\nGoal: " + currentPlan.goal +
+    "\\n\\nTools and arguments:\\n" + toolSummary +
+    "\\n\\nOnly the configured workspace and saved task list can be read. No files will be written, deleted, or executed. Continue?"
+  );
+  if (!approved) {
+    showToast("Run cancelled. No tools were called.");
+    return;
+  }
   const button = $("#run-plan-button");
   button.disabled = true;
   button.textContent = "Running read-only tools…";
