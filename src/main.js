@@ -259,6 +259,7 @@ function renderPlan(plan) {
     item.append(copy);
     list.append(item);
   }
+  $(".plan-preview .stream-mark").textContent = plan.source === "remote_model" ? "REMOTE MODEL · DRY RUN" : "LOCAL TEMPLATE · DRY RUN";
   panel.hidden = false;
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -275,10 +276,15 @@ async function requestPlanPreview() {
     return;
   }
   try {
-    const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal }) });
+    const modelStatus = await api("/api/model/status");
+    let remoteConsent = false;
+    if (modelStatus.enabled && modelStatus.dataSharing === "remote_goal_sent_only_with_per_request_confirmation") {
+      remoteConsent = window.confirm(`This sends your goal to the configured external model (${modelStatus.providerHost}, ${modelStatus.model}). Continue? Choose Cancel to use the local template instead.`);
+    }
+    const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal, remoteConsent }) });
     renderPlan(result.plan);
     await refreshFromServer();
-    showToast("Plan preview saved locally. No actions were executed.");
+    showToast(result.plan.source === "remote_model" ? "Remote plan preview saved. No actions were executed." : "Local template preview saved. No actions were executed.");
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not create the plan preview.");
   }
