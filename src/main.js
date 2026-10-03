@@ -278,10 +278,12 @@ async function requestPlanPreview() {
   try {
     const modelStatus = await api("/api/model/status");
     let remoteConsent = false;
+    let useModel = modelStatus.enabled && modelStatus.dataSharing === "local_goal_stays_on_laptop";
     if (modelStatus.enabled && modelStatus.dataSharing === "remote_goal_sent_only_with_per_request_confirmation") {
       remoteConsent = window.confirm(`This sends your goal to the configured external model (${modelStatus.providerHost}, ${modelStatus.model}). Continue? Choose Cancel to use the local template instead.`);
+      useModel = remoteConsent;
     }
-    const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal, remoteConsent }) });
+    const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal, useModel, remoteConsent }) });
     renderPlan(result.plan);
     await refreshFromServer();
     showToast(result.plan.source === "remote_model" ? "Remote plan preview saved. No actions were executed." : "Local template preview saved. No actions were executed.");
