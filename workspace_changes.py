@@ -76,6 +76,9 @@ class WorkspaceChangeManager:
             proposal_id = str(uuid.uuid4())
             created_at = now_iso()
             with self.store.connect() as db:
+                pending = db.execute("SELECT COUNT(*) AS count FROM workspace_changes WHERE status IN ('pending','applying')").fetchone()["count"]
+                if pending >= MAX_PROPOSALS:
+                    raise WorkspaceChangeError("There are too many pending workspace proposals. Apply, roll back, or dismiss older proposals first.")
                 db.execute(
                     """INSERT INTO workspace_changes
                        (id,path,diff,original_exists,original_content,original_sha256,
