@@ -184,11 +184,11 @@ function render() {
 function renderConnection() {
   $("#connection-dot").classList.toggle("muted", !backendAvailable);
   $("#connection-title").textContent = backendAvailable ? "Local storage connected" : "Local server not connected";
-  $("#connection-subtitle").textContent = backendAvailable ? "SQLite · loopback only" : "Browser fallback · no execution";
+  $("#connection-subtitle").textContent = backendAvailable ? "SQLite · read-only tools only" : "Browser fallback · no execution";
   $(".orb-caption small").textContent = backendAvailable ? "LOCAL STORAGE READY" : "PREVIEW MODE";
   $(".notice").innerHTML = backendAvailable
-    ? '<span>ⓘ</span> Local SQLite storage is connected. AI planning and device control are still disabled.'
-    : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Nexora with run-local.bat. AI responses and device control are not connected.';
+    ? '<span>ⓘ</span> Local SQLite is connected. Plan previews and allowlisted read-only tools are available; device control is disabled.'
+    : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Nexora with run-local.bat. Model planning needs local configuration; device control is not connected.';
   const footer = $(".footer-state");
   if (footer) footer.lastChild.textContent = backendAvailable ? " LOCAL SQLITE" : " PREVIEW MODE";
 }
