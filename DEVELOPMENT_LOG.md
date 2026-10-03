@@ -144,4 +144,19 @@ Append a dated entry for each meaningful session:
 **Commit/PR:** Link or SHA when available.
 
 ## Current next action
-Implement a local-only backend with SQLite and tests after inspecting existing UI/task-state contracts. Keep changes on feat/desktop-web-foundation, update this log in the same session, run CI, and do not merge the draft PR without Hariom's approval.
+Implement a local-only backend with SQLite and tests after inspecting existing UI/task-state contracts. Keep changes on feat/desktop-web-foundation, update this log in the same session, and merge when the milestone is complete and required verification is green. Hariom has authorized autonomous implementation, pushing, merging when appropriate, and re-verification without repeated permission requests.
+
+### Entry: 2026-10-04 — local SQLite backend and desktop API wiring
+**Goal:** Move durable task state off browser-only storage and establish a safe local runtime foundation.
+**Inspection:** Reviewed `src/main.js`, `src/task-state.js`, `tests/task-state.test.js`, `index.html`, `package.json`, and the existing CI workflow. Confirmed the previous UI was browser-local only and did not execute AI tasks.
+**Changes made:**
+- Added `server.py`: Python standard-library HTTP server bound to `127.0.0.1`, SQLite task/activity storage, health/tasks/activity APIs, task create/update/delete endpoints, and a bounded legacy browser-data import endpoint.
+- Added request protections: local Host/Origin allowlists, cross-site fetch rejection, 64 KiB request-body cap, parameterized SQL, input validation, safe API errors, static path traversal protection, no-store API responses, and restrictive static-content headers.
+- Updated `src/main.js` to detect the local backend, import existing browser data once in small batches, use SQLite-backed task CRUD when available, and show local-server/preview state honestly. Browser storage remains a fallback when the server is unavailable.
+- Added `tests/test_local_server.py` for SQLite behavior, task validation, import idempotency, activity bounds, HTTP CRUD, invalid Host, and cross-origin rejection.
+- Added `run-local.bat`, `.gitignore` for local database/Python cache files, Python test integration in `package.json` and GitHub Actions, and Windows setup/limitations in `README.md`.
+**Security/reliability impact:** The backend does not execute commands, control the desktop, access remote devices, or call an AI provider. It listens on loopback only. Legacy data import does not overwrite existing task IDs. The database is local at `data/nexora.sqlite3`.
+**Tests run:** GitHub Actions run #26 passed at commit `57dfb6ab40fe2dde955eedb130c4328314f94455` after Python API/SQLite tests were added: https://github.com/pateljiop/Nexora/actions/runs/37149933845. That run predates later frontend hardening and must not be treated as verification of the current head. Current-head CI is being checked separately.
+**Known issues:** LLM/provider planning, real execution tools, approvals, browser/computer control, cancellation/checkpoints/recovery, and voice are not implemented. The local server must be started with `run-local.bat`; opening `index.html` directly uses browser fallback.
+**Next step:** Verify CI for the latest branch head, fix any failures, then implement a dry-run structured planner with explicit task/plan state and tests before enabling side effects.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1. Latest code changes are pushed to GitHub; the PR remains draft while the core desktop runtime is still incomplete.
