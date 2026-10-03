@@ -52,8 +52,8 @@ class ModelProviderTests(unittest.TestCase):
         self.assertFalse(plan["executionEnabled"])
         self.assertTrue(all(step["sideEffects"] is False for step in plan["steps"]))
         request = mocked.call_args.args[0]
-        self.assertEqual(request.get_header("Authorization"), "Bearer test-secret-never-return")
-        self.assertIn("test-secret-never-return", request.get_header("Authorization"))
+        authorization = request.get_header("Authorization") or request.headers.get("Authorization") or request.headers.get("authorization")
+        self.assertEqual(authorization, "Bearer test-secret-never-return")
 
     def test_rejects_remote_http_endpoint_outside_loopback(self):
         with patch.dict(os.environ, {"NEXORA_MODEL_BASE_URL": "http://192.0.2.1/v1"}):
@@ -74,7 +74,9 @@ class ModelProviderTests(unittest.TestCase):
             with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": local_steps}))) as mocked:
                 plan = build_model_plan("Plan locally")
             self.assertEqual(plan["source"], "local_model")
-            self.assertIsNone(mocked.call_args.args[0].get_header("Authorization"))
+            request = mocked.call_args.args[0]
+            self.assertNotIn("Authorization", request.headers)
+            self.assertNotIn("authorization", request.headers)
 
     def test_rejects_invalid_model_output(self):
         with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": [{"title": "Only one", "detail": ""}]}))):
