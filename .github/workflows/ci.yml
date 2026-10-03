@@ -19,7 +19,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Verify JavaScript syntax
         run: npm run check:syntax
-      - name: Run unit tests
+      - name: Run JavaScript unit tests
         run: npm test
+      - name: Run local API and SQLite tests
+        run: npm run test:python
