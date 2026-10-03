@@ -820,3 +820,21 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Post-merge verification (2026-10-04):** PR #11 merged after CI run #495 passed on its exact head. Merge commit: `a02f205b04e82c98d04a5937b79b605b0d1398de`. Main CI for the merged commit is pending; verify it after this log update. Cancellation remains cooperative during a running read-only tool, and laptop testing remains pending.
+
+
+### Entry: 2026-10-04 — safer Windows launcher port handling
+**Goal:** Make first-run startup predictable when the optional local port is configured and fail clearly on invalid port values.
+
+**Files changed:** `run-local.bat`, `server.py`, `tests/test_local_server.py`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Added strict `NEXORA_PORT` validation (1024–65535) in the server and Windows launcher. The launcher now honors the configured port consistently for readiness checks and browser launch, and only considers startup healthy when the endpoint reports Nexora's expected SQLite health response.
+
+**Security/reliability impact:** The server still binds only to `127.0.0.1`; this does not enable LAN/public access. Port conflicts or invalid configuration fail with an actionable launcher message instead of opening an unrelated endpoint.
+
+**Tests run/results:** Added Python tests for accepted/rejected port values. Current PR CI pending; no local test execution is claimed. Main baseline at branch creation: `6de6273d35b73c34b2fd4be4c1f7dfaa1e78945a`, CI run #497 passed: https://github.com/pateljiop/Nexora/actions/runs/37157008804.
+
+**Known issues:** The actual Windows desktop launcher still needs manual verification on the user's laptop; CI validates server startup and loopback health, not interactive desktop browser behavior.
+
+**Next step:** Run Linux/Windows CI, inspect failures, update the log, and merge only after the latest PR head is green.
+
+**Commit/branch:** `fix/windows-launcher-port`; implementation/test commits through `59bf5db31be08e85ef4827238f3a81d142f5c705` before this log update.
