@@ -33,11 +33,13 @@ class WorkspaceChangeManager:
                 proposed_sha256 TEXT NOT NULL,
                 status TEXT NOT NULL CHECK(status IN ('pending','applying','applied','rolled_back','stale','failed')),
                 created_at TEXT NOT NULL, applied_at TEXT, rolled_back_at TEXT,
-                error TEXT, receipt_json TEXT
+                error TEXT, receipt_json TEXT, operation TEXT NOT NULL DEFAULT 'apply'
             )""")
             columns = {row["name"] for row in db.execute("PRAGMA table_info(workspace_changes)").fetchall()}
             if "receipt_json" not in columns:
                 db.execute("ALTER TABLE workspace_changes ADD COLUMN receipt_json TEXT")
+            if "operation" not in columns:
+                db.execute("ALTER TABLE workspace_changes ADD COLUMN operation TEXT NOT NULL DEFAULT 'apply'")
 
     @staticmethod
     def _sha(content):
@@ -111,7 +113,7 @@ class WorkspaceChangeManager:
                 raise WorkspaceChangeError("Change proposal not found.")
             if row["status"] != "pending":
                 raise WorkspaceChangeError("Only a pending proposal can be applied.")
-            db.execute("UPDATE workspace_changes SET status='applying',error=NULL WHERE id=?", (proposal_id,))
+            db.execute("UPDATE workspace_changes SET status='applying',operation='apply',error=NULL WHERE id=?", (proposal_id,))
             record = dict(row)
         try:
             proposed = bytes(record["proposed_content"]).decode("utf-8")
@@ -155,13 +157,24 @@ class WorkspaceChangeManager:
                 raise WorkspaceChangeError("Change proposal not found.")
             if row["status"] != "applied":
                 raise WorkspaceChangeError("Only an applied change can be rolled back.")
-            if not row["receipt_json"]:
-                raise WorkspaceChangeError("Write receipt is missing; rollback is unavailable.")
-            db.execute("UPDATE workspace_changes SET status='applying',error=NULL WHERE id=?", (proposal_id,))
+            db.execute("UPDATE workspace_changes SET status='applying',operation='rollback',error=NULL WHERE id=?", (proposal_id,))
             record = dict(row)
         try:
-            receipt = json.loads(record["receipt_json"])
-            result = self.workspace.rollback_write(receipt, backup_root=str(self.backup_root) if self.backup_root else None)
+            if record["receipt_json"]:
+                receipt = json.loads(record["receipt_json"])
+                result = self.workspace.rollback_write(receipt, backup_root=str(self.backup_root) if self.backup_root else None)
+            elif record["original_exists"]:
+                original = bytes(record["original_content"]).decode("utf-8")
+                self.workspace.write_file(
+                    record["path"], original, expected_sha256=record["proposed_sha256"],
+                    backup_root=str(self.backup_root) if self.backup_root else None,
+                )
+                result = {"path": record["path"], "rolledBack": True, "receiptRecoveredFromDatabase": True}
+            else:
+                result = self.workspace.rollback_write(
+                    {"path": record["path"], "sha256": record["proposed_sha256"], "created": True},
+                    backup_root=str(self.backup_root) if self.backup_root else None,
+                )
             with self.store.connect() as db:
                 db.execute("""UPDATE workspace_changes SET status='rolled_back',rolled_back_at=?,error=NULL
                               WHERE id=? AND status='applying'""", (now_iso(), proposal_id))
@@ -174,13 +187,31 @@ class WorkspaceChangeManager:
             raise WorkspaceChangeError(str(exc)) from None
 
     def recover_interrupted_changes(self):
-        """Mark uncertain applies as failed for human inspection; never retry automatically."""
+        """Reconcile disk state after interruption without repeating any mutation."""
         with self.store.connect() as db:
-            rows = db.execute("SELECT id,path FROM workspace_changes WHERE status='applying'").fetchall()
-            for row in rows:
-                db.execute("""UPDATE workspace_changes SET status='failed',
-                              error='Server restarted during apply/rollback. Inspect the target and backup; no retry was attempted.'
-                              WHERE id=? AND status='applying'""", (row["id"],))
+            rows = db.execute("SELECT * FROM workspace_changes WHERE status='applying'").fetchall()
         for row in rows:
-            self.store.add_activity("Interrupted file change requires review", row["path"])
+            current_sha = None
+            try:
+                current = self.workspace.read_file(row["path"])
+                current_sha = self._sha(current["content"].encode("utf-8"))
+            except WorkspaceError:
+                current_sha = None
+            original_state = current_sha == row["original_sha256"] if row["original_exists"] else current_sha is None
+            proposed_state = current_sha == row["proposed_sha256"]
+            operation = row["operation"] if "operation" in row.keys() else "apply"
+            if operation == "rollback" and original_state:
+                status, note = "rolled_back", "Rollback reached disk before restart; status reconciled without retry."
+            elif operation == "rollback" and proposed_state:
+                status, note = "applied", "Rollback did not change the target before restart; review before retrying."
+            elif operation == "apply" and proposed_state:
+                status, note = "applied", "Proposed content reached disk before restart. The saved SQLite snapshot is available for rollback."
+            elif operation == "apply" and original_state:
+                status, note = "failed", "Server restarted before the proposal was applied; no automatic retry occurred."
+            else:
+                status, note = "stale", "Server restarted during the change and disk state matches neither snapshot; inspect manually."
+            with self.store.connect() as db:
+                db.execute("UPDATE workspace_changes SET status=?,error=? WHERE id=? AND status='applying'",
+                           (status, note, row["id"]))
+            self.store.add_activity("Interrupted file change reconciled", row["path"])
         return len(rows)
