@@ -18,6 +18,16 @@ class DryRunPlannerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 build_dry_run_plan(goal)
 
+    def test_model_plan_accepts_only_read_only_tools(self):
+        from planner import build_remote_plan
+        safe = [{"title": f"Inspect {i}", "detail": "Read-only inspection.", "tool": "workspace.list", "arguments": {"path": "."}} for i in range(1, 4)]
+        plan = build_remote_plan("Inspect project", safe)
+        self.assertTrue(all(step["tool"] == "workspace.list" for step in plan["steps"]))
+        unsafe = [dict(step) for step in safe]
+        unsafe[0]["tool"] = "shell.run"
+        with self.assertRaises(ValueError):
+            build_remote_plan("Inspect project", unsafe)
+
     def test_validator_rejects_execution_enabled_plan(self):
         plan = build_dry_run_plan("Review a change")
         plan["executionEnabled"] = True
