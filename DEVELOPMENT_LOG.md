@@ -536,3 +536,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The desktop UI does not yet expose proposal/apply/rollback controls. API tests must pass before UI integration. The approval boolean is a local API workflow guard, not a cryptographic identity boundary against code already running on the user's own machine.
 **Next step:** Verify current-head CI, fix any API/test issues, then build a clear diff review and separate Apply/Roll back controls in the desktop UI.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop proposal history and diff-review controls
+**Goal:** Make the tested local change manager usable from the desktop without allowing a plan run to directly write files.
+**Changes made:**
+- Added persistent proposal history with status labels and report loading.
+- Connected the existing “Prepare change for approval” button on a completed `workspace.diff` step to the local proposal API.
+- Added a full diff review panel with separate Apply and Roll back controls. Both actions require a fresh browser confirmation and call the hash-checked API; later manual edits prevent overwrite/rollback.
+- Added status-specific explanatory text and responsive styling for the review/history panels.
+- Corrected the history container ID to match the JavaScript controller.
+**Tests run:** API tests for proposal preview, approval denial, apply/rollback, and stale-file protection passed in CI run #378 on commit `aafde3b100b7ed8b37312a90593742c81cbe2116`: https://github.com/pateljiop/Nexora/actions/runs/37152452023. The current desktop UI integration's CI is pending.
+**Security/reliability impact:** The model still cannot call a file-writing tool. It can produce a diff preview; the user must create a saved proposal, inspect the complete diff, and separately confirm Apply. Rollback also requires separate confirmation and refuses to overwrite later edits.
+**Known issues:** The API's approval boolean is a local workflow guard, not a cryptographic boundary against other code already running as the same user. The desktop integration still needs current-head CI and a real Windows smoke test.
+**Next step:** Verify the UI integration, then update README/PR scope to distinguish agent-disabled writes from explicitly approved manual proposal application.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
