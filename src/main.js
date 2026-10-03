@@ -2,6 +2,7 @@ import { createTask, deleteTask, normalizeTasks, setTaskStatus, summarizeTasks }
 
 const STORAGE_KEY = "nexora.virtual-hariom.tasks.v1";
 const ACTIVITY_KEY = "nexora.virtual-hariom.activity.v1";
+const MIGRATION_KEY = "nexora.virtual-hariom.sqlite-migration.v1";
 const $ = selector => document.querySelector(selector);
 const taskForm = $("#task-form");
 const taskInput = $("#task-input");
@@ -11,6 +12,7 @@ const toast = $("#toast");
 const sidebar = $("#sidebar");
 const aboutDialog = $("#about-dialog");
 let currentView = "overview";
+let backendAvailable = false;
 let tasks = readJson(STORAGE_KEY, []);
 let activities = readJson(ACTIVITY_KEY, []);
 
@@ -41,6 +43,19 @@ function normalizeActivities(value) {
   if (!Array.isArray(value)) return [];
   return value.filter(item => item && typeof item.message === "string" && typeof item.at === "string")
     .slice(0, 30).map(item => ({ message: item.message.slice(0, 180), detail: String(item.detail || "").slice(0, 220), at: item.at }));
+}
+
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) },
+    cache: "no-store"
+  });
+  let payload;
+  try { payload = await response.json(); } catch { payload = {}; }
+  if (!response.ok) throw new Error(payload.error || `Local API error (${response.status}).`);
+  return payload;
 }
 
 function logActivity(message, detail = "") {
@@ -78,14 +93,14 @@ function renderTasks() {
   taskList.replaceChildren();
   const visibleTasks = currentView === "tasks" ? tasks : tasks.slice(0, 5);
   $("#list-title").textContent = currentView === "tasks" ? "All your tasks" : "Your tasks";
-  $("#list-subtitle").textContent = currentView === "tasks" ? "Every task you have saved in this browser." : "Small steps make progress visible.";
+  $("#list-subtitle").textContent = backendAvailable ? "Saved on this laptop in the local SQLite database." : currentView === "tasks" ? "Every task you have saved in this browser." : "Small steps make progress visible.";
   $("#view-all").hidden = currentView === "tasks" || tasks.length <= 5;
 
   if (!visibleTasks.length) {
     const empty = makeElement("div", "empty-state");
     const icon = makeElement("div", "empty-orbit", "✳");
     const title = makeElement("strong", "", currentView === "tasks" ? "No tasks yet" : "Your workspace starts here");
-    const copy = makeElement("p", "", "Tell Virtual Hariom what you want to work on. Your task will be saved in this browser.");
+    const copy = makeElement("p", "", backendAvailable ? "Add a goal above. It will be saved on this laptop." : "Tell Virtual Hariom what you want to work on. Your task will be saved in this browser.");
     empty.append(icon, title, copy);
     taskList.append(empty);
     return;
@@ -155,7 +170,7 @@ function renderNavigation() {
     else button.removeAttribute("aria-current");
   });
   $("#breadcrumb-current").textContent = currentView === "overview" ? "Home" : currentView === "tasks" ? "My tasks" : "Activity";
-  $("#session-label").textContent = currentView === "activity" ? "RECENT EVENTS" : currentView === "tasks" ? "ALL TASKS" : "LOCAL SESSION";
+  $("#session-label").textContent = currentView === "activity" ? "RECENT EVENTS" : currentView === "tasks" ? "ALL TASKS" : backendAvailable ? "LOCAL SQLITE SESSION" : "BROWSER PREVIEW";
   renderTasks();
   renderActivity();
 }
@@ -165,42 +180,58 @@ function render() {
   renderNavigation();
 }
 
-function addTask(title) {
-  const task = createTask(title);
-  tasks = [task, ...tasks].slice(0, 500);
-  writeJson(STORAGE_KEY, tasks);
-  logActivity("Task added to your workspace", task.title);
+async function addTask(title) {
+  if (backendAvailable) {
+    const result = await api("/api/tasks", { method: "POST", body: JSON.stringify({ title }) });
+    tasks = [result.task, ...tasks].slice(0, 500);
+    await refreshFromServer();
+  } else {
+    const task = createTask(title);
+    tasks = [task, ...tasks].slice(0, 500);
+    writeJson(STORAGE_KEY, tasks);
+    logActivity("Task added to your workspace", task.title);
+  }
   currentView = "overview";
   render();
   taskInput.value = "";
   taskInput.blur();
-  showToast("Saved to your workspace. Execution is not connected yet.");
+  showToast(backendAvailable ? "Saved to this laptop. AI execution is not connected yet." : "Saved in this browser. Local server is not connected.");
 }
 
-function toggleTask(id) {
+async function toggleTask(id) {
   const task = tasks.find(item => item.id === id);
   if (!task) return;
   const status = task.status === "completed" ? "pending" : "completed";
-  tasks = setTaskStatus(tasks, id, status);
-  writeJson(STORAGE_KEY, tasks);
-  logActivity(status === "completed" ? "Task marked complete" : "Task reopened", task.title);
-  render();
+  if (backendAvailable) {
+    await api(`/api/tasks/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ status }) });
+    await refreshFromServer();
+  } else {
+    tasks = setTaskStatus(tasks, id, status);
+    writeJson(STORAGE_KEY, tasks);
+    logActivity(status === "completed" ? "Task marked complete" : "Task reopened", task.title);
+    render();
+  }
 }
 
-function removeTask(id) {
+async function removeTask(id) {
   const task = tasks.find(item => item.id === id);
   if (!task) return;
-  tasks = deleteTask(tasks, id);
-  writeJson(STORAGE_KEY, tasks);
-  logActivity("Task removed", task.title);
-  render();
-  showToast("Task removed from this browser.");
+  if (backendAvailable) {
+    await api(`/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });
+    await refreshFromServer();
+  } else {
+    tasks = deleteTask(tasks, id);
+    writeJson(STORAGE_KEY, tasks);
+    logActivity("Task removed", task.title);
+    render();
+  }
+  showToast(backendAvailable ? "Task removed from this laptop." : "Task removed from this browser.");
 }
 
-taskForm.addEventListener("submit", event => {
+taskForm.addEventListener("submit", async event => {
   event.preventDefault();
   try {
-    addTask(taskInput.value);
+    await addTask(taskInput.value);
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not add that task.");
     taskInput.focus();
@@ -242,5 +273,27 @@ aboutDialog.addEventListener("click", event => {
   if (event.target === aboutDialog) aboutDialog.close();
 });
 
+async function bootstrap() {
+  try {
+    const health = await api("/api/health");
+    backendAvailable = health.status === "ok" && health.storage === "sqlite";
+    if (backendAvailable && !localStorage.getItem(MIGRATION_KEY)) {
+      await api("/api/import-local", { method: "POST", body: JSON.stringify({
+        tasks: normalizeTasks(readJson(STORAGE_KEY, [])),
+        activities: normalizeActivities(readJson(ACTIVITY_KEY, []))
+      }) });
+      localStorage.setItem(MIGRATION_KEY, "complete");
+    }
+    if (backendAvailable) await refreshFromServer();
+  } catch {
+    backendAvailable = false;
+    tasks = normalizeTasks(readJson(STORAGE_KEY, []));
+    activities = normalizeActivities(readJson(ACTIVITY_KEY, []));
+  }
+  renderConnection();
+  render();
+  if (tasks.length && !activities.length && !backendAvailable) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
+}
+
 render();
-if (tasks.length && !activities.length) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
+bootstrap();
