@@ -26,10 +26,12 @@ def _configuration():
         raise ModelProviderError("NEXORA_MODEL_BASE_URL must be a valid HTTPS URL (or a loopback HTTP URL).")
     if parsed and parsed.scheme == "http" and parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
         raise ModelProviderError("HTTP model endpoints are allowed only on loopback; use HTTPS for remote providers.")
-    configured = bool(base_url and api_key and model)
-    enabled = configured and os.environ.get("NEXORA_ALLOW_REMOTE_MODEL", "").strip() == "1"
+    local_endpoint = bool(parsed and parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"})
+    configured = bool(base_url and model and (api_key or local_endpoint))
+    enabled = configured and (local_endpoint or os.environ.get("NEXORA_ALLOW_REMOTE_MODEL", "").strip() == "1")
     return {"base_url": base_url, "api_key": api_key, "model": model, "parsed": parsed,
-            "configured": configured, "enabled": enabled}
+            "configured": configured, "enabled": enabled, "local_endpoint": local_endpoint,
+            "remote": bool(configured and not local_endpoint)}
 
 
 def get_model_status():
@@ -38,16 +40,17 @@ def get_model_status():
         return {"configured": config["configured"], "enabled": config["enabled"],
                 "providerHost": config["parsed"].hostname if config["parsed"] else None,
                 "model": config["model"] if config["configured"] else None,
-                "dataSharing": "remote_goal_sent_only_with_per_request_confirmation" if config["enabled"] else "disabled"}
+                "dataSharing": ("local_goal_stays_on_laptop" if config["local_endpoint"] else "remote_goal_sent_only_with_per_request_confirmation") if config["enabled"] else "disabled",
+                "remote": config["remote"]}
     except ModelProviderError:
         return {"configured": False, "enabled": False, "providerHost": None, "model": None,
-                "dataSharing": "disabled", "configurationError": "Model endpoint configuration is invalid."}
+                "dataSharing": "disabled", "remote": False, "configurationError": "Model endpoint configuration is invalid."}
 
 
 def build_model_plan(goal):
     config = _configuration()
     if not config["enabled"]:
-        raise ModelProviderError("Remote model planning is not enabled.")
+        raise ModelProviderError("Model requests are not enabled in local server settings.")
     endpoint = config["base_url"]
     if not endpoint.endswith("/chat/completions"):
         endpoint += "/chat/completions"
@@ -67,12 +70,14 @@ def build_model_plan(goal):
         ],
         "response_format": {"type": "json_object"}
     }
-    request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), method="POST", headers={
-        "Authorization": f"Bearer {config['api_key']}",
+    headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "User-Agent": "Nexora-Virtual-Hariom/0.1"
-    })
+    }
+    if config["api_key"]:
+        headers["Authorization"] = f"Bearer {config['api_key']}"
+    request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), method="POST", headers=headers)
     try:
         with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
