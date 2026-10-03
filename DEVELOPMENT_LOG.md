@@ -831,7 +831,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Security/reliability impact:** The server still binds only to `127.0.0.1`; this does not enable LAN/public access. Port conflicts or invalid configuration fail with an actionable launcher message instead of opening an unrelated endpoint.
 
-**Tests run/results:** Added Python tests for accepted/rejected port values and a launcher contract asserting configured-port health checks remain loopback-only. Current PR CI pending; no local test execution is claimed. Main baseline at branch creation: `6de6273d35b73c34b2fd4be4c1f7dfaa1e78945a`, CI run #497 passed: https://github.com/pateljiop/Nexora/actions/runs/37157008804.
+**Tests run/results:** Added Python tests for accepted/rejected port values and a launcher contract asserting configured-port health checks remain loopback-only. PR-head CI run #506 passed on commit `2d1e537700347504a38a41e478835b6eedfa360d`: https://github.com/pateljiop/Nexora/actions/runs/37157189122. No local test execution is claimed.
 
 **Known issues:** The actual Windows desktop launcher still needs manual verification on the user's laptop; CI validates server startup and loopback health, not interactive desktop browser behavior.
 
@@ -840,3 +840,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `6ed04b846564d908e2eac80361ac7d2aa8219813` before this log update.
 
 **Configuration example correction (2026-10-04):** Kept the explanatory comment on its own line so uncommenting `NEXORA_PORT=8765` produces a valid value for both the Python env loader and the batch launcher.
+
+
+**Post-merge verification (2026-10-04):** PR #12 merged after CI run #506 passed on its exact head. Merge commit: `02c63239fd72506329f7e75cdf71ce8eb626271c`. Main CI for the merge and this log update is pending; verify the latest main head before marking the launcher milestone green. The target laptop's actual batch launcher/browser launch remains a manual check.
