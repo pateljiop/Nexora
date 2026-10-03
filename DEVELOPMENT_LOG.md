@@ -611,3 +611,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Tests run:** JavaScript syntax and UI regression checks are running in CI for the latest commit.
 **Next step:** Verify current-head CI, then continue with end-to-end checks and Windows compatibility review.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — Windows CI smoke test
+**Goal:** Verify the local server starts and serves the desktop entry point on Windows, not only Linux.
+**Changes made:** Added a `windows-latest` GitHub Actions job that checks JavaScript syntax/tests, compiles the Python modules, launches the loopback server, polls `/api/health`, and verifies the HTML and browser JavaScript assets. The job stops the server process in a `finally` block.
+**Tests run:** Linux verification passed on commit `3a4b6e249654f4fadadff772caa2378afcf553cf`; the Windows smoke job is currently running in CI run #410: https://github.com/pateljiop/Nexora/actions/runs/37152932710.
+**Known issues:** Hosted Windows CI is not a substitute for a smoke test on the target Windows 10 laptop. The job currently verifies startup, health, and static assets; it does not exercise model-provider configuration or the browser's full apply/rollback interaction.
+**Next step:** Verify the Windows job, fix any platform-specific issue, then refresh the README/PR verification links and retain draft status until the real laptop smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
