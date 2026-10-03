@@ -29,3 +29,49 @@ jobs:
         run: npm test
       - name: Run local API and SQLite tests
         run: npm run test:python
+
+  windows-smoke:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify browser JavaScript on Windows
+        run: npm run check:syntax
+      - name: Run browser-state unit tests on Windows
+        run: npm test
+      - name: Compile Python modules on Windows
+        run: python -m py_compile server.py planner.py model_provider.py workspace_tools.py workspace_changes.py execution_engine.py tool_registry.py
+      - name: Start local server and smoke-test loopback API
+        shell: pwsh
+        run: |
+          $server = Start-Process -FilePath python -ArgumentList "server.py" -WorkingDirectory $pwd -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/nexora-server.log" -RedirectStandardError "$env:RUNNER_TEMP/nexora-server-error.log"
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $health = Invoke-RestMethod -Uri "http://127.0.0.1:8765/api/health" -TimeoutSec 2
+                if ($health.status -eq "ok") { $ready = $true; break }
+              } catch {}
+              if ($server.HasExited) { break }
+            }
+            if (-not $ready) {
+              Get-Content "$env:RUNNER_TEMP/nexora-server.log" -ErrorAction SilentlyContinue
+              Get-Content "$env:RUNNER_TEMP/nexora-server-error.log" -ErrorAction SilentlyContinue
+              throw "Nexora local server did not become healthy on Windows."
+            }
+            $page = Invoke-WebRequest -Uri "http://127.0.0.1:8765/" -TimeoutSec 5
+            if ($page.StatusCode -ne 200 -or $page.Content -notmatch "NEXORA") { throw "Desktop entry page smoke test failed." }
+            $assets = Invoke-WebRequest -Uri "http://127.0.0.1:8765/src/main.js" -TimeoutSec 5
+            if ($assets.StatusCode -ne 200) { throw "Desktop JavaScript asset smoke test failed." }
+          } finally {
+            if (-not $server.HasExited) { Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue }
+          }
