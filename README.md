@@ -88,4 +88,4 @@ Website/mobile access is deferred until the desktop experience is built and test
 
 ## Latest CI verification
 
-- [GitHub Actions run #452](https://github.com/pateljiop/Nexora/actions/runs/37155140024) passed on main commit `e51528654e7cda46dbd82c447b76d165c15cbdad`, including Ubuntu and Windows checks, API/SQLite tests, and local server smoke testing.
+- [GitHub Actions run #461](https://github.com/pateljiop/Nexora/actions/runs/37155410413) passed on main commit `fe6fe4dc1d437bc21093afa2bd010fd2ec65c9e2`, including Ubuntu and Windows checks, UI privacy-contract tests, API/SQLite tests, and local server smoke testing.
