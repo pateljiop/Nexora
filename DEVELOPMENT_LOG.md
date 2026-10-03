@@ -600,3 +600,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** No target-Windows smoke test has been performed. Current-head CI must be green before this milestone is closed.
 **Next step:** Verify the banner change and refresh README/PR verification links to the latest green head.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #404 passed on head `868ff003e0f3eaad2bce9ce7f6ee4cb49d2379db`: https://github.com/pateljiop/Nexora/actions/runs/37152867999. The rollback race-simulation test and current approval-boundary banner passed with the JavaScript and API/SQLite suite. README and PR verification references were refreshed. The PR remains draft pending Windows smoke testing.
