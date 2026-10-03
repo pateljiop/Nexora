@@ -678,3 +678,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** PR #4 was merged as `3837d80f50f165ea2845b36a4e169a736ed639c4`. GitHub Actions run #435 passed on main, including Ubuntu JS/Python/API tests and the Windows JS tests, Python compilation, and local loopback-server smoke test: https://github.com/pateljiop/Nexora/actions/runs/37154826278.
+
+
+### Entry: 2026-10-04 — local browser screen observation
+**Goal:** Add a first, explicitly user-controlled screen-view capability without enabling mouse/keyboard control or sending screen content to a model.
+**Changes made:** Added a desktop screen-observer panel using the browser's native display picker. Sharing starts only after a click and browser permission; the user can stop sharing or manually capture a downscaled frame. The frame is held in browser memory, not uploaded or persisted, and is cleared when leaving the page. Error paths reset the preview and controls.
+**Tests run:** JavaScript syntax, existing unit tests, and the Windows loopback-server smoke test are pending on this branch.
+**Security/reliability impact:** No screen capture begins automatically. No screen data is sent to the local API, an external provider, or disk. This is observation only; it does not control the computer or provide vision-model interpretation.
+**Known issues:** The GitHub Windows runner can validate app startup but does not prove the user's real browser permission flow, multi-monitor selection, or display capture behavior on the target laptop. Captured frames are not yet connected to a vision model.
+**Next step:** Run CI; if green, review the diff and merge. Then build an explicitly user-approved vision-analysis path before adding computer actions.
+**Commit/PR:** Branch `feat/local-screen-observer`.
