@@ -1,0 +1,66 @@
+"""Transparent, deterministic plan previews. This module never executes actions."""
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+
+MAX_GOAL_LENGTH = 1200
+MAX_PLAN_STEPS = 8
+PLAN_MODE = "dry_run"
+PLAN_SOURCE = "local_template"
+
+
+def now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def build_dry_run_plan(goal, created_at=None):
+    if not isinstance(goal, str):
+        raise ValueError("Goal must be a string.")
+    goal = goal.strip()
+    if not goal:
+        raise ValueError("Write a goal before requesting a plan.")
+    if len(goal) > MAX_GOAL_LENGTH:
+        raise ValueError(f"Goal must be {MAX_GOAL_LENGTH} characters or fewer.")
+    created_at = created_at or now_iso()
+    plan = {
+        "id": str(uuid.uuid4()),
+        "goal": goal,
+        "mode": PLAN_MODE,
+        "source": PLAN_SOURCE,
+        "status": "preview",
+        "createdAt": created_at,
+        "executionEnabled": False,
+        "steps": [
+            {"id": "step-1", "title": "Define the expected outcome", "detail": "Turn the goal into observable success criteria before taking action.", "status": "not_started", "risk": "low", "sideEffects": False},
+            {"id": "step-2", "title": "Identify required inputs and boundaries", "detail": "List relevant files, resources, and constraints. No resources are accessed in preview mode.", "status": "not_started", "risk": "low", "sideEffects": False},
+            {"id": "step-3", "title": "Prepare a small, reversible action sequence", "detail": "Keep steps bounded. Any future sensitive action must be permission-gated before execution.", "status": "not_started", "risk": "low", "sideEffects": False},
+            {"id": "step-4", "title": "Verify results against the goal", "detail": "Define evidence to inspect and report what succeeded, failed, or remains uncertain.", "status": "not_started", "risk": "low", "sideEffects": False}
+        ]
+    }
+    return validate_plan(plan)
+
+
+def validate_plan(value):
+    if not isinstance(value, dict):
+        raise ValueError("Plan must be an object.")
+    goal = value.get("goal")
+    steps = value.get("steps")
+    if not isinstance(goal, str) or not goal.strip() or len(goal) > MAX_GOAL_LENGTH:
+        raise ValueError("Plan goal is invalid.")
+    if value.get("mode") != PLAN_MODE or value.get("source") != PLAN_SOURCE:
+        raise ValueError("Only local dry-run plans are supported.")
+    if value.get("status") != "preview" or value.get("executionEnabled") is not False:
+        raise ValueError("Plan must remain in preview mode.")
+    if not isinstance(steps, list) or not 1 <= len(steps) <= MAX_PLAN_STEPS:
+        raise ValueError("Plan step count is invalid.")
+    for index, step in enumerate(steps, start=1):
+        if not isinstance(step, dict) or step.get("id") != f"step-{index}":
+            raise ValueError("Plan step identifiers are invalid.")
+        if not isinstance(step.get("title"), str) or not step["title"].strip() or len(step["title"]) > 160:
+            raise ValueError("Plan step title is invalid.")
+        if not isinstance(step.get("detail"), str) or len(step["detail"]) > 500:
+            raise ValueError("Plan step detail is invalid.")
+        if step.get("status") != "not_started" or step.get("sideEffects") is not False or step.get("risk") != "low":
+            raise ValueError("Dry-run steps cannot have side effects.")
+    return value
