@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from server import Store
 from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
-from workspace_tools import Workspace, WorkspaceError
+from workspace_tools import Workspace
 
 
 class WorkspaceChangeManagerTests(unittest.TestCase):
