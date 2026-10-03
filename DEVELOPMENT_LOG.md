@@ -703,3 +703,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Changes made:** Added UI contract checks for explicit start/stop controls, browser-mediated capture, cleanup on page exit, and the current no-upload/no-model-transfer behavior.
 **Tests run:** PR CI pending.
 **Next step:** Verify CI, merge if green, then proceed to the next local-first capability.
+
+
+**Verification follow-up (2026-10-04):** PR #6 merged as `fe6fe4dc1d437bc21093afa2bd010fd2ec65c9e2`. Main CI run #461 passed on this commit: https://github.com/pateljiop/Nexora/actions/runs/37155410413. The new UI contract test passed on Ubuntu and Windows alongside the API/SQLite suite, Python compilation, and local-server smoke test.
