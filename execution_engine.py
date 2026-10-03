@@ -32,7 +32,13 @@ def run_plan_execution(plan_id, store, workspace):
     if any(step.get("tool") in (None, "none") for step in steps):
         raise ExecutionError("Every step must select an allowlisted read-only tool before running.")
     execution = store.start_execution(plan, steps)
-    for step in steps:
+    for index, step in enumerate(steps):
+        if store.is_execution_cancel_requested(execution["id"]):
+            for remaining in steps[index:]:
+                store.set_execution_step_status(execution["id"], remaining["id"], "skipped")
+            store.finish_execution(execution["id"], "cancelled")
+            store.add_activity("Read-only run cancelled", plan["goal"])
+            return store.get_execution(execution["id"])
         store.set_execution_step_status(execution["id"], step["id"], "running")
         try:
             output = execute_read_only_tool(step["tool"], step.get("arguments", {}), workspace, store)
