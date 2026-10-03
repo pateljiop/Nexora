@@ -771,4 +771,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Commit/branch:** `fix/screen-frame-cleanup`; implementation/test commits through `80a2f1684e54a210c51158bd31dbaa521225090c` before this log update.
 
 
-**CI failure/fix (2026-10-04):** Initial run #485 failed on Linux and Windows because the new UI contract's function-body matcher was over-escaped and matched an empty string. Corrected the matcher in commit `80a2f1684e54a210c51158bd31dbaa521225090c`. Rerun #486 passed on that exact head on both Linux and Windows: https://github.com/pateljiop/Nexora/actions/runs/37156601821. This validates the static contract and server smoke tests, not a real browser display picker interaction.
+**CI failure/fix (2026-10-04):** Initial run #485 failed on Linux and Windows because the new UI contract's function-body matcher was over-escaped and matched an empty string. Corrected the matcher in commit `80a2f1684e54a210c51158bd31dbaa521225090c`. Rerun #486 passed on commit `80a2f1684e54a210c51158bd31dbaa521225090c`, and final PR-head run #487 passed on `c1448e1dcf57b03fc647cf1998b7fcc1b6e512ed`: https://github.com/pateljiop/Nexora/actions/runs/37156641726. PR #9 merged as `f1f161695afd2562524453b62840aaadb1b126b4`. These checks validate the static contract and server smoke tests, not a real browser display picker interaction.
+
+
+**Post-merge verification (2026-10-04):** PR #9 merged after CI run #487 passed on its exact head. Merge commit: `f1f161695afd2562524453b62840aaadb1b126b4`. Main CI for the merged commit is pending; verify it before treating the current main HEAD as green. The user's actual desktop browser permission/capture flow remains a manual test.
