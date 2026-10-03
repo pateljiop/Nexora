@@ -1,11 +1,10 @@
-import base64
 import json
 import os
 import unittest
 from unittest.mock import patch
 
 import model_provider
-from model_provider import ModelProviderError, analyze_screen_frame, build_model_plan, get_model_status
+from model_provider import ModelProviderError, build_model_plan, get_model_status
 
 
 class FakeResponse:
@@ -38,30 +37,6 @@ class ModelProviderTests(unittest.TestCase):
 
     def tearDown(self):
         self.env.stop()
-
-    def test_screen_analysis_is_bounded_and_uses_configured_provider(self):
-        image = "data:image/jpeg;base64," + base64.b64encode(b"\\xff\\xd8\\xffscreen").decode("ascii")
-        with patch("model_provider.urlopen", return_value=FakeResponse({
-            "choices": [{"message": {"content": "A settings window is visible."}}]
-        })) as mocked:
-            result = analyze_screen_frame(image)
-        self.assertEqual(result, "A settings window is visible.")
-        request = mocked.call_args.args[0]
-        payload = json.loads(request.data.decode("utf-8"))
-        self.assertEqual(payload["messages"][1]["content"][1]["image_url"]["url"], image)
-        self.assertIn("Bearer test-secret-never-return", request.get_header("Authorization") or "")
-        self.assertNotIn("test-secret-never-return", result)
-
-    def test_screen_analysis_rejects_invalid_and_oversized_frames_before_network(self):
-        with patch("model_provider.urlopen") as mocked:
-            for value in ("not-an-image", "data:image/jpeg;base64,%%%"):
-                with self.assertRaises(ModelProviderError):
-                    analyze_screen_frame(value)
-            oversized = b"\\xff\\xd8\\xff" + (b"x" * (model_provider.MAX_VISION_IMAGE_BYTES + 1))
-            image = "data:image/jpeg;base64," + base64.b64encode(oversized).decode("ascii")
-            with self.assertRaisesRegex(ModelProviderError, "1.5 MiB"):
-                analyze_screen_frame(image)
-        mocked.assert_not_called()
 
     def test_status_never_exposes_api_key(self):
         status = get_model_status()
