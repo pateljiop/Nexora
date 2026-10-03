@@ -95,7 +95,7 @@ class Store:
         task_id = task_id or str(uuid.uuid4())
         if not isinstance(task_id, str) or not ID_PATTERN.fullmatch(task_id):
             raise ValueError("Invalid task id.")
-        if status not in STATUSES:
+        if not isinstance(status, str) or status not in STATUSES:
             raise ValueError("Unsupported task status.")
         created_at = created_at if self.valid_time(created_at) else now_iso()
         updated_at = updated_at if self.valid_time(updated_at) else created_at
@@ -105,7 +105,7 @@ class Store:
         return {"id": task_id, "title": title, "status": status, "createdAt": created_at, "updatedAt": updated_at}
 
     def update_task(self, task_id, status):
-        if not ID_PATTERN.fullmatch(task_id):
+        if not isinstance(task_id, str) or not ID_PATTERN.fullmatch(task_id):
             raise ValueError("Invalid task id.")
         if status not in STATUSES:
             raise ValueError("Unsupported task status.")
