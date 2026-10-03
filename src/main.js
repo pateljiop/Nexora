@@ -390,7 +390,9 @@ async function refreshExecutionStatus({ poll = false } = {}) {
       $("#cancel-run-button").hidden = true;
       $("#refresh-run-button").hidden = true;
       $("#run-plan-button").disabled = false;
+      $("#run-plan-button").textContent = "Run read-only steps ↗";
       showToast(execution.status === "completed" ? "Read-only steps finished; the overall goal is still unverified." : `Run ended with status: ${execution.status}. Review the step report.`);
+      await loadExecutionHistory();
       return execution;
     }
     if (!poll) break;
@@ -409,7 +411,7 @@ async function cancelCurrentExecution() {
   try {
     const result = await api(`/api/executions/${encodeURIComponent(activeExecutionId)}/cancel`, { method: "POST", body: JSON.stringify({}) });
     showToast(result.execution.cancelRequested ? "Cancellation requested. The current read-only step may finish first." : "This run has already stopped.");
-    await refreshExecutionStatus();
+    await refreshExecutionStatus({ poll: true });
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not cancel this run.");
   } finally {
@@ -450,7 +452,6 @@ async function runCurrentPlan() {
     renderExecution(result.execution);
     await refreshExecutionStatus({ poll: true });
     await refreshFromServer();
-    await loadExecutionHistory();
     await loadExecutionHistory();
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not start the read-only plan.");
@@ -579,7 +580,6 @@ async function bootstrap() {
   renderConnection();
   render();
   await loadWorkspace(".");
-  await loadExecutionHistory();
   await loadExecutionHistory();
   if (tasks.length && !activities.length && !backendAvailable) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
 }
