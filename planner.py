@@ -13,6 +13,13 @@ ALLOWED_PLAN_SOURCES = {"local_template", "remote_model", "local_model"}
 ALLOWED_READ_ONLY_TOOLS = {"workspace.list", "workspace.read", "workspace.diff", "tasks.list", "none"}
 
 
+BLOCKED_WORKSPACE_PARTS = {
+    ".git", ".env", ".env.local", ".env.production", ".ssh", "data",
+    "node_modules", "__pycache__", ".venv", "venv", ".next", "dist",
+    "build", "secrets", "credentials",
+}
+
+
 def _safe_relative_path(value, allow_dot=False):
     if not isinstance(value, str) or not value.strip() or len(value) > 1000:
         return False
@@ -21,7 +28,13 @@ def _safe_relative_path(value, allow_dot=False):
     if allow_dot and value.strip() == ".":
         return True
     path = PurePosixPath(value)
-    return not path.is_absolute() and all(part not in {"", ".", ".."} for part in path.parts)
+    if path.is_absolute() or not all(part not in {"", ".", ".."} for part in path.parts):
+        return False
+    for part in path.parts:
+        lowered = part.lower()
+        if part.startswith(".") or lowered in BLOCKED_WORKSPACE_PARTS or lowered.endswith((".pem", ".key", ".p12", ".pfx")):
+            return False
+    return True
 
 
 def now_iso():
