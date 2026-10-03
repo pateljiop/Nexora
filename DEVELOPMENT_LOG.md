@@ -706,3 +706,24 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** PR #6 merged as `fe6fe4dc1d437bc21093afa2bd010fd2ec65c9e2`. Main CI run #461 passed on this commit: https://github.com/pateljiop/Nexora/actions/runs/37155410413. The new UI contract test passed on Ubuntu and Windows alongside the API/SQLite suite, Python compilation, and local-server smoke test.
+
+
+### Entry: 2026-10-04 — workspace transaction audit and recovery hardening
+**Goal:** Prevent concurrent reviewed changes from racing each other and ensure recovery does not mistake an unreadable/unsafe path for a definitely missing newly-created file.
+
+**Files changed:** `workspace_tools.py`, `workspace_changes.py`, `tests/test_workspace_changes.py`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Added a per-`Workspace` re-entrant mutation lock around apply/rollback filesystem mutations; added `file_sha256_or_missing()` that returns missing only for a confirmed absent path and raises for symlinks, non-files, or unreadable targets; changed interrupted apply/rollback error handling to reconcile against the actual disk hash instead of inferring outcome from exception text; classified unknown or human-modified rollback targets as `stale`. Added regression coverage for concurrent proposals targeting one file and unknown target state during recovery.
+
+**Security/reliability impact:** The lock serializes mutations within the running Nexora process; it does not claim to eliminate all OS-level TOCTOU races against unrelated external processes. Recovery never repeats a mutation and no longer treats an unsafe/unreadable target as proof of absence.
+
+**Tests run/results:** Tests were added/updated but have **not** been executed locally in this environment. GitHub Actions for this branch must pass before this milestone is marked verified. The current `main` baseline before this change was `d2754fe8d09e74f342e6c97101daba2994a15c3b`, with CI run #463 green: https://github.com/pateljiop/Nexora/actions/runs/37155453337.
+
+**Known issues:** Target Windows laptop visual/launcher smoke test remains pending. A filesystem mutation and SQLite receipt cannot be one indivisible cross-resource transaction; startup reconciliation remains necessary. External-process path races still warrant platform-specific hardening.
+
+**Next step:** Run the branch CI, inspect any failing job logs, fix and rerun until green, then review the full diff and open a focused PR. After that, continue execution workflow cancellation/timeout and desktop UI error-state audits.
+
+**Commit/branch:** `fix/workspace-transaction-audit`; the audit follow-up before this log update is committed through `25b2a15ad0c5a7dbb43a91828dce612e52d9369d`.
+
+
+**Audit follow-up (2026-10-04):** Review found that recovering every `applying` proposal from one operation's exception path could misclassify another concurrently active operation. Recovery is now scoped to the proposal that raised the exception; startup recovery still scans all in-flight records. Added a regression test to assert another in-flight proposal remains `applying`. Recovery hashing now streams 64 KiB chunks to avoid loading an unexpectedly large replacement file into memory. CI runs #471–#476 passed on earlier revisions; run #477 and the current-head run are pending before this audit can be called green.

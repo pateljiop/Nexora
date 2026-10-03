@@ -5,7 +5,9 @@ import os
 import re
 import difflib
 import hashlib
+import stat
 import tempfile
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -29,6 +31,7 @@ class Workspace:
     def __init__(self, root=None):
         configured = root or os.environ.get("NEXORA_WORKSPACE_ROOT") or ROOT
         self.root = Path(configured).expanduser().resolve()
+        self._mutation_lock = threading.RLock()
         if not self.root.exists() or not self.root.is_dir():
             raise WorkspaceError("Configured workspace root must be an existing directory.")
 
@@ -169,6 +172,12 @@ class Workspace:
             raise WorkspaceError("Atomic file replacement failed.") from None
 
     def write_file(self, relative, content, expected_sha256=None, backup_root=None):
+        # Serialize in-process mutations so two reviewed proposals cannot both pass
+        # their last hash check and replace the same target concurrently.
+        with self._mutation_lock:
+            return self._write_file_unlocked(relative, content, expected_sha256, backup_root)
+
+    def _write_file_unlocked(self, relative, content, expected_sha256=None, backup_root=None):
         """Apply a reviewed proposal only if the file still matches its preview version."""
         if not isinstance(content, str):
             raise WorkspaceError("Workspace write content must be text.")
@@ -237,6 +246,10 @@ class Workspace:
                 "expectedSha256": expected_sha256, "readOnly": False}
 
     def rollback_write(self, receipt, backup_root=None):
+        with self._mutation_lock:
+            return self._rollback_write_unlocked(receipt, backup_root)
+
+    def _rollback_write_unlocked(self, receipt, backup_root=None):
         """Rollback only if the target still matches the exact content written by this receipt."""
         if not isinstance(receipt, dict) or not isinstance(receipt.get("path"), str):
             raise WorkspaceError("A valid write receipt is required for rollback.")
@@ -299,6 +312,35 @@ class Workspace:
         except OSError:
             raise WorkspaceError("Could not remove the reviewed file.") from None
         return {"path": path.relative_to(self.root).as_posix(), "deleted": True}
+
+    def file_sha256_or_missing(self, relative):
+        """Return a target hash, or None only when the path is definitely absent.
+
+        Unsafe paths, symlinks, non-files, and unreadable files raise instead of
+        being mistaken for a missing file during interrupted-operation recovery.
+        """
+        path = self._resolve(relative, must_exist=False)
+        if not path.parent.is_dir():
+            raise WorkspaceError("Workspace target parent is missing or unavailable.")
+        try:
+            metadata = path.lstat()
+        except FileNotFoundError:
+            return None
+        except OSError:
+            raise WorkspaceError("Workspace target state could not be determined.") from None
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise WorkspaceError("Workspace target state is not a regular file.")
+        digest = hashlib.sha256()
+        try:
+            with path.open("rb") as handle:
+                while True:
+                    chunk = handle.read(64 * 1024)
+                    if not chunk:
+                        break
+                    digest.update(chunk)
+        except OSError:
+            raise WorkspaceError("Workspace target state could not be read.") from None
+        return digest.hexdigest()
 
     def read_file(self, relative):
         path = self._resolve(relative)

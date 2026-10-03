@@ -136,17 +136,15 @@ class WorkspaceChangeManager:
             result["backupCreated"] = bool(receipt.get("backupPath"))
             return result
         except WorkspaceError as exc:
-            message = str(exc)
-            status = "stale" if any(token in message.lower() for token in
-                                    ("changed since", "changed after preview", "changed during", "appeared after preview", "changed during review", "stale")) else "failed"
-            with self.store.connect() as db:
-                db.execute("UPDATE workspace_changes SET status=?,error=? WHERE id=? AND status='applying'",
-                           (status, message[:500], proposal_id))
-            raise WorkspaceChangeError(message) from None
+            # Reconcile against the actual target after any failed write attempt.
+            # This also handles a low-level operation that raised after replacing
+            # the file: disk state, not the exception text, determines the status.
+            self.recover_interrupted_changes(proposal_id)
+            raise WorkspaceChangeError(str(exc)) from None
         except Exception:
             # A low-level failure may happen after the atomic replace but before the
             # receipt/status commit. Observe disk and reconcile; never guess or replay.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise
 
     def rollback(self, proposal_id, approved):
@@ -183,28 +181,44 @@ class WorkspaceChangeManager:
             self.store.add_activity("Approved workspace change rolled back", record["path"])
             return {**self.get(proposal_id), "rollback": result}
         except (WorkspaceError, WorkspaceChangeError) as exc:
-            with self.store.connect() as db:
-                db.execute("UPDATE workspace_changes SET status='applied',error=? WHERE id=? AND status='applying'",
-                           (str(exc)[:500], proposal_id))
+            # If a failure was raised after the filesystem mutation, reconcile it.
+            # If no mutation happened, recovery sees the proposed hash and retains
+            # 'applied'; unknown or changed disk state becomes 'stale'.
+            self.recover_interrupted_changes(proposal_id)
             raise WorkspaceChangeError(str(exc)) from None
         except Exception:
             # Rollback may have reached disk before a persistence failure. Reconcile
             # against the original/proposed hashes rather than leaving a false state.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise
 
-    def recover_interrupted_changes(self):
-        """Reconcile disk state after interruption without repeating any mutation."""
+    def recover_interrupted_changes(self, proposal_id=None):
+        """Reconcile interrupted operations without repeating any mutation.
+
+        Startup calls recover all in-flight records. An operation's exception path
+        must reconcile only its own proposal so it cannot misclassify another live
+        concurrent mutation as interrupted.
+        """
         with self.store.connect() as db:
-            rows = db.execute("SELECT * FROM workspace_changes WHERE status='applying'").fetchall()
+            if proposal_id is None:
+                rows = db.execute("SELECT * FROM workspace_changes WHERE status='applying'").fetchall()
+            else:
+                rows = db.execute(
+                    "SELECT * FROM workspace_changes WHERE status='applying' AND id=?",
+                    (proposal_id,),
+                ).fetchall()
         for row in rows:
-            current_sha = None
             try:
-                current = self.workspace.read_file(row["path"])
-                current_sha = self._sha(current["content"].encode("utf-8"))
+                current_sha = self.workspace.file_sha256_or_missing(row["path"])
+                state_known = True
             except WorkspaceError:
+                # An unreadable, redirected, symlinked, or otherwise unsafe target
+                # is not evidence that a newly created file is absent.
                 current_sha = None
-            original_state = current_sha == row["original_sha256"] if row["original_exists"] else current_sha is None
+                state_known = False
+            original_state = state_known and (
+                current_sha == row["original_sha256"] if row["original_exists"] else current_sha is None
+            )
             proposed_state = current_sha == row["proposed_sha256"]
             operation = row["operation"] if "operation" in row.keys() else "apply"
             if operation == "rollback" and original_state:
