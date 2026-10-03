@@ -315,13 +315,48 @@ class Store:
                     "The read-only run stopped before all steps completed; the user's overall goal has not been independently verified.")
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            execution = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not execution or execution["status"] != "running":
+                raise ValueError("Only a running execution can transition to a terminal state.")
+            unfinished = db.execute(
+                "SELECT COUNT(*) AS count FROM execution_steps "
+                "WHERE execution_id=? AND status IN ('not_started','running')",
+                (execution_id,),
+            ).fetchone()["count"]
+            if unfinished:
+                raise ValueError("Execution cannot finish while steps remain unfinished.")
             cursor = db.execute(
                 "UPDATE executions SET status=?, finished_at=?, verification_note=? "
                 "WHERE id=? AND status='running'",
                 (status, now_iso(), note, execution_id),
             )
             if cursor.rowcount != 1:
-                raise ValueError("Only a running execution can transition to a terminal state.")
+                raise ValueError("Execution state changed before it could be finalized.")
+
+    def fail_unexpected_execution(self, execution_id):
+        """Finalize a crashed runner with explicit per-step uncertainty, never retrying."""
+        now = now_iso()
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            execution = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not execution or execution["status"] != "running":
+                return False
+            db.execute(
+                "UPDATE execution_steps SET status='failed', error=?, finished_at=? "
+                "WHERE execution_id=? AND status='running'",
+                ("Runner stopped unexpectedly; inspect this step before retrying.", now, execution_id),
+            )
+            db.execute(
+                "UPDATE execution_steps SET status='skipped', error=?, finished_at=? "
+                "WHERE execution_id=? AND status='not_started'",
+                ("Skipped because the runner stopped unexpectedly.", now, execution_id),
+            )
+            db.execute(
+                "UPDATE executions SET status='failed', finished_at=?, verification_note=? "
+                "WHERE id=? AND status='running'",
+                (now, "The background runner stopped unexpectedly. Recorded steps require review; the goal is unverified.", execution_id),
+            )
+        return True
 
     def get_execution(self, execution_id):
         if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
@@ -517,8 +552,7 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         run_plan_execution(plan_id, self.store, self.workspace, execution_id=execution["id"])
                     except Exception:
-                        self.store.finish_execution(execution["id"], "failed",
-                            "The background runner stopped unexpectedly. Inspect the step log before retrying.")
+                        self.store.fail_unexpected_execution(execution["id"])
                         self.store.add_activity("Read-only run failed unexpectedly", plan["goal"])
 
                 threading.Thread(target=worker, name="nexora-readonly-run", daemon=True).start()
