@@ -96,6 +96,15 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.request("/api/plans")[1]["plans"][0]["id"], plan["id"])
         self.assertIn("Dry-run plan preview created", [x["message"] for x in self.request("/api/activity")[1]["activities"]])
 
+    def test_model_status_is_safe_and_remote_consent_is_required(self):
+        status, model_status = self.request("/api/model/status")
+        self.assertEqual(status, 200)
+        self.assertNotIn("apiKey", model_status)
+        with patch.dict("os.environ", {"NEXORA_ALLOW_REMOTE_MODEL": "0"}):
+            code, payload = self.request("/api/plans", "POST", {"goal": "Test", "remoteConsent": True})
+        self.assertEqual(code, 400)
+        self.assertIn("not enabled", payload["error"])
+
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
         req = Request(self.base + "/api/health", headers={"Host": "attacker.example"})
