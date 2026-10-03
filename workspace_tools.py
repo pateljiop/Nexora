@@ -69,6 +69,14 @@ class Workspace:
             raise WorkspaceError("Workspace path escaped the configured root.")
         return resolved
 
+    def _assert_stable_target(self, relative, expected_path):
+        """Re-check that no symlink/path redirection appeared before a mutation."""
+        current = self._resolve(relative, must_exist=False)
+        if current != expected_path:
+            raise WorkspaceError("Workspace target changed during review; no mutation was performed.")
+        if not current.parent.is_dir():
+            raise WorkspaceError("Workspace destination directory changed during review.")
+
     def list_files(self, relative="."):
         start = self._resolve(relative)
         if not start.is_dir():
@@ -220,6 +228,7 @@ class Workspace:
                 raise WorkspaceError("File could not be rechecked before replacement.") from None
             if hashlib.sha256(current_bytes).hexdigest() != expected_sha256:
                 raise WorkspaceError("File changed during approval. Review the latest diff before applying.")
+        self._assert_stable_target(relative, path)
         self._atomic_replace(path, encoded, ".nexora-tmp-")
         return {"path": path.relative_to(self.root).as_posix(), "bytes": len(encoded),
                 "sha256": hashlib.sha256(encoded).hexdigest(), "created": created,
@@ -242,6 +251,7 @@ class Workspace:
             raise WorkspaceError("Rollback stopped because the file changed after the write.")
         if receipt.get("created") is True:
             try:
+                self._assert_stable_target(receipt["path"], path)
                 if hashlib.sha256(path.read_bytes()).hexdigest() != receipt.get("sha256"):
                     raise WorkspaceError("Rollback stopped because the file changed after the write.")
                 path.unlink()
@@ -267,6 +277,7 @@ class Workspace:
             raise WorkspaceError("Rollback target could not be rechecked before restore.") from None
         if hashlib.sha256(current_before_restore).hexdigest() != receipt.get("sha256"):
             raise WorkspaceError("Rollback stopped because the file changed after the write.")
+        self._assert_stable_target(receipt["path"], path)
         self._atomic_replace(path, original, ".nexora-rollback-")
         return {"path": receipt["path"], "rolledBack": True, "removedCreatedFile": False}
 
