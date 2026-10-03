@@ -86,6 +86,16 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.request(f"/api/tasks/{task_id}", "DELETE")[0], 200)
         self.assertEqual(self.request("/api/tasks")[1]["tasks"], [])
 
+    def test_plan_endpoint_persists_preview_without_execution(self):
+        status, payload = self.request("/api/plans", "POST", {"goal": "Review my project"})
+        self.assertEqual(status, 201)
+        plan = payload["plan"]
+        self.assertEqual(plan["mode"], "dry_run")
+        self.assertFalse(plan["executionEnabled"])
+        self.assertEqual(len(plan["steps"]), 4)
+        self.assertEqual(self.request("/api/plans")[1]["plans"][0]["id"], plan["id"])
+        self.assertIn("Dry-run plan preview created", [x["message"] for x in self.request("/api/activity")[1]["activities"]])
+
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
         req = Request(self.base + "/api/health", headers={"Host": "attacker.example"})
