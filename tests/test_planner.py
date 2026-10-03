@@ -28,6 +28,26 @@ class DryRunPlannerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_remote_plan("Inspect project", unsafe)
 
+    def test_diff_preview_plan_requires_safe_bounded_arguments(self):
+        from planner import build_remote_plan
+        steps = [
+            {"title": "Inspect file", "detail": "Read the existing file.", "tool": "workspace.read", "arguments": {"path": "src/main.py"}},
+            {"title": "Preview proposed change", "detail": "Show a diff only; do not write.", "tool": "workspace.diff", "arguments": {"path": "src/main.py", "content": "print('proposed')"}},
+            {"title": "List tasks", "detail": "Read saved tasks.", "tool": "tasks.list", "arguments": {}}
+        ]
+        plan = build_remote_plan("Preview a code change", steps)
+        self.assertEqual(plan["steps"][1]["tool"], "workspace.diff")
+        self.assertEqual(plan["steps"][1]["arguments"]["content"], "print('proposed')")
+        tampered = dict(plan)
+        tampered["steps"] = [dict(step) for step in plan["steps"]]
+        tampered["steps"][1]["arguments"] = {"path": "../outside.py", "content": "x"}
+        with self.assertRaises(ValueError):
+            validate_plan(tampered)
+        with self.assertRaises(ValueError):
+            build_remote_plan("Preview a code change", [
+                dict(steps[0]), dict(steps[1], arguments={"path": "src/main.py", "content": "x" * 16001}), dict(steps[2])
+            ])
+
     def test_validator_rejects_execution_enabled_plan(self):
         plan = build_dry_run_plan("Review a change")
         plan["executionEnabled"] = True
