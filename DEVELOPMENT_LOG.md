@@ -457,3 +457,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CI follow-up (2026-10-04):** The first credential-shape patch omitted a tuple comma; Python tests caught the import-time error. Fixed in commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`. CI for the fix is pending. This is precisely why the change remains behind the allowlisted redaction helper and why CI must pass before proceeding.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #304 passed on code commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`: https://github.com/pateljiop/Nexora/actions/runs/37151846504. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed, including synthetic JSON/quoted-secret and common provider-token redaction cases. The README verification link was refreshed. The subsequent commit only records this verification in the development log.
