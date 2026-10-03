@@ -649,7 +649,7 @@ async function applyWorkspaceChange() {
   if (!currentChangeProposal || currentChangeProposal.status !== "pending") return;
   const change = currentChangeProposal;
   const approved = window.confirm(
-    "Apply the complete diff currently shown for " + change.path + "?\\n\\n" +
+    "Apply the complete diff currently shown for " + change.path + "?\n\n" +
     "Nexora will verify the file has not changed since this preview and create a backup before replacing it. " +
     "If the file changed, the operation will stop. Continue?"
   );
@@ -675,7 +675,7 @@ async function rollbackWorkspaceChange() {
   if (!currentChangeProposal || currentChangeProposal.status !== "applied") return;
   const change = currentChangeProposal;
   const approved = window.confirm(
-    "Roll back Nexora's change to " + change.path + "?\\n\\n" +
+    "Roll back Nexora's change to " + change.path + "?\n\n" +
     "Rollback will proceed only if the file still matches the exact content Nexora wrote. Later edits will be preserved."
   );
   if (!approved) return;
