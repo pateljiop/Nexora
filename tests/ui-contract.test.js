@@ -63,3 +63,13 @@ test("execution refresh failures remain visible and status can be retried", () =
   assert.match(main, /Could not confirm cancellation:/);
   assert.match(css, /#execution-note\.error/);
 });
+
+
+test("help dialog accurately describes current local and approval boundaries", () => {
+  assert.match(html, /stores tasks and execution history locally when its local server is running/);
+  assert.match(html, /remote providers receive it only after you confirm each request/);
+  assert.match(html, /full-diff review, explicit approval, and backup/);
+  assert.match(html, /general mouse\/keyboard control are not enabled/);
+  assert.match(html, /Captured frames stay in browser memory and are cleared when sharing stops/);
+  assert.doesNotMatch(html, /does not call an AI model or control your laptop yet/);
+});
