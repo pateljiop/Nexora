@@ -730,3 +730,21 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Final verification (2026-10-04):** PR #7 merged after PR-head CI run #479 passed. Post-merge GitHub Actions run #480 passed on main commit `f4fcbe876366417c6ddd597049a2fd3c45ba6c78`, including Linux JavaScript/API/SQLite tests and the Windows JavaScript, Python compilation, and loopback-server smoke checks: https://github.com/pateljiop/Nexora/actions/runs/37156296666. This verifies CI on the merged commit; it does not replace the pending manual smoke test on the target laptop.
+
+
+### Entry: 2026-10-04 — execution state-machine hardening
+**Goal:** Prevent invalid execution/step transitions and keep per-step history truthful when a tool or background runner fails.
+
+**Files changed:** `server.py`, `execution_engine.py`, `tests/test_execution_engine.py`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Execution steps can enter `running` only from `not_started`; terminal step states can be written only from the appropriate source state; terminal execution updates are conditional on the execution still being `running`; an execution cannot be marked completed while any step is unfinished or failed/skipped. When a read-only step fails, remaining steps are recorded as skipped. A background runner crash marks the active step failed, pending steps skipped, and the overall goal unverified without retrying work.
+
+**Security/reliability impact:** State transitions are checked in SQLite transactions and duplicate/stale updates are rejected rather than silently overwriting terminal history. No additional tools or side-effect capabilities are exposed.
+
+**Tests run/results:** Added regression tests for one-way transitions, failure skip semantics, and unexpected runner recovery. Tests have not been executed locally; PR CI is required before this milestone is marked verified. Main baseline at branch creation: `611787dc4e7844fd28d0ad2b86e36d5f727c898c`, CI run #481 passed: https://github.com/pateljiop/Nexora/actions/runs/37156340543.
+
+**Known issues:** Per-step timeouts remain deferred because forcibly timing out a Python thread would not stop the underlying operation. The target Windows laptop's interactive smoke test remains pending.
+
+**Next step:** Run the full Linux and Windows CI, inspect failures, then merge only after the current PR head is green. Continue with desktop UI error/loading/recovered states after this state-machine milestone.
+
+**Commit/branch:** `fix/execution-state-transitions`; implementation/test commits through `e7eb06709cfb289dc800f6afdeeb81ca0e10bccb` before this log update.
