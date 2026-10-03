@@ -185,6 +185,13 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(payload["execution"]["cancelRequested"])
         self.assertTrue(self.httpd.RequestHandlerClass.store.is_execution_cancel_requested(execution["id"]))
 
+    def test_static_server_only_exposes_browser_assets(self):
+        self.assertEqual(self.request("/")[0], 200)
+        self.assertEqual(self.request("/styles.css")[0], 200)
+        self.assertEqual(self.request("/src/main.js")[0], 200)
+        for path in ("/server.py", "/model_provider.py", "/DEVELOPMENT_LOG.md", "/.env", "/.env.example", "/data/state.sqlite3"):
+            self.assertEqual(self.request(path)[0], 404, path)
+
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
         req = Request(self.base + "/api/health", headers={"Host": "attacker.example"})
