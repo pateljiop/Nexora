@@ -14,7 +14,7 @@ class ExecutionError(ValueError):
     pass
 
 
-def run_plan_execution(plan_id, store, workspace):
+def run_plan_execution(plan_id, store, workspace, execution_id=None):
     if not isinstance(plan_id, str) or not plan_id:
         raise ExecutionError("A saved plan id is required.")
     plan = store.get_plan(plan_id)
@@ -31,7 +31,9 @@ def run_plan_execution(plan_id, store, workspace):
         raise ExecutionError("Plan exceeds the execution step limit.")
     if any(step.get("tool") in (None, "none") for step in steps):
         raise ExecutionError("Every step must select an allowlisted read-only tool before running.")
-    execution = store.start_execution(plan, steps)
+    execution = store.get_execution(execution_id) if execution_id else store.start_execution(plan, steps)
+    if not execution or execution["planId"] != plan["id"]:
+        raise ExecutionError("Execution record does not match the saved plan.")
     for index, step in enumerate(steps):
         if store.is_execution_cancel_requested(execution["id"]):
             for remaining in steps[index:]:
