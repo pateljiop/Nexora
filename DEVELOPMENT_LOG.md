@@ -523,3 +523,16 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The backup and change-manager records currently use separate persistence locations (local backup files plus SQLite proposal state); a future integration must handle backup cleanup/retention and interrupted apply states explicitly. The transaction layer is not yet exposed through the HTTP API.
 **Next step:** Design the two-stage proposal → user review → apply workflow and its UI/API tests. Do not connect model-generated file writes directly to the runner.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — local change-proposal API
+**Goal:** Expose the isolated reversible change manager through the same loopback-only API, without adding file-writing to model plans.
+**Changes made:**
+- Added GET routes for change history/details and POST routes to create a non-mutating proposal, explicitly apply a pending proposal, and explicitly roll back an applied proposal.
+- Wired manager initialization and startup recovery into the local server. Interrupted change operations are marked for review and are never retried automatically.
+- Added API tests for preview non-mutation, required approval, backup-backed apply/rollback, and stale-proposal rejection.
+**Tests run:** API integration commits are in CI; current-head result is pending.
+**Security/reliability impact:** Routes inherit the server's loopback binding and Host/Origin checks. Apply/rollback require an explicit `approved: true` payload, a stored pending/applied state, and hash-verified file/backup receipts. The model tool registry still cannot write or delete files.
+**Known issues:** The desktop UI does not yet expose proposal/apply/rollback controls. API tests must pass before UI integration. The approval boolean is a local API workflow guard, not a cryptographic identity boundary against code already running on the user's own machine.
+**Next step:** Verify current-head CI, fix any API/test issues, then build a clear diff review and separate Apply/Roll back controls in the desktop UI.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
