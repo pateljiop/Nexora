@@ -1,13 +1,12 @@
 """Approval-gated, reversible workspace file changes.
 
-This module is deliberately separate from the read-only agent tool registry. A
-proposal never mutates the workspace; apply/rollback require explicit API calls.
+This manager is separate from the read-only agent tool registry. A proposal never
+mutates a workspace; apply and rollback require explicit approval calls.
 """
 from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 import uuid
 
 from planner import now_iso
@@ -31,8 +30,12 @@ class WorkspaceChangeManager:
                 original_sha256 TEXT, proposed_content BLOB NOT NULL,
                 proposed_sha256 TEXT NOT NULL,
                 status TEXT NOT NULL CHECK(status IN ('pending','applying','applied','rolled_back','stale','failed')),
-                created_at TEXT NOT NULL, applied_at TEXT, rolled_back_at TEXT, error TEXT
+                created_at TEXT NOT NULL, applied_at TEXT, rolled_back_at TEXT,
+                error TEXT, receipt_json TEXT
             )""")
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(workspace_changes)").fetchall()}
+            if "receipt_json" not in columns:
+                db.execute("ALTER TABLE workspace_changes ADD COLUMN receipt_json TEXT")
 
     @staticmethod
     def _sha(content):
@@ -59,7 +62,7 @@ class WorkspaceChangeManager:
                 current = self.workspace.read_file(preview["path"])
                 original_content = current["content"].encode("utf-8")
                 if len(original_content) > MAX_WRITE_BYTES:
-                    raise WorkspaceChangeError("Files over 64 KiB cannot be changed in the first approval-gated milestone.")
+                    raise WorkspaceChangeError("Files over 64 KiB cannot be changed in this approval-gated milestone.")
                 original_sha = self._sha(original_content)
             proposed = content.encode("utf-8")
             proposal_id = str(uuid.uuid4())
@@ -106,29 +109,33 @@ class WorkspaceChangeManager:
             record = dict(row)
         try:
             proposed = bytes(record["proposed_content"]).decode("utf-8")
-            self.workspace.write_file(
+            receipt = self.workspace.write_file(
                 record["path"], proposed,
-                expected_sha256=record["original_sha256"] or "missing",
+                expected_sha256=record["original_sha256"] if record["original_exists"] else "missing",
             )
-            applied = self.workspace.read_file(record["path"])
-            applied_sha = self._sha(applied["content"].encode("utf-8"))
             with self.store.connect() as db:
-                db.execute("UPDATE workspace_changes SET status='applied',applied_at=?,error=NULL WHERE id=? AND status='applying'",
-                           (now_iso(), proposal_id))
+                db.execute("""UPDATE workspace_changes
+                              SET status='applied',applied_at=?,error=NULL,receipt_json=?
+                              WHERE id=? AND status='applying'""",
+                           (now_iso(), json.dumps(receipt, ensure_ascii=False), proposal_id))
             self.store.add_activity("Approved workspace change applied", record["path"])
             result = self.get(proposal_id)
-            result["appliedSha256"] = applied_sha
+            result["appliedSha256"] = receipt["sha256"]
+            result["backupCreated"] = bool(receipt.get("backupPath"))
             return result
         except WorkspaceError as exc:
-            status = "stale" if any(marker in str(exc).lower() for marker in ("changed after preview", "changed during approval", "appeared after preview", "changed since the proposal")) else "failed"
+            message = str(exc)
+            status = "stale" if any(token in message.lower() for token in
+                                    ("changed since", "changed during", "appeared after preview", "stale")) else "failed"
             with self.store.connect() as db:
                 db.execute("UPDATE workspace_changes SET status=?,error=? WHERE id=? AND status='applying'",
-                           (status, str(exc)[:500], proposal_id))
-            raise WorkspaceChangeError(str(exc)) from None
+                           (status, message[:500], proposal_id))
+            raise WorkspaceChangeError(message) from None
         except Exception:
             with self.store.connect() as db:
-                db.execute("UPDATE workspace_changes SET status='failed',error='Apply failed unexpectedly; inspect the file before retrying.' WHERE id=? AND status='applying'",
-                           (proposal_id,))
+                db.execute("""UPDATE workspace_changes SET status='failed',
+                              error='Apply failed unexpectedly; inspect the file and backup before retrying.'
+                              WHERE id=? AND status='applying'""", (proposal_id,))
             raise
 
     def rollback(self, proposal_id, approved):
@@ -141,27 +148,32 @@ class WorkspaceChangeManager:
                 raise WorkspaceChangeError("Change proposal not found.")
             if row["status"] != "applied":
                 raise WorkspaceChangeError("Only an applied change can be rolled back.")
+            if not row["receipt_json"]:
+                raise WorkspaceChangeError("Write receipt is missing; rollback is unavailable.")
             db.execute("UPDATE workspace_changes SET status='applying',error=NULL WHERE id=?", (proposal_id,))
             record = dict(row)
         try:
-            current = self.workspace.read_file(record["path"])
-            current_sha = self._sha(current["content"].encode("utf-8"))
-            if current_sha != record["proposed_sha256"]:
-                raise WorkspaceChangeError("File changed after Nexora applied the proposal; rollback refused.")
-            if record["original_exists"]:
-                original = bytes(record["original_content"]).decode("utf-8")
-                self.workspace.write_file(record["path"], original,
-                                          expected_sha256=record["proposed_sha256"],
-                                          expected_exists=True)
-            else:
-                self.workspace.delete_file_if_hash(record["path"], record["proposed_sha256"])
+            receipt = json.loads(record["receipt_json"])
+            result = self.workspace.rollback_write(receipt)
             with self.store.connect() as db:
-                db.execute("UPDATE workspace_changes SET status='rolled_back',rolled_back_at=?,error=NULL WHERE id=? AND status='applying'",
-                           (now_iso(), proposal_id))
+                db.execute("""UPDATE workspace_changes SET status='rolled_back',rolled_back_at=?,error=NULL
+                              WHERE id=? AND status='applying'""", (now_iso(), proposal_id))
             self.store.add_activity("Approved workspace change rolled back", record["path"])
-            return self.get(proposal_id)
+            return {**self.get(proposal_id), "rollback": result}
         except (WorkspaceError, WorkspaceChangeError) as exc:
             with self.store.connect() as db:
                 db.execute("UPDATE workspace_changes SET status='applied',error=? WHERE id=? AND status='applying'",
                            (str(exc)[:500], proposal_id))
             raise WorkspaceChangeError(str(exc)) from None
+
+    def recover_interrupted_changes(self):
+        """Mark uncertain applies as failed for human inspection; never retry automatically."""
+        with self.store.connect() as db:
+            rows = db.execute("SELECT id,path FROM workspace_changes WHERE status='applying'").fetchall()
+            for row in rows:
+                db.execute("""UPDATE workspace_changes SET status='failed',
+                              error='Server restarted during apply/rollback. Inspect the target and backup; no retry was attempted.'
+                              WHERE id=? AND status='applying'""", (row["id"],))
+        for row in rows:
+            self.store.add_activity("Interrupted file change requires review", row["path"])
+        return len(rows)
