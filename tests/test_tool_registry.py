@@ -46,6 +46,25 @@ class ReadOnlyToolRegistryTests(unittest.TestCase):
         self.assertNotIn("abcdefghijklmno", result)
         self.assertIn("[REDACTED]", result)
 
+    def test_redacts_common_provider_token_shapes(self):
+        samples = [
+            "ghp_" + "A" * 24,
+            "github_pat_" + "B" * 30,
+            "xoxb-" + "C" * 16,
+            "AIza" + "D" * 28,
+            "AKIA" + "E" * 16,
+            "eyJ" + "a" * 12 + "." + "b" * 12 + "." + "c" * 12,
+        ]
+        result = redact_text(" ".join(samples))
+        for secret in samples:
+            with self.subTest(secret_prefix=secret[:8]):
+                self.assertNotIn(secret, result)
+        self.assertIn("[REDACTED_GITHUB_TOKEN]", result)
+        self.assertIn("[REDACTED_SLACK_TOKEN]", result)
+        self.assertIn("[REDACTED_GOOGLE_KEY]", result)
+        self.assertIn("[REDACTED_AWS_KEY]", result)
+        self.assertIn("[REDACTED_JWT]", result)
+
     def test_redacts_json_and_quoted_secret_assignments(self):
         samples = [
             '{"api_key": "json-super-secret-value"}',
