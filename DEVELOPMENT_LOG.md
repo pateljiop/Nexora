@@ -741,10 +741,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Security/reliability impact:** State transitions are checked in SQLite transactions and duplicate/stale updates are rejected rather than silently overwriting terminal history. No additional tools or side-effect capabilities are exposed.
 
-**Tests run/results:** Added regression tests for one-way transitions, failure skip semantics, and unexpected runner recovery. Tests have not been executed locally; PR CI is required before this milestone is marked verified. Main baseline at branch creation: `611787dc4e7844fd28d0ad2b86e36d5f727c898c`, CI run #481 passed: https://github.com/pateljiop/Nexora/actions/runs/37156340543.
+**Tests run/results:** Added regression tests for one-way transitions, failure skip semantics, and unexpected runner recovery. Tests were not run locally; PR CI run #482 passed on head `e959d5cd16eef8eaae60ac58866e63d4e9443dba`: https://github.com/pateljiop/Nexora/actions/runs/37156447114. Both Linux API/SQLite tests and Windows compilation/loopback smoke checks passed.
 
 **Known issues:** Per-step timeouts remain deferred because forcibly timing out a Python thread would not stop the underlying operation. The target Windows laptop's interactive smoke test remains pending.
 
 **Next step:** Run the full Linux and Windows CI, inspect failures, then merge only after the current PR head is green. Continue with desktop UI error/loading/recovered states after this state-machine milestone.
 
-**Commit/branch:** `fix/execution-state-transitions`; implementation/test commits through `e7eb06709cfb289dc800f6afdeeb81ca0e10bccb` before this log update.
+**Commit/branch:** PR #8 (`fix/execution-state-transitions`) merged into `main` as `6269d40284311c6a7bf4573a0451fcc1bd76e000`.
+
+
+**Final verification (2026-10-04):** PR #8 merged after CI run #482 passed on the exact PR head. The merge is source-control-only and does not enable new side-effect tools. Main CI for merge commit `6269d40284311c6a7bf4573a0451fcc1bd76e000` is pending; verify it before marking the merged main head green. Target-laptop interactive smoke testing remains pending.
