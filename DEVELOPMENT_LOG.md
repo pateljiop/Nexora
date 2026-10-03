@@ -675,3 +675,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** This does not add automatic retries or claim that an operation failed before touching disk; the saved proposal status remains the source of truth.
 **Next step:** Verify Linux and Windows CI, merge if green, then continue local-first desktop reliability work.
 **Commit/PR:** Branch `fix/safe-api-errors`.
+
+
+**Verification follow-up (2026-10-04):** PR #4 was merged as `3837d80f50f165ea2845b36a4e169a736ed639c4`. GitHub Actions run #435 passed on main, including Ubuntu JS/Python/API tests and the Windows JS tests, Python compilation, and local loopback-server smoke test: https://github.com/pateljiop/Nexora/actions/runs/37154826278.
