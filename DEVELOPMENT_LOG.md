@@ -425,3 +425,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** Current code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` passed GitHub Actions run #269: https://github.com/pateljiop/Nexora/actions/runs/37151632594. The run-control UI and saved-plan review endpoint passed JavaScript syntax, Node unit tests, and Python API/SQLite/security tests. The README and PR verification references were updated. The PR remains draft pending a real smoke test on the target Windows laptop.
+
+
+### Entry: 2026-10-04 — reduce duplicate history polling
+**Goal:** Keep background-run status refreshes bounded without unnecessary repeated API calls.
+**Changes made:** Removed redundant execution-history fetches after terminal status polling and after reconnecting to an active run. The status poll itself refreshes history when it reaches a terminal state.
+**Tests run:** The active-run selection guard passed JavaScript syntax, Node unit tests, and Python API/SQLite/security tests on code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` (CI #269/#270). The current cleanup's CI result is pending.
+**Known issues:** The browser polls for up to 60 seconds per poll session; longer runs remain visible in persistent history and can be manually refreshed.
+**Next step:** Verify current-head CI and review the PR's final code-vs-documentation commit state.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
