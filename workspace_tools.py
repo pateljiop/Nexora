@@ -209,6 +209,16 @@ class Workspace:
                     pass
             except OSError:
                 raise WorkspaceError("Could not create a backup; the file was not changed.") from None
+        if created:
+            if path.exists():
+                raise WorkspaceError("A file appeared after preview. Review the latest diff before applying.")
+        else:
+            try:
+                current_bytes = path.read_bytes()
+            except OSError:
+                raise WorkspaceError("File could not be rechecked before replacement.") from None
+            if hashlib.sha256(current_bytes).hexdigest() != expected_sha256:
+                raise WorkspaceError("File changed during approval. Review the latest diff before applying.")
         self._atomic_replace(path, encoded, ".nexora-tmp-")
         return {"path": path.relative_to(self.root).as_posix(), "bytes": len(encoded),
                 "sha256": hashlib.sha256(encoded).hexdigest(), "created": created,
