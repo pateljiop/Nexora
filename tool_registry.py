@@ -54,6 +54,17 @@ def execute_read_only_tool(name, arguments, workspace, store):
             return {"tool": name, "readOnly": True, "summary": f"Read text file {result['path']}.",
                     "data": {"path": result["path"], "content": safe_content[:MAX_TOOL_OUTPUT_CHARS],
                              "bytes": result["bytes"], "truncated": truncated}}
+        if name == "workspace.diff":
+            if set(arguments) != {"path", "content"}:
+                raise ToolExecutionError("workspace.diff requires only a relative path and proposed content.")
+            result = workspace.preview_write(arguments["path"], arguments["content"])
+            safe_diff = redact_text(result["diff"])
+            truncated = len(safe_diff) > MAX_TOOL_OUTPUT_CHARS
+            return {"tool": name, "readOnly": True,
+                    "summary": f"Prepared a non-mutating diff for {result['path']}. No files were changed.",
+                    "data": {"path": result["path"], "diff": safe_diff[:MAX_TOOL_OUTPUT_CHARS],
+                             "created": result["created"], "proposedBytes": result["proposedBytes"],
+                             "truncated": truncated}}
         if name == "tasks.list":
             if arguments:
                 raise ToolExecutionError("tasks.list does not accept arguments.")
