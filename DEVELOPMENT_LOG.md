@@ -444,3 +444,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Heuristic redaction can miss secrets with uncommon field names, multiline formats, or unusual encodings. Users should not point the workspace root at secret stores.
 **Next step:** Verify current-head CI and inspect the redaction tests' actual results. Then refresh README/PR CI links and continue the approval-gated execution design without enabling writes until diff review, backups, and rollback are tested.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — broader credential-shape redaction
+**Goal:** Catch additional common provider credentials that may appear in local text previews.
+**Changes made:** Added best-effort patterns for GitHub classic/fine-grained tokens, Slack tokens, Google API keys, AWS access-key IDs, and JWT-shaped strings. Added regression tests with synthetic token-shaped values; no real credentials are used in tests.
+**Tests run:** CI is triggered by the implementation and regression-test commits. Current-head result is pending.
+**Security/reliability impact:** This reduces accidental disclosure in tool output but is not a secret-scanning guarantee. Workspace path exclusions and local-only binding remain the primary boundary.
+**Known issues:** Tokens can use unknown formats or appear split/encoded; previews should not be treated as a secure secret vault.
+**Next step:** Verify current-head CI, then audit the current plan and tool argument validation before considering any write-capable tools.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
