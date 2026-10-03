@@ -91,3 +91,23 @@
 /* Diff output stays text-only and scrolls inside the run report. */
 .execution-step pre.execution-diff{max-height:420px;overflow:auto;white-space:pre;tab-size:2;font-family:"DM Mono",monospace;font-size:10px;line-height:1.7;color:#d8e4f8;background:rgba(5,10,22,.72);border:1px solid rgba(117,151,202,.18);border-radius:8px;padding:14px}
 .execution-output-note{color:var(--muted,#9ca9c5);font-size:9px;line-height:1.5;margin-top:7px}
+
+
+/* Approval-gated workspace change review */
+.workspace-change-review{margin-top:18px;padding:18px;min-width:0}
+.workspace-change-review[hidden]{display:none}
+.workspace-change-heading-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.workspace-change-path{margin:14px 0 8px;color:var(--text,#edf2ff);font:600 11px "DM Mono",monospace;overflow-wrap:anywhere}
+.workspace-change-diff{max-height:520px;overflow:auto;white-space:pre;tab-size:4;padding:16px;border:1px solid rgba(126,145,184,.2);border-radius:10px;background:rgba(5,10,22,.62);color:#d6e3ff;font:10px/1.7 "DM Mono",monospace}
+.workspace-change-note{margin:10px 0 0;color:var(--muted,#9ca9c5);font-size:10px;line-height:1.65}
+.workspace-change-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px}
+.workspace-change-history{display:grid;gap:7px;margin-top:16px;padding-top:14px;border-top:1px solid rgba(126,145,184,.15)}
+.workspace-change-history-item{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:11px 12px;border:1px solid rgba(126,145,184,.15);border-radius:9px;background:rgba(8,13,27,.3);text-align:left;cursor:pointer}
+.workspace-change-history-item:hover{border-color:rgba(105,180,255,.45)}
+.workspace-change-history-copy{display:grid;gap:4px;min-width:0}
+.workspace-change-history-copy strong{font-size:10px;color:var(--text,#edf2ff);overflow-wrap:anywhere}
+.workspace-change-history-copy small{font-size:9px;color:var(--muted,#9ca9c5)}
+.workspace-change-review .execution-history-status.pending{color:#f4d18d;border-color:rgba(244,209,141,.28)}
+.workspace-change-review .execution-history-status.applied{color:#8ee0bf;border-color:rgba(93,206,160,.28)}
+.workspace-change-review .execution-history-status.stale,.workspace-change-review .execution-history-status.failed{color:#ffb3b3;border-color:rgba(255,120,120,.28)}
+@media(max-width:640px){.workspace-change-review{padding:13px}.workspace-change-diff{max-height:360px;padding:11px;font-size:9px}.workspace-change-actions{justify-content:stretch}.workspace-change-actions button{flex:1}}
