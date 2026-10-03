@@ -16,6 +16,7 @@ let backendAvailable = false;
 let currentPlan = null;
 let activeExecutionId = null;
 let currentExecutionPlanId = null;
+let currentChangeProposal = null;
 let tasks = readJson(STORAGE_KEY, []);
 let activities = readJson(ACTIVITY_KEY, []);
 
@@ -380,6 +381,12 @@ function renderExecution(execution, scroll = true) {
         item.append(makeElement("pre", "execution-diff", diff));
         if (step.output.data.truncated) item.append(makeElement("p", "execution-output-note", "Diff preview truncated at the output safety limit."));
         item.append(makeElement("p", "execution-output-note", (step.output.data.created ? "Proposed new file" : "Proposed update") + " · " + step.output.data.proposedBytes + " bytes · preview only"));
+        if (step.status === "completed" && typeof step.arguments?.path === "string" && typeof step.arguments?.content === "string") {
+          const prepare = makeElement("button", "plan-button", "Prepare change for approval");
+          prepare.type = "button";
+          prepare.addEventListener("click", () => prepareWorkspaceChange(step.arguments.path, step.arguments.content));
+          item.append(prepare);
+        }
       } else {
         const pre = makeElement("pre", "", JSON.stringify(step.output.data ?? step.output, null, 2));
         item.append(pre);
@@ -543,6 +550,156 @@ async function loadExecutionHistory() {
 
 $("#refresh-execution-history").addEventListener("click", loadExecutionHistory);
 
+function renderWorkspaceChange(change) {
+  currentChangeProposal = change;
+  const panel = $("#workspace-change-review");
+  panel.hidden = false;
+  $("#workspace-change-status").textContent = change.status.toUpperCase();
+  $("#workspace-change-status").className = "execution-history-status " + change.status;
+  $("#workspace-change-path").textContent = change.path + (change.created ? " · new file" : " · existing file");
+  $("#workspace-change-diff").textContent = change.diff || "(No textual differences.)";
+  $("#workspace-change-note").textContent = change.status === "pending"
+    ? "No file has been changed. Review the entire diff above; applying creates a backup for existing files."
+    : change.status === "applied"
+      ? "The change was applied after explicit approval. A verified backup receipt is recorded for rollback."
+      : change.status === "rolled_back"
+        ? "The approved change was rolled back. The saved record is retained for audit."
+        : change.status === "stale"
+          ? "The target changed after this proposal was created. It was not overwritten; create a fresh proposal."
+          : change.status === "failed" || change.status === "applying"
+            ? (change.error || "The change needs manual review. No automatic retry will occur.")
+            : "Saved change proposal.";
+  $("#apply-workspace-change").hidden = change.status !== "pending";
+  $("#rollback-workspace-change").hidden = change.status !== "applied";
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function prepareWorkspaceChange(path, content) {
+  try {
+    const result = await api("/api/workspace/changes", {
+      method: "POST",
+      body: JSON.stringify({ path, content })
+    });
+    renderWorkspaceChange(result.change);
+    await loadWorkspaceChanges(result.change.id);
+    showToast("Full diff saved for review. No file has been changed.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not prepare the change proposal.");
+  }
+}
+
+async function loadWorkspaceChanges(selectedId = null) {
+  const list = $("#workspace-change-history");
+  if (!backendAvailable) {
+    list.replaceChildren(makeElement("p", "workspace-empty", "Start the local server to view saved change proposals."));
+    return;
+  }
+  try {
+    const result = await api("/api/workspace/changes");
+    list.replaceChildren();
+    if (!result.changes.length) {
+      list.append(makeElement("p", "workspace-empty", "No saved change proposals yet."));
+      return;
+    }
+    for (const change of result.changes) {
+      const button = makeElement("button", "workspace-change-history-item");
+      button.type = "button";
+      const copy = makeElement("span", "workspace-change-history-copy");
+      copy.append(makeElement("strong", "", change.path),
+        makeElement("small", "", formatTime(change.createdAt)));
+      button.append(copy, makeElement("span", "execution-history-status " + change.status, change.status.toUpperCase()));
+      button.addEventListener("click", async () => {
+        try {
+          const detail = await api("/api/workspace/changes/" + encodeURIComponent(change.id));
+          if (detail.change) renderWorkspaceChange(detail.change);
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "Could not load change proposal.");
+        }
+      });
+      list.append(button);
+    }
+    const targetId = selectedId || currentChangeProposal?.id || result.changes[0].id;
+    const target = result.changes.find(change => change.id === targetId);
+    if (target) {
+      const detail = await api("/api/workspace/changes/" + encodeURIComponent(target.id));
+      if (detail.change) {
+        currentChangeProposal = detail.change;
+        $("#workspace-change-review").hidden = false;
+        $("#workspace-change-status").textContent = detail.change.status.toUpperCase();
+        $("#workspace-change-status").className = "execution-history-status " + detail.change.status;
+        $("#workspace-change-path").textContent = detail.change.path + (detail.change.created ? " · new file" : " · existing file");
+        $("#workspace-change-diff").textContent = detail.change.diff || "(No textual differences.)";
+        $("#workspace-change-note").textContent = detail.change.status === "pending"
+          ? "No file has been changed. Review the entire diff above; applying creates a backup for existing files."
+          : detail.change.status === "applied"
+            ? "Applied after approval. A verified backup receipt is available for rollback."
+            : detail.change.status === "rolled_back"
+              ? "This change was rolled back; its audit record is retained."
+              : detail.change.error || "This proposal requires review.";
+        $("#apply-workspace-change").hidden = detail.change.status !== "pending";
+        $("#rollback-workspace-change").hidden = detail.change.status !== "applied";
+      }
+    }
+  } catch (error) {
+    list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Could not load change history."));
+  }
+}
+
+async function applyWorkspaceChange() {
+  if (!currentChangeProposal || currentChangeProposal.status !== "pending") return;
+  const change = currentChangeProposal;
+  const approved = window.confirm(
+    "Apply the complete diff currently shown for " + change.path + "?\\n\\n" +
+    "Nexora will verify the file has not changed since this preview and create a backup before replacing it. " +
+    "If the file changed, the operation will stop. Continue?"
+  );
+  if (!approved) return;
+  $("#apply-workspace-change").disabled = true;
+  try {
+    const result = await api("/api/workspace/changes/" + encodeURIComponent(change.id) + "/apply", {
+      method: "POST", body: JSON.stringify({ approved: true })
+    });
+    renderWorkspaceChange(result.change);
+    await loadWorkspaceChanges(change.id);
+    await loadWorkspace(change.path.split("/").slice(0, -1).join("/") || ".");
+    showToast("Approved change applied; backup receipt recorded.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not apply the reviewed change.");
+    await loadWorkspaceChanges(change.id);
+  } finally {
+    $("#apply-workspace-change").disabled = false;
+  }
+}
+
+async function rollbackWorkspaceChange() {
+  if (!currentChangeProposal || currentChangeProposal.status !== "applied") return;
+  const change = currentChangeProposal;
+  const approved = window.confirm(
+    "Roll back Nexora's change to " + change.path + "?\\n\\n" +
+    "Rollback will proceed only if the file still matches the exact content Nexora wrote. Later edits will be preserved."
+  );
+  if (!approved) return;
+  $("#rollback-workspace-change").disabled = true;
+  try {
+    const result = await api("/api/workspace/changes/" + encodeURIComponent(change.id) + "/rollback", {
+      method: "POST", body: JSON.stringify({ approved: true })
+    });
+    renderWorkspaceChange(result.change);
+    await loadWorkspaceChanges(change.id);
+    await loadWorkspace(change.path.split("/").slice(0, -1).join("/") || ".");
+    showToast("Rollback completed and recorded.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not roll back the change.");
+    await loadWorkspaceChanges(change.id);
+  } finally {
+    $("#rollback-workspace-change").disabled = false;
+  }
+}
+
+$("#apply-workspace-change").addEventListener("click", applyWorkspaceChange);
+$("#rollback-workspace-change").addEventListener("click", rollbackWorkspaceChange);
+$("#refresh-workspace-changes").addEventListener("click", () => loadWorkspaceChanges());
+
 async function readWorkspaceFile(relativePath) {
   try {
     const result = await api(`/api/workspace/read?path=${encodeURIComponent(relativePath)}`);
@@ -618,6 +775,7 @@ async function bootstrap() {
   render();
   await loadWorkspace(".");
   await loadExecutionHistory();
+  await loadWorkspaceChanges();
   if (tasks.length && !activities.length && !backendAvailable) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
 }
 
