@@ -175,3 +175,19 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The plan is intentionally generic and deterministic; no LLM provider is connected. No plan execution, approval workflow, browser/computer control, voice, or recovery orchestration is available yet.
 **Next step:** Verify current CI, fix any failures, and then add an optional server-side model adapter with explicit opt-in and secret handling while keeping dry-run behavior as the safe default.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — opt-in model planner adapter
+**Goal:** Enable optional model-assisted plan drafts while preserving local-first defaults and explicit disclosure before external data sharing.
+**Changes made:**
+- Added `model_provider.py`, an OpenAI-compatible chat-completions adapter using environment-backed configuration, a 25-second timeout, bounded response reads, safe error messages, and strict structured-plan validation.
+- Added local `.env` loading without overwriting already-set environment variables; added `.env.example`; ignored `.env` so provider credentials are not committed.
+- Added local OpenAI-compatible endpoint support (e.g. a loopback model server) without requiring a remote API key. Remote HTTPS model requests remain disabled unless `NEXORA_ALLOW_REMOTE_MODEL=1` is explicitly set.
+- Added per-goal browser confirmation before sending a goal to a remote provider. Server also checks the explicit consent flag; model status never returns the API key.
+- Updated plan inspector labels to distinguish local template, local model, and remote model dry runs.
+- Added mocked provider tests for configuration, output validation, local endpoints, opt-in, and credential non-disclosure; added API consent/status coverage.
+**Security/reliability impact:** The model adapter only drafts plans; it cannot execute them. It rejects non-loopback plain HTTP endpoints, caps provider response size, times out requests, and does not log credentials or provider response bodies. External data sharing is off by default and prompts on each goal.
+**Tests run:** Initial CI exposed two test issues (missing `patch` import and an outdated activity-label assertion); both were fixed. Current-head GitHub Actions run #94 passed on commit `08e5d5cf321efa69fbaa589b30237fee4a70fde3`, including JavaScript syntax, Node tests, and Python API/planner/provider tests: https://github.com/pateljiop/Nexora/actions/runs/37150319700.
+**Known issues:** No tool execution or approval-gated execution workflow exists yet. Provider compatibility can vary; unsupported response-format options will surface as a provider error rather than being treated as success. Model-generated plan steps remain unexecuted previews.
+**Next step:** Build the execution state machine and approval ledger using test/fake tools only. Keep real filesystem, shell, browser, and desktop actions disabled until policy checks, cancellation, audit events, and verification are covered by tests.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
