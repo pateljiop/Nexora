@@ -623,21 +623,7 @@ async function loadWorkspaceChanges(selectedId = null) {
     if (target) {
       const detail = await api("/api/workspace/changes/" + encodeURIComponent(target.id));
       if (detail.change) {
-        currentChangeProposal = detail.change;
-        $("#workspace-change-review").hidden = false;
-        $("#workspace-change-status").textContent = detail.change.status.toUpperCase();
-        $("#workspace-change-status").className = "execution-history-status " + detail.change.status;
-        $("#workspace-change-path").textContent = detail.change.path + (detail.change.created ? " · new file" : " · existing file");
-        $("#workspace-change-diff").textContent = detail.change.diff || "(No textual differences.)";
-        $("#workspace-change-note").textContent = detail.change.status === "pending"
-          ? "No file has been changed. Review the entire diff above; applying creates a backup for existing files."
-          : detail.change.status === "applied"
-            ? (detail.change.error || "Applied after approval. A verified backup receipt is available for rollback.")
-            : detail.change.status === "rolled_back"
-              ? "This change was rolled back; its audit record is retained."
-              : detail.change.error || "This proposal requires review.";
-        $("#apply-workspace-change").hidden = detail.change.status !== "pending";
-        $("#rollback-workspace-change").hidden = detail.change.status !== "applied";
+        renderWorkspaceChange(detail.change);
       }
     }
   } catch (error) {
