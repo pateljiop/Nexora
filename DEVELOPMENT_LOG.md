@@ -253,3 +253,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Redaction is heuristic and cannot guarantee removal of every secret format. The runner is synchronous and has no cancellation/recovery for an in-progress tool call yet. Read-only access is deliberately the only enabled execution scope.
 **Next step:** Verify current-head CI, then add persistent run lifecycle states and safe cancellation/checkpoint recovery before considering any write-capable action.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — interrupted-run recovery
+**Goal:** Ensure an application restart never silently resumes or repeats a read-only tool sequence.
+**Changes made:**
+- Added `Store.recover_interrupted_executions()` to detect executions persisted as `running` at startup.
+- Running steps are marked failed with an explicit review message; steps not yet started are marked skipped; the execution is marked failed with `goalVerified=false`.
+- Startup invokes recovery and prints the count of interrupted runs requiring review. No automatic retry occurs.
+- Added a regression test that simulates a process interruption in the middle of a saved run and verifies failed/skipped states and idempotent recovery.
+**Security/reliability impact:** Avoids falsely presenting an interrupted run as successful and prevents implicit reruns after restart. Since current tools are read-only, the uncertainty is low-impact, but results are still marked for review.
+**Tests run:** Prior current-head CI run #163 passed on commit `ce0c6aa4222134e629d5ca5e541a15628876d21d`: https://github.com/pateljiop/Nexora/actions/runs/37150819857. CI for this recovery change is in progress: https://github.com/pateljiop/Nexora/actions/runs/37150838778.
+**Known issues:** Runs are synchronous and cannot yet be cancelled while in progress; recovery handles process restart only. No write-capable tools are enabled.
+**Next step:** Verify CI for recovery, then add persisted execution history to the desktop interface and perform another end-to-end route/security audit.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
