@@ -73,6 +73,11 @@
           <div class="surface-heading"><div><h2 id="plan-preview-title">Plan preview</h2><p id="plan-goal"></p></div><span class="stream-mark">DRY RUN</span></div>
           <p class="plan-disclaimer">Template preview only. No files, apps, or system actions have been touched.</p>
           <ol id="plan-steps" class="plan-steps"></ol>
+          <div class="execution-actions"><button class="primary-button" id="run-plan-button" type="button" hidden>Run read-only steps <span class="button-arrow">↗</span></button></div>
+          <section class="execution-result" id="execution-result" hidden aria-live="polite">
+            <div class="surface-heading"><div><h3 id="execution-title">Run report</h3><p id="execution-note"></p></div><span class="stream-mark" id="execution-status">NOT RUN</span></div>
+            <div id="execution-steps" class="execution-steps"></div>
+          </section>
         </section>
         <section class="surface workspace-explorer" id="workspace-explorer" aria-labelledby="workspace-title">
           <div class="surface-heading">
