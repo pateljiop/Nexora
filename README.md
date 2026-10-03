@@ -83,3 +83,7 @@ This is an early local-first Virtual Hariom foundation. It can draft plans with 
 - `DEVELOPMENT_LOG.md`: chronological record of changes, decisions, verification, known issues, and next steps.
 
 Website/mobile access is deferred until the desktop experience is built and tested. GitHub is used for source control and CI, not runtime hosting.
+
+## Latest CI verification
+
+- [GitHub Actions run #261](https://github.com/pateljiop/Nexora/actions/runs/37151547853) passed on code commit `51380adf86e7d7deed76cf004e1b93b5a701831c`.
