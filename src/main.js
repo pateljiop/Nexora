@@ -14,6 +14,7 @@ const aboutDialog = $("#about-dialog");
 let currentView = "overview";
 let backendAvailable = false;
 let currentPlan = null;
+let activeExecutionId = null;
 let tasks = readJson(STORAGE_KEY, []);
 let activities = readJson(ACTIVITY_KEY, []);
 
@@ -299,6 +300,8 @@ async function requestPlanPreview() {
 
 $("#plan-button").addEventListener("click", requestPlanPreview);
 $("#run-plan-button").addEventListener("click", runCurrentPlan);
+$("#cancel-run-button").addEventListener("click", cancelCurrentExecution);
+$("#refresh-run-button").addEventListener("click", () => refreshExecutionStatus({ poll: true }).catch(error => showToast(error.message)));
 
 taskForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -345,7 +348,7 @@ aboutDialog.addEventListener("click", event => {
   if (event.target === aboutDialog) aboutDialog.close();
 });
 
-function renderExecution(execution) {
+function renderExecution(execution, scroll = true) {
   const panel = $("#execution-result");
   $("#execution-title").textContent = execution.status === "completed" ? "Read-only run finished" : "Read-only run stopped";
   $("#execution-note").textContent = execution.verificationNote;
@@ -366,11 +369,53 @@ function renderExecution(execution) {
     list.append(item);
   }
   panel.hidden = false;
-  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (scroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function refreshExecutionStatus({ poll = false } = {}) {
+  if (!activeExecutionId) return null;
+  const id = activeExecutionId;
+  const maxPolls = poll ? 120 : 1;
+  let execution = null;
+  for (let attempt = 0; attempt < maxPolls; attempt++) {
+    const result = await api(`/api/executions/${encodeURIComponent(id)}`);
+    execution = result.execution;
+    if (!execution) throw new Error("Execution record was not found.");
+    renderExecution(execution, false);
+    if (execution.status !== "running") {
+      activeExecutionId = null;
+      $("#cancel-run-button").hidden = true;
+      $("#refresh-run-button").hidden = true;
+      $("#run-plan-button").disabled = false;
+      showToast(execution.status === "completed" ? "Read-only steps finished; the overall goal is still unverified." : `Run ended with status: ${execution.status}. Review the step report.`);
+      return execution;
+    }
+    if (!poll) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  $("#cancel-run-button").hidden = !activeExecutionId;
+  $("#refresh-run-button").hidden = !activeExecutionId;
+  if (activeExecutionId) showToast("Run is still in progress. You can cancel it or refresh its status.");
+  return execution;
+}
+
+async function cancelCurrentExecution() {
+  if (!activeExecutionId) return;
+  const button = $("#cancel-run-button");
+  button.disabled = true;
+  try {
+    const result = await api(`/api/executions/${encodeURIComponent(activeExecutionId)}/cancel`, { method: "POST", body: JSON.stringify({}) });
+    showToast(result.execution.cancelRequested ? "Cancellation requested. The current read-only step may finish first." : "This run has already stopped.");
+    await refreshExecutionStatus({ poll: true });
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not cancel this run.");
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function runCurrentPlan() {
-  if (!currentPlan || $("#run-plan-button").disabled) return;
+  if (!currentPlan || $("#run-plan-button").disabled || activeExecutionId) return;
   const selectedSteps = currentPlan.steps.filter(step => step.tool && step.tool !== "none");
   if (!selectedSteps.length || selectedSteps.length !== currentPlan.steps.length) {
     showToast("This plan contains steps without an approved read-only tool. Nothing was run.");
@@ -381,11 +426,11 @@ async function runCurrentPlan() {
       ? " (" + Object.entries(step.arguments).map(([key, value]) => key + "=" + String(value)).join(", ") + ")"
       : "";
     return (index + 1) + ". " + step.tool + args;
-  }).join("\\n");
+  }).join("\n");
   const approved = window.confirm(
-    "Review the read-only run before continuing.\\n\\nGoal: " + currentPlan.goal +
-    "\\n\\nTools and arguments:\\n" + toolSummary +
-    "\\n\\nOnly the configured workspace and saved task list can be read. No files will be written, deleted, or executed. Continue?"
+    "Review the read-only run before continuing.\n\nGoal: " + currentPlan.goal +
+    "\n\nTools and arguments:\n" + toolSummary +
+    "\n\nOnly the configured workspace and saved task list can be read. No files will be written, deleted, or executed. Continue?"
   );
   if (!approved) {
     showToast("Run cancelled. No tools were called.");
@@ -393,17 +438,25 @@ async function runCurrentPlan() {
   }
   const button = $("#run-plan-button");
   button.disabled = true;
-  button.textContent = "Running read-only tools…";
+  button.textContent = "Starting read-only tools…";
   try {
     const result = await api("/api/executions", { method: "POST", body: JSON.stringify({ planId: currentPlan.id }) });
+    activeExecutionId = result.execution.id;
+    $("#cancel-run-button").hidden = false;
+    $("#refresh-run-button").hidden = false;
     renderExecution(result.execution);
+    await refreshExecutionStatus({ poll: true });
     await refreshFromServer();
-    showToast(result.execution.status === "completed" ? "Read-only tools finished. The overall goal is still unverified." : "Run stopped safely. Review the step report.");
   } catch (error) {
-    showToast(error instanceof Error ? error.message : "Could not run the read-only plan.");
+    showToast(error instanceof Error ? error.message : "Could not start the read-only plan.");
   } finally {
-    button.disabled = false;
-    button.textContent = "Run read-only steps ↗";
+    if (!activeExecutionId) {
+      button.disabled = false;
+      button.textContent = "Run read-only steps ↗";
+    } else {
+      button.disabled = true;
+      button.textContent = "Run in progress…";
+    }
   }
 }
 
