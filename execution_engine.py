@@ -76,6 +76,9 @@ def run_plan_execution(plan_id, store, workspace, execution_id=None):
                                "Cancellation was requested while the final read-only step was in progress. All completed reads are recorded; the goal is unverified.")
         store.add_activity("Read-only run cancelled", plan["goal"])
         return store.get_execution(execution["id"])
-    store.finish_execution(execution["id"], "completed")
-    store.add_activity("Read-only run completed; goal not verified", plan["goal"])
+    final_status = store.finish_execution(execution["id"], "completed")
+    if final_status == "cancelled":
+        store.add_activity("Read-only run cancelled before finalization", plan["goal"])
+    else:
+        store.add_activity("Read-only run completed; goal not verified", plan["goal"])
     return store.get_execution(execution["id"])

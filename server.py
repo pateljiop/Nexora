@@ -246,6 +246,7 @@ class Store:
         if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
             return None
         with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
             if not row:
                 return None
@@ -326,6 +327,14 @@ class Store:
                 raise ValueError("Execution cannot finish while steps remain unfinished.")
             if status == "completed" and any(step_state != "completed" for step_state in step_states):
                 raise ValueError("Execution cannot be completed when any step failed or was skipped.")
+            if status == "completed":
+                control = db.execute(
+                    "SELECT cancel_requested FROM execution_controls WHERE execution_id=?",
+                    (execution_id,),
+                ).fetchone()
+                if control and control["cancel_requested"]:
+                    status = "cancelled"
+                    note = "Cancellation was requested before finalization. Completed reads are recorded; the goal remains unverified."
             cursor = db.execute(
                 "UPDATE executions SET status=?, finished_at=?, verification_note=? "
                 "WHERE id=? AND status='running'",
@@ -333,6 +342,7 @@ class Store:
             )
             if cursor.rowcount != 1:
                 raise ValueError("Execution state changed before it could be finalized.")
+        return status
 
     def fail_unexpected_execution(self, execution_id):
         """Finalize a crashed runner with explicit per-step uncertainty, never retrying."""

@@ -796,3 +796,24 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Post-merge verification (2026-10-04):** PR #10 merged after CI run #490 passed on its exact head. Merge commit: `1843592a0129a299a2fb382c5d2fad96268ee800`. Main CI for the merged commit is pending; verify the current main HEAD after the log update. Target Windows laptop accessibility/network-interruption testing remains pending.
+
+
+### Entry: 2026-10-04 — cancellation/finalization race hardening
+**Goal:** Make cancellation requests and terminal execution status updates agree under concurrent timing.
+
+**Files changed:** `server.py`, `execution_engine.py`, `tests/test_execution_engine.py`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Cancellation requests now acquire SQLite's immediate write lock before checking execution state and recording the request. Terminal finalization uses the same serialization point; if cancellation was recorded before a requested `completed` transition commits, the stored result becomes `cancelled` with an explicit unverified-goal note. A cancellation arriving after terminal completion is rejected as too late and does not set a stale cancel flag. The runner reports the committed final status.
+
+**Security/reliability impact:** Removes a race where the API could claim cancellation was requested after completion, or where a cancellation request could be lost between the runner's last check and finalization. No retries or side-effect tools are introduced.
+
+**Tests run/results:** Added regression tests for cancellation-before-finalization and cancellation-after-terminal-state. PR CI pending; no local test execution is claimed. Main baseline commit `c9794aadda9dfa80acfc746edc96b5f316f008f2` passed CI run #492: https://github.com/pateljiop/Nexora/actions/runs/37156819773.
+
+**Known issues:** Cancellation remains cooperative while a read-only tool call is in progress; per-step hard timeouts remain deferred. The target laptop manual smoke test is still pending.
+
+**Next step:** Run Linux and Windows CI, inspect failures, update the log with exact results, and merge only if the current head is green.
+
+**Commit/branch:** `fix/execution-cancel-finalization`; implementation/test commits through `0741d0c6164bb63f3686a1e354cdff6b627b9ef2` before this log update.
+
+
+**CI failure/fix (2026-10-04):** Initial run #493 failed in one new regression test because its fixture used a one-step model plan, while the planner contract requires 3–8 steps. The production code and Windows smoke job passed; the fixture now uses three valid read-only steps and completes all of them before testing a post-terminal cancellation request. Rerun CI is required on commit `c9eb3014688dcf38051e1380b9741f60badadff4` before merge.
