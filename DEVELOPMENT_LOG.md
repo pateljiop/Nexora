@@ -843,3 +843,21 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Post-merge verification (2026-10-04):** PR #12 merged after CI run #506 passed on its exact head. Merge commit: `02c63239fd72506329f7e75cdf71ce8eb626271c`. Main CI for the merge and this log update is pending; verify the latest main head before marking the launcher milestone green. The target laptop's actual batch launcher/browser launch remains a manual check.
+
+
+### Entry: 2026-10-04 — accurate capability/help copy
+**Goal:** Remove stale onboarding text that understated the current local backend and overstated neither model nor computer-control capabilities.
+
+**Files changed:** `index.html`, `tests/ui-contract.test.js`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Updated the help dialog to describe local SQLite persistence and browser fallback, optional local/remote model planning and per-request remote confirmation, allowlisted read-only runs, separate reviewed/approved file changes with backup, and the current absence of shell/general mouse-keyboard control. Documented opt-in screen sharing and frame cleanup behavior.
+
+**Security/reliability impact:** The UI now sets more accurate expectations about where data stays, when remote model calls occur, which actions are enabled, and which capabilities remain deferred.
+
+**Tests run/results:** Added UI contract assertions for current capability and safety statements. PR CI pending; no local test execution is claimed. Main baseline commit `96303986fdc81e2629f897ac02b189f85ff2b05d` passed CI run #508: https://github.com/pateljiop/Nexora/actions/runs/37157243342.
+
+**Known issues:** Help copy does not replace a first-run interactive walkthrough; target laptop smoke testing remains pending.
+
+**Next step:** Run Linux/Windows CI and merge only after the latest head is green; continue first-run UI clarity.
+
+**Commit/branch:** `fix/accurate-capability-help`; implementation/test commits through `f233664cd0db0c3eef78b5782bd01ea62cfd92bd` before this log update.
