@@ -161,6 +161,8 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(len(execution["steps"]), 3)
         fetched = self.request(f"/api/executions/{execution['id']}")[1]["execution"]
         self.assertEqual(fetched["id"], execution["id"])
+        history = self.request("/api/executions")[1]["executions"]
+        self.assertTrue(any(item["id"] == execution["id"] for item in history))
 
     def test_execution_rejects_template_plan(self):
         store = self.httpd.RequestHandlerClass.store
