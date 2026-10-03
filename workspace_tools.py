@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import os
+import hashlib
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
@@ -9,6 +11,7 @@ ROOT = Path(__file__).resolve().parent
 MAX_ENTRIES = 200
 MAX_DEPTH = 2
 MAX_READ_BYTES = 256 * 1024
+MAX_WRITE_BYTES = 64 * 1024
 BLOCKED_NAMES = {".git", ".env", ".env.local", ".env.production", ".ssh", "data",
                  "node_modules", "__pycache__", ".venv", "venv", ".next", "dist", "build",
                  "secrets", "credentials"}
@@ -98,6 +101,49 @@ class Workspace:
             stack.extend(reversed(directories))
         return {"rootName": self.root_name, "relativePath": "." if start == self.root else start.relative_to(self.root).as_posix(),
                 "entries": entries, "truncated": len(entries) >= MAX_ENTRIES}
+
+    def write_file(self, relative, content):
+        if not isinstance(content, str):
+            raise WorkspaceError("Workspace write content must be text.")
+        encoded = content.encode("utf-8")
+        if len(encoded) > MAX_WRITE_BYTES:
+            raise WorkspaceError("Proposed file content exceeds the 64 KiB write limit.")
+        path = self._resolve(relative, must_exist=False)
+        if path == self.root:
+            raise WorkspaceError("Workspace root cannot be replaced.")
+        parent = path.parent
+        if not parent.is_dir():
+            raise WorkspaceError("The destination directory must already exist.")
+        if path.exists():
+            if not path.is_file():
+                raise WorkspaceError("Workspace writes can target text files only.")
+            try:
+                existing = path.read_bytes()
+                if len(existing) > MAX_READ_BYTES:
+                    raise WorkspaceError("Existing file is too large to safely replace.")
+                existing.decode("utf-8")
+            except UnicodeDecodeError:
+                raise WorkspaceError("Binary files cannot be replaced by workspace tools.") from None
+            except OSError:
+                raise WorkspaceError("Existing file could not be checked.") from None
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="wb", dir=parent, prefix=".nexora-tmp-", delete=False) as handle:
+                temp_path = Path(handle.name)
+                handle.write(encoded)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_path, path)
+        except OSError:
+            if temp_path and temp_path.exists():
+                try:
+                    temp_path.unlink()
+                except OSError:
+                    pass
+            raise WorkspaceError("Atomic workspace write failed.") from None
+        return {"path": path.relative_to(self.root).as_posix(), "bytes": len(encoded),
+                "sha256": hashlib.sha256(encoded).hexdigest(), "created": len(existing) == 0 if 'existing' in locals() else True,
+                "readOnly": False}
 
     def read_file(self, relative):
         path = self._resolve(relative)
