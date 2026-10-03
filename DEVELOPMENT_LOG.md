@@ -237,3 +237,19 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Workspace reads are synchronous and intentionally capped. Secret-pattern redaction is a defense-in-depth heuristic, not a guarantee that arbitrary confidential content is safe to display. No write-capable tools, shell execution, browser control, or physical desktop control are enabled.
 **Next step:** Verify current-head CI, inspect the actual desktop flow end-to-end, then implement a persistent execution lifecycle with cancellation/recovery and explicit approvals before considering any side-effect-capable tool.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — workspace explorer and per-run review gate
+**Goal:** Make the laptop workspace inspectable from the desktop UI while ensuring model-generated read-only tools are reviewed before any tool call begins.
+**Changes made:**
+- Added a workspace explorer with directory navigation, refresh, file preview, and visible read-only labelling.
+- Added local APIs for workspace listing and bounded UTF-8 file preview. The backend filters hidden/private directories, excludes symlinks, rejects traversal/absolute paths, and caps listings and file size.
+- Added a read-only tool registry for `workspace.list`, `workspace.read`, and `tasks.list`, with bounded output and heuristic secret redaction for text previews.
+- Added a sequential execution runner that records each step and stops at the first failed tool; the goal remains explicitly unverified.
+- Added a confirmation gate that displays the goal and exact selected tool arguments before a read-only run; cancel means no tools are called.
+- Added tests for workspace API access/traversal and workspace filesystem boundaries.
+**Security/reliability impact:** No shell, browser, network, write, delete, or OS-control tools are enabled. File reads are limited to the configured workspace root. The confirmation gate is not a substitute for the backend allowlist; the backend independently validates tools and arguments.
+**Tests run:** CI run #151 passed on commit `5b5b539754aa4e7a8a9d7d84aaf2ff099706c783`: https://github.com/pateljiop/Nexora/actions/runs/37150747401. A new CI run is required for the final confirmation-gate change and will be recorded after completion.
+**Known issues:** Redaction is heuristic and cannot guarantee removal of every secret format. The runner is synchronous and has no cancellation/recovery for an in-progress tool call yet. Read-only access is deliberately the only enabled execution scope.
+**Next step:** Verify current-head CI, then add persistent run lifecycle states and safe cancellation/checkpoint recovery before considering any write-capable action.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
