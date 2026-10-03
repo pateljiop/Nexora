@@ -511,21 +511,27 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(500, {"error": "Local storage could not delete the task."})
 
     def serve_static(self, request_path):
-        relative = "index.html" if request_path == "/" else unquote(request_path).lstrip("/")
-        candidate = (ROOT / relative).resolve()
-        if ROOT not in candidate.parents:
-            self.send_json(403, {"error": "Path is not allowed."})
+        # Only browser assets are public. Never serve Python source, environment files,
+        # SQLite data, tests, documentation, or arbitrary files from the repository root.
+        requested = unquote(urlparse(request_path).path)
+        allowed = {"/": "index.html", "/index.html": "index.html",
+                   "/styles.css": "styles.css", "/src/main.js": "src/main.js",
+                   "/src/task-state.js": "src/task-state.js"}
+        relative = allowed.get(requested)
+        if relative is None:
+            self.send_json(404, {"error": "Static asset not found."})
             return
+        candidate = ROOT / relative
         if not candidate.is_file():
-            self.send_json(404, {"error": "File not found."})
+            self.send_json(404, {"error": "Static asset not found."})
             return
         content_type = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
-                        ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8",
-                        ".svg": "image/svg+xml"}.get(candidate.suffix.lower(), "application/octet-stream")
+                        ".js": "text/javascript; charset=utf-8"}.get(candidate.suffix.lower(), "application/octet-stream")
         body = candidate.read_bytes()
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Content-Security-Policy", "default-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'")
         self.end_headers()
