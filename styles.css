@@ -14,3 +14,21 @@
 .plan-step-copy strong{display:block;color:var(--text,#edf2ff);font-size:11px;font-weight:700}
 .plan-step-copy p{margin:5px 0 0;color:var(--muted,#9ca9c5);font-size:10px;line-height:1.65}
 @media(max-width:640px){.composer-footer{gap:10px}.plan-button{align-self:flex-end;min-height:38px}.plan-preview{padding:14px}}
+
+
+/* Read-only local workspace explorer */
+.workspace-explorer{margin-top:18px;padding:22px}
+.workspace-browser{display:grid;grid-template-columns:minmax(210px,.72fr) minmax(0,1.28fr);gap:14px;margin-top:16px;min-height:260px}
+.workspace-file-list,.workspace-file-preview{min-width:0;border:1px solid rgba(126,145,184,.15);border-radius:10px;background:rgba(8,13,27,.34);overflow:hidden}
+.workspace-file-list{padding:8px;max-height:390px;overflow:auto}
+.workspace-file-button{display:flex;width:100%;align-items:center;gap:9px;padding:9px 10px;border:0;border-radius:7px;background:transparent;color:var(--muted,#9ca9c5);font:500 10px "DM Mono",monospace;text-align:left;cursor:pointer;overflow-wrap:anywhere}
+.workspace-file-button:hover{background:rgba(124,146,255,.1);color:var(--text,#edf2ff)}
+.workspace-file-button .file-glyph{flex:0 0 17px;color:#91a6ff}
+.workspace-file-button .file-path{overflow-wrap:anywhere}
+.workspace-empty{padding:12px;color:var(--muted,#9ca9c5);font-size:10px;line-height:1.6}
+.workspace-file-preview{display:flex;flex-direction:column;min-height:260px}
+.workspace-preview-head{display:flex;justify-content:space-between;gap:12px;padding:11px 13px;border-bottom:1px solid rgba(126,145,184,.15);color:#92a6e6;font:500 9px "DM Mono",monospace;letter-spacing:.04em}
+.workspace-preview-head span:first-child{overflow-wrap:anywhere}
+.workspace-preview-head span:last-child{flex:0 0 auto;color:#7e8da8}
+#workspace-file-content{margin:0;padding:14px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;color:#c4cde0;font:10px/1.7 "DM Mono",monospace;max-height:360px}
+@media(max-width:760px){.workspace-browser{grid-template-columns:1fr}.workspace-file-list{max-height:210px}.workspace-explorer{padding:14px}}
