@@ -860,4 +860,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run Linux/Windows CI and merge only after the latest head is green; continue first-run UI clarity.
 
-**Commit/branch:** `fix/accurate-capability-help`; implementation/test commits through `f233664cd0db0c3eef78b5782bd01ea62cfd92bd` before this log update.
+**Commit/branch:** `fix/accurate-capability-help`; implementation/test commits through `8ca2afeb22ee09a11201953908d02039b6005661` before this log update.
+
+**CI failure/fix (2026-10-04):** Initial run #509 failed because the static test expected a lowercase initial letter while the approved help copy correctly starts the sentence with uppercase `Captured`. Updated the assertion to match the actual copy. Rerun required on commit `8ca2afeb22ee09a11201953908d02039b6005661` before merge.
