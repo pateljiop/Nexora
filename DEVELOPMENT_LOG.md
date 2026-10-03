@@ -837,4 +837,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run Linux/Windows CI, inspect failures, update the log, and merge only after the latest PR head is green.
 
-**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `916946caeab375c706b4938fceb930e0349dce68` before this log update.
+**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `7dda83f5de3d285ea03c7f83ceeda4d1ec4e2bb5` before this log update.
+
+**Configuration example correction (2026-10-04):** Kept the explanatory comment on its own line so uncommenting `NEXORA_PORT=8765` produces a valid value for both the Python env loader and the batch launcher.
