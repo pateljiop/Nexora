@@ -1,11 +1,12 @@
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import patch
 
 from server import Store
 from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
-from workspace_tools import Workspace
+from workspace_tools import Workspace, WorkspaceError
 
 
 class WorkspaceChangeManagerTests(unittest.TestCase):
@@ -65,7 +66,7 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         with self.assertRaises(WorkspaceChangeError):
             self.manager.rollback(proposal["id"], True)
         self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "edit after apply\n")
-        self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
+        self.assertEqual(self.manager.get(proposal["id"])["status"], "stale")
 
     def test_secret_like_proposals_are_rejected_and_saved_diffs_are_redacted(self):
         with self.assertRaises(WorkspaceChangeError):
@@ -144,6 +145,36 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
                 self.manager.rollback(proposal["id"], True)
         self.assertEqual(target.read_text(encoding="utf-8"), "human edit\n")
         self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
+
+    def test_recovery_marks_unknown_new_file_state_stale_not_missing(self):
+        proposal = self.manager.preview("generated.txt", "generated\n")
+        with self.store.connect() as db:
+            db.execute(
+                "UPDATE workspace_changes SET status='applying',operation='rollback' WHERE id=?",
+                (proposal["id"],),
+            )
+        with patch.object(self.manager.workspace, "file_sha256_or_missing",
+                          side_effect=WorkspaceError("target state could not be read")):
+            self.manager.recover_interrupted_changes()
+        self.assertEqual(self.manager.get(proposal["id"])["status"], "stale")
+
+    def test_concurrent_proposals_for_same_file_do_not_overwrite_each_other(self):
+        first = self.manager.preview("notes.txt", "first approved version\n")
+        second = self.manager.preview("notes.txt", "second approved version\n")
+
+        def apply(proposal_id):
+            try:
+                return self.manager.apply(proposal_id, True)["status"]
+            except WorkspaceChangeError:
+                return self.manager.get(proposal_id)["status"]
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            statuses = list(pool.map(apply, (first["id"], second["id"])))
+
+        self.assertEqual(statuses.count("applied"), 1)
+        self.assertEqual(statuses.count("stale"), 1)
+        current = (self.root / "notes.txt").read_text(encoding="utf-8")
+        self.assertIn(current, {"first approved version\n", "second approved version\n"})
 
     def test_pending_proposals_are_bounded(self):
         for index in range(50):
