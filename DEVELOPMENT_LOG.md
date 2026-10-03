@@ -723,4 +723,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run the branch CI, inspect any failing job logs, fix and rerun until green, then review the full diff and open a focused PR. After that, continue execution workflow cancellation/timeout and desktop UI error-state audits.
 
-**Commit/branch:** `fix/workspace-transaction-audit`; changes currently committed through `3e1587a05a60b638c019de5a68f1e2e540fd86eb` before this log update.
+**Commit/branch:** `fix/workspace-transaction-audit`; the audit follow-up before this log update is committed through `25b2a15ad0c5a7dbb43a91828dce612e52d9369d`.
+
+
+**Audit follow-up (2026-10-04):** Review found that recovering every `applying` proposal from one operation's exception path could misclassify another concurrently active operation. Recovery is now scoped to the proposal that raised the exception; startup recovery still scans all in-flight records. Added a regression test to assert another in-flight proposal remains `applying`. Recovery hashing now streams 64 KiB chunks to avoid loading an unexpectedly large replacement file into memory. CI runs #471–#476 passed on earlier revisions; run #477 and the current-head run are pending before this audit can be called green.
