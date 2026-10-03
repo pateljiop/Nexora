@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import server
 from workspace_tools import Workspace
+from planner import build_dry_run_plan, build_remote_plan
 
 
 class StoreTests(unittest.TestCase):
@@ -119,6 +120,31 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(preview["content"], "workspace sample")
         self.assertTrue(preview["readOnly"])
         self.assertEqual(self.request("/api/workspace/read?path=..%2Foutside.txt")[0], 400)
+
+    def test_execution_endpoint_runs_and_persists_read_only_steps(self):
+        store = self.httpd.RequestHandlerClass.store
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read sample", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "sample.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}}
+        ])
+        store.save_plan(plan)
+        status, payload = self.request("/api/executions", "POST", {"planId": plan["id"]})
+        self.assertEqual(status, 201)
+        execution = payload["execution"]
+        self.assertEqual(execution["status"], "completed")
+        self.assertFalse(execution["goalVerified"])
+        self.assertEqual(len(execution["steps"]), 3)
+        fetched = self.request(f"/api/executions/{execution['id']}")[1]["execution"]
+        self.assertEqual(fetched["id"], execution["id"])
+
+    def test_execution_rejects_template_plan(self):
+        store = self.httpd.RequestHandlerClass.store
+        plan = build_dry_run_plan("Plan a day")
+        store.save_plan(plan)
+        status, payload = self.request("/api/executions", "POST", {"planId": plan["id"]})
+        self.assertEqual(status, 400)
+        self.assertIn("model-generated", payload["error"])
 
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
