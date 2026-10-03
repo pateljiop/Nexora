@@ -10,7 +10,7 @@ MAX_TOOL_OUTPUT_CHARS = 12_000
 SECRET_PATTERNS = (
     (re.compile(r"""(?i)(["']?\b(?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|password|client_secret|secret)\b["']?\s*[:=]\s*)(["']?)([^"']*?)(?=["']|[,}\s]|$)"""), r"\1\2[REDACTED]"),
     (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}\b"), "[REDACTED_KEY]"),
-    (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{12,}"), "Bearer [REDACTED]")
+    (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{12,}"), "Bearer [REDACTED]"),
     (re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"), "[REDACTED_GITHUB_TOKEN]"),
     (re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"), "[REDACTED_SLACK_TOKEN]"),
     (re.compile(r"\bAIza[0-9A-Za-z_-]{25,}\b"), "[REDACTED_GOOGLE_KEY]"),
