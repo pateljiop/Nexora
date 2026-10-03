@@ -474,3 +474,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The plan confirmation dialog includes proposed content in its arguments and may be long for larger proposals. Redaction is heuristic. No write, delete, shell, browser, or desktop-control tools are enabled.
 **Next step:** Verify current-head CI and review diff output truncation/redaction. Then design the write transaction separately, including atomic writes, backups, explicit approval, and rollback tests before enabling any mutation.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Diff-preview follow-up (2026-10-04):** CI initially exposed two integration issues: the planner's new path validator rejected a traversal-path test earlier than the old test expected, and the model prompt did not fully explain the new tool's arguments. The planner now rejects unsafe relative paths before a plan can be saved, the regression test asserts this earlier rejection, and the model prompt explicitly distinguishes diff preview from file-writing tools. The report renders unified diffs as readable text rather than escaped JSON. CI on commit `2c6f153d56d7b82913538c51b27a566276b1e6c1` is running: https://github.com/pateljiop/Nexora/actions/runs/37152064400. This milestone remains unverified until that run passes.
