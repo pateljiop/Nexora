@@ -775,3 +775,21 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Post-merge verification (2026-10-04):** PR #9 merged after CI run #487 passed on its exact head. Merge commit: `f1f161695afd2562524453b62840aaadb1b126b4`. Main CI for the merged commit is pending; verify it before treating the current main HEAD as green. The user's actual desktop browser permission/capture flow remains a manual test.
+
+
+### Entry: 2026-10-04 — visible execution refresh/cancellation errors
+**Goal:** Avoid silent/stale execution UI when a status or cancellation request fails.
+
+**Files changed:** `src/main.js`, `index.html`, `styles.css`, `tests/ui-contract.test.js`, `DEVELOPMENT_LOG.md`.
+
+**Approach:** Added a persistent inline error state in the run report when refresh fails or cancellation cannot be confirmed. The note explicitly says the run was not retried and directs the user to refresh its current state. The message uses an accessible polite live region and distinct error styling; a later successful status response clears the error state.
+
+**Security/reliability impact:** A lost response does not trigger a second execution. The UI preserves the active execution ID and keeps status refresh available so the user can reconcile server state before taking further action.
+
+**Tests run/results:** Added static UI contract coverage. Current PR CI pending; no local test execution is claimed.
+
+**Known issues:** Browser-level accessibility and network interruption testing on the target Windows laptop remain pending. This UI does not add per-step timeouts or automatic retries.
+
+**Next step:** Run Linux and Windows CI; fix any failures, update this log with exact results, and merge only after the current head is green.
+
+**Commit/branch:** `fix/execution-refresh-errors`; implementation/test commits through `77ee1887c17e38f5ae2662836c7526583ccb21d4` before this log update.
