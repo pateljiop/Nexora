@@ -74,6 +74,21 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         self.assertNotIn("supersecret123", proposal["diff"])
         self.assertIn("[REDACTED]", proposal["diff"])
 
+    def test_reconciles_interrupted_apply_and_recovers_rollback_without_receipt(self):
+        proposal = self.manager.preview("notes.txt", "new content\n")
+        with self.store.connect() as db:
+            db.execute("UPDATE workspace_changes SET status='applying',operation='apply' WHERE id=?", (proposal["id"],))
+        self.manager.workspace.write_file(
+            "notes.txt", "new content\n",
+            expected_sha256=proposal["originalSha256"], backup_root=str(self.backups)
+        )
+        self.assertEqual(self.manager.recover_interrupted_changes(), 1)
+        recovered = self.manager.get(proposal["id"])
+        self.assertEqual(recovered["status"], "applied")
+        rolled_back = self.manager.rollback(proposal["id"], True)
+        self.assertEqual(rolled_back["status"], "rolled_back")
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "original text\n")
+
     def test_backup_failure_does_not_mutate_target(self):
         blocked_backup_path = Path(self.temp.name) / "not-a-directory"
         blocked_backup_path.write_text("not a directory", encoding="utf-8")
