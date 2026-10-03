@@ -15,6 +15,7 @@ let currentView = "overview";
 let backendAvailable = false;
 let currentPlan = null;
 let activeExecutionId = null;
+let currentExecutionPlanId = null;
 let tasks = readJson(STORAGE_KEY, []);
 let activities = readJson(ACTIVITY_KEY, []);
 
@@ -302,6 +303,17 @@ $("#plan-button").addEventListener("click", requestPlanPreview);
 $("#run-plan-button").addEventListener("click", runCurrentPlan);
 $("#cancel-run-button").addEventListener("click", cancelCurrentExecution);
 $("#refresh-run-button").addEventListener("click", () => refreshExecutionStatus({ poll: true }).catch(error => showToast(error.message)));
+$("#review-saved-plan-button").addEventListener("click", async () => {
+  if (!currentExecutionPlanId) return;
+  try {
+    const result = await api("/api/plans/" + encodeURIComponent(currentExecutionPlanId));
+    if (!result.plan) throw new Error("Saved plan was not found.");
+    renderPlan(result.plan);
+    showToast("Saved plan loaded for review. Nothing will run until you confirm the tool list again.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not load the saved plan.");
+  }
+});
 
 taskForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -370,8 +382,10 @@ function renderExecution(execution, scroll = true) {
   }
   panel.hidden = false;
   const running = execution.status === "running";
+  currentExecutionPlanId = execution.planId;
   $("#cancel-run-button").hidden = !running;
   $("#refresh-run-button").hidden = !running;
+  $("#review-saved-plan-button").hidden = running;
   if (scroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
