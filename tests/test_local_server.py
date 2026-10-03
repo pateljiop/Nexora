@@ -6,6 +6,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
+from unittest.mock import patch
 
 import server
 
@@ -94,7 +95,7 @@ class ApiTests(unittest.TestCase):
         self.assertFalse(plan["executionEnabled"])
         self.assertEqual(len(plan["steps"]), 4)
         self.assertEqual(self.request("/api/plans")[1]["plans"][0]["id"], plan["id"])
-        self.assertIn("Dry-run plan preview created", [x["message"] for x in self.request("/api/activity")[1]["activities"]])
+        self.assertIn("Plan preview created", [x["message"] for x in self.request("/api/activity")[1]["activities"]])
 
     def test_model_status_is_safe_and_remote_consent_is_required(self):
         status, model_status = self.request("/api/model/status")
