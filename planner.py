@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import PurePosixPath
 from datetime import datetime, timezone
 
 MAX_GOAL_LENGTH = 1200
@@ -10,6 +11,17 @@ PLAN_MODE = "dry_run"
 PLAN_SOURCE = "local_template"
 ALLOWED_PLAN_SOURCES = {"local_template", "remote_model", "local_model"}
 ALLOWED_READ_ONLY_TOOLS = {"workspace.list", "workspace.read", "workspace.diff", "tasks.list", "none"}
+
+
+def _safe_relative_path(value, allow_dot=False):
+    if not isinstance(value, str) or not value.strip() or len(value) > 1000:
+        return False
+    if "\x00" in value or "\\" in value or ":" in value:
+        return False
+    if allow_dot and value.strip() == ".":
+        return True
+    path = PurePosixPath(value)
+    return not path.is_absolute() and all(part not in {"", ".", ".."} for part in path.parts)
 
 
 def now_iso():
@@ -69,19 +81,19 @@ def build_remote_plan(goal, model_steps, created_at=None, source="remote_model")
             raise ValueError("Plan tool arguments must be an object.")
         if tool == "workspace.read":
             path = arguments.get("path")
-            if not isinstance(path, str) or not path.strip() or len(path) > 1000:
-                raise ValueError("workspace.read requires a relative path.")
+            if not _safe_relative_path(path):
+                raise ValueError("workspace.read requires a safe relative path.")
             arguments = {"path": path.strip()}
         elif tool == "workspace.diff":
             path, content = arguments.get("path"), arguments.get("content")
-            if not isinstance(path, str) or not path.strip() or len(path) > 1000:
-                raise ValueError("workspace.diff requires a relative path.")
+            if not _safe_relative_path(path):
+                raise ValueError("workspace.diff requires a safe relative path.")
             if not isinstance(content, str) or len(content) > 16000:
                 raise ValueError("workspace.diff content must be text of at most 16000 characters.")
             arguments = {"path": path.strip(), "content": content}
         elif tool == "workspace.list":
             path = arguments.get("path", ".")
-            if not isinstance(path, str) or len(path) > 1000:
+            if not _safe_relative_path(path, allow_dot=True):
                 raise ValueError("workspace.list path is invalid.")
             arguments = {"path": path.strip() or "."}
         else:
@@ -126,13 +138,13 @@ def validate_plan(value):
             if tool not in ALLOWED_READ_ONLY_TOOLS or not isinstance(arguments, dict):
                 raise ValueError("Plan tool is outside the read-only allowlist.")
             if tool == "workspace.list":
-                if set(arguments) - {"path"} or ("path" in arguments and (not isinstance(arguments["path"], str) or len(arguments["path"]) > 1000)):
+                if set(arguments) - {"path"} or ("path" in arguments and not _safe_relative_path(arguments["path"], allow_dot=True)):
                     raise ValueError("workspace.list arguments are invalid.")
             elif tool == "workspace.read":
-                if set(arguments) != {"path"} or not isinstance(arguments.get("path"), str) or not arguments["path"].strip() or len(arguments["path"]) > 1000:
+                if set(arguments) != {"path"} or not _safe_relative_path(arguments.get("path")):
                     raise ValueError("workspace.read arguments are invalid.")
             elif tool == "workspace.diff":
-                if set(arguments) != {"path", "content"} or not isinstance(arguments.get("path"), str) or not arguments["path"].strip() or len(arguments["path"]) > 1000 or not isinstance(arguments.get("content"), str) or len(arguments["content"]) > 16000:
+                if set(arguments) != {"path", "content"} or not _safe_relative_path(arguments.get("path")) or not isinstance(arguments.get("content"), str) or len(arguments["content"]) > 16000:
                     raise ValueError("workspace.diff arguments are invalid.")
             elif tool in {"tasks.list", "none"} and arguments:
                 raise ValueError("This tool does not accept arguments.")
