@@ -252,7 +252,7 @@ async function removeTask(id) {
 
 function renderPlan(plan) {
   currentPlan = plan;
-  const runnable = ["local_model", "remote_model"].includes(plan.source) && plan.steps.length > 0 && plan.steps.every(step => ["workspace.list", "workspace.read", "tasks.list"].includes(step.tool));
+  const runnable = ["local_model", "remote_model"].includes(plan.source) && plan.steps.length > 0 && plan.steps.every(step => ["workspace.list", "workspace.read", "workspace.diff", "tasks.list"].includes(step.tool));
   $("#run-plan-button").hidden = !runnable;
   const panel = $("#plan-preview");
   $("#plan-goal").textContent = plan.goal;
