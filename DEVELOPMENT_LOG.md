@@ -460,3 +460,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** GitHub Actions run #304 passed on code commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`: https://github.com/pateljiop/Nexora/actions/runs/37151846504. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed, including synthetic JSON/quoted-secret and common provider-token redaction cases. The README verification link was refreshed. The subsequent commit only records this verification in the development log.
+
+
+### Entry: 2026-10-04 — read-only workspace diff preview
+**Goal:** Give Virtual Hariom a safe first step toward proposing code changes without enabling file writes.
+**Changes made:**
+- Added `workspace.diff`, a bounded tool that compares proposed UTF-8 text against an existing workspace file or previews a new file.
+- The diff tool is non-mutating, constrained to the configured workspace root, rejects traversal/sensitive paths/symlinks/binary files/oversized content, and redacts common secrets from the returned diff.
+- Extended structured plan validation and the model planner prompt to allow this tool. The desktop runner still requires explicit review of tool arguments before the read-only plan starts.
+- Added tests proving existing files are unchanged, new files are not created, unsafe/oversized proposals are rejected, and diff output is redacted.
+**Tests run:** CI runs #309–#311 passed for the UI, workspace preview implementation, and workspace preview tests. The final plan-schema regression test is queued in run #314: https://github.com/pateljiop/Nexora/actions/runs/37151885538. Do not mark the complete diff-preview milestone green until current-head CI finishes.
+**Security/reliability impact:** This is a preview-only tool. It does not call the existing write method and cannot modify a file. This is not a substitute for a future approval-gated write transaction with backups, diff confirmation, and rollback.
+**Known issues:** The plan confirmation dialog includes proposed content in its arguments and may be long for larger proposals. Redaction is heuristic. No write, delete, shell, browser, or desktop-control tools are enabled.
+**Next step:** Verify current-head CI and review diff output truncation/redaction. Then design the write transaction separately, including atomic writes, backups, explicit approval, and rollback tests before enabling any mutation.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
