@@ -137,7 +137,7 @@
 .screen-observer{margin-bottom:18px;overflow:hidden}
 .screen-observer .surface-heading p{max-width:720px}
 .screen-observer-stage{position:relative;display:grid;place-items:center;min-height:260px;max-height:680px;overflow:hidden;border:1px solid var(--line-strong);border-radius:12px;background:radial-gradient(ellipse at center,rgba(75,94,146,.13),rgba(4,8,18,.96) 72%);margin-top:14px}
-.screen-observer-stage video{display:block;width:100%;max-height:680px;object-fit:contain;background:#050812}
+.screen-observer-stage video{display:block;width:100%;max-height:680px;object-fit:contain;background:#050812}.screen-observer-stage video[hidden]{display:none}
 .screen-observer-placeholder{display:grid;justify-items:center;gap:8px;padding:34px 18px;text-align:center}
 .screen-observer-placeholder[hidden]{display:none}
 .screen-observer-placeholder strong{font-size:13px}
