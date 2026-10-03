@@ -369,6 +369,9 @@ function renderExecution(execution, scroll = true) {
     list.append(item);
   }
   panel.hidden = false;
+  const running = execution.status === "running";
+  $("#cancel-run-button").hidden = !running;
+  $("#refresh-run-button").hidden = !running;
   if (scroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -448,6 +451,7 @@ async function runCurrentPlan() {
     await refreshExecutionStatus({ poll: true });
     await refreshFromServer();
     await loadExecutionHistory();
+    await loadExecutionHistory();
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not start the read-only plan.");
   } finally {
@@ -496,6 +500,46 @@ async function loadExecutionHistory() {
     }
   } catch (error) {
     list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Could not load execution history."));
+  }
+}
+
+$("#refresh-execution-history").addEventListener("click", loadExecutionHistory);
+
+async function loadExecutionHistory() {
+  const list = $("#execution-history-list");
+  if (!backendAvailable) {
+    list.replaceChildren(makeElement("p", "workspace-empty", "Start the local server to view saved runs."));
+    return;
+  }
+  try {
+    const result = await api("/api/executions");
+    list.replaceChildren();
+    if (!result.executions.length) {
+      list.append(makeElement("p", "workspace-empty", "No read-only runs have been recorded yet."));
+      return;
+    }
+    for (const execution of result.executions) {
+      const button = makeElement("button", "execution-history-item");
+      button.type = "button";
+      const copy = makeElement("span", "execution-history-copy");
+      copy.append(makeElement("strong", "", execution.goal),
+        makeElement("small", "", `${execution.steps.length} step(s) · ${formatTime(execution.createdAt)}`));
+      const status = makeElement("span", `execution-history-status ${execution.status}`, execution.status.toUpperCase());
+      button.append(copy, status);
+      button.addEventListener("click", async () => {
+        try {
+          const detail = await api(`/api/executions/${encodeURIComponent(execution.id)}`);
+          activeExecutionId = detail.execution.status === "running" ? detail.execution.id : null;
+          renderExecution(detail.execution);
+          if (activeExecutionId) await refreshExecutionStatus({ poll: true });
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "Could not load saved run.");
+        }
+      });
+      list.append(button);
+    }
+  } catch (error) {
+    list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Could not load run history."));
   }
 }
 
@@ -575,6 +619,7 @@ async function bootstrap() {
   renderConnection();
   render();
   await loadWorkspace(".");
+  await loadExecutionHistory();
   await loadExecutionHistory();
   if (tasks.length && !activities.length && !backendAvailable) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
 }
