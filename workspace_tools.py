@@ -319,6 +319,8 @@ class Workspace:
         being mistaken for a missing file during interrupted-operation recovery.
         """
         path = self._resolve(relative, must_exist=False)
+        if not path.parent.is_dir():
+            raise WorkspaceError("Workspace target parent is missing or unavailable.")
         try:
             metadata = path.lstat()
         except FileNotFoundError:
