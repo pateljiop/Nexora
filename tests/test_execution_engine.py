@@ -115,6 +115,23 @@ class ExecutionEngineTests(unittest.TestCase):
         self.assertEqual(self.store.get_execution(execution["id"])["steps"][0]["status"], "completed")
         self.assertFalse(self.store.get_execution(execution["id"])["goalVerified"])
 
+    def test_unexpected_runner_failure_marks_running_step_failed_and_skips_rest(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}},
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "running")
+
+        self.assertTrue(self.store.fail_unexpected_execution(execution["id"]))
+        result = self.store.get_execution(execution["id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual([step["status"] for step in result["steps"]], ["failed", "skipped", "skipped"])
+        self.assertFalse(result["goalVerified"])
+        self.assertFalse(self.store.fail_unexpected_execution(execution["id"]))
+
     def test_rejects_local_template_plan(self):
         from planner import build_dry_run_plan
         plan = build_dry_run_plan("Make progress")
