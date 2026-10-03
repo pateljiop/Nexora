@@ -1,0 +1,13 @@
+{
+  "name": "nexora",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexora — a local-first desktop personal assistant for Virtual Hariom.",
+  "scripts": {
+    "test": "node --test",
+    "check:syntax": "node --check src/main.js && node --check src/task-state.js",
+    "check": "npm run check:syntax && npm test && npm run test:python",
+    "test:python": "python -m unittest discover -s tests -p 'test_*.py' -v"
+  }
+}

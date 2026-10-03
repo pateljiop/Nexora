@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1020">
+  <meta name="description" content="Nexora — a personal AI workspace built around Virtual Hariom. Plan, act, verify.">
+  <title>Nexora — Virtual Hariom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" aria-label="Nexora home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span><strong>NEXORA</strong><small>PERSONAL INTELLIGENCE</small></span>
+      </a>
+      <div class="workspace-label">YOUR SPACE</div>
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">◫</span> Home</button>
+        <button class="nav-item" data-view="tasks"><span class="nav-icon">⌘</span> My tasks <span class="nav-count" id="task-count">0</span></button>
+        <button class="nav-item" data-view="activity"><span class="nav-icon">⌁</span> Activity</button>
+      </nav>
+      <div class="sidebar-section">
+        <div class="workspace-label">QUICK START</div>
+        <button class="quick-prompt" data-prompt="Help me plan my day and identify the three most important things to do."><span>✳</span> Plan my day</button>
+        <button class="quick-prompt" data-prompt="Review my project and break the next milestone into small, verifiable tasks."><span>⌘</span> Break down a project</button>
+        <button class="quick-prompt" data-prompt="Help me debug an issue. First ask me for the error and relevant code, then suggest safe next steps."><span>⌁</span> Debug something</button>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="connection-card">
+          <span class="status-dot muted" id="connection-dot"></span>
+          <div><strong id="connection-title">Execution not connected</strong><small id="connection-subtitle">Local preview mode</small></div>
+        </div>
+        <div class="profile-row"><div class="avatar">H</div><div><strong>Hariom's workspace</strong><small>Personal assistant</small></div><span class="more" aria-hidden="true">···</span></div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="menu-toggle" aria-label="Toggle navigation">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><b>/</b><strong id="breadcrumb-current">Home</strong></div>
+        <div class="topbar-actions"><span class="environment-pill"><span class="tiny-dot"></span> PERSONAL MODE</span><button class="icon-button" id="help-button" aria-label="About Virtual Hariom">?</button></div>
+      </header>
+
+      <section class="page-wrap">
+        <div class="welcome-row">
+          <div class="welcome-copy">
+            <div class="eyebrow"><span class="eyebrow-line"></span> YOUR PERSONAL AI COMPANION</div>
+            <h1>Hey Hariom<span class="wave">✳</span><br><span class="headline-muted">What are we working on?</span></h1>
+            <p class="lead">A virtual version of your workflow—here to help you think, plan, and keep every task visible.</p>
+          </div>
+          <div class="assistant-orb" aria-label="Virtual Hariom is in preview mode">
+            <div class="orb-halo"></div><div class="orb-core"><span>H</span></div><span class="orb-spark spark-one"></span><span class="orb-spark spark-two"></span>
+            <div class="orb-caption"><i></i> VIRTUAL HARIOM <small>PREVIEW MODE</small></div>
+          </div>
+        </div>
+
+        <section class="command-panel" aria-labelledby="command-title">
+          <div class="panel-top"><div><div class="panel-kicker"><span class="sparkle">✳</span> TALK TO HARIOM</div><h2 id="command-title">What do you need help with?</h2></div><span class="shortcut">PERSONAL SPACE</span></div>
+          <form id="task-form">
+            <label class="sr-only" for="task-input">Message Virtual Hariom</label>
+            <textarea id="task-input" rows="3" maxlength="1200" placeholder="Tell me what you want to get done…&#10;For example: Help me plan the next step of my project." required></textarea>
+            <div class="composer-footer"><span class="composer-hint"><span class="hint-dot"></span> Start with a goal. We’ll make the next step clear.</span><button class="plan-button" id="plan-button" type="button">Preview plan <span>↗</span></button><button class="primary-button" type="submit"><span>＋</span> Add to workspace <span class="button-arrow">↗</span></button></div>
+          </form>
+          <p class="notice"><span>ⓘ</span> Preview mode: tasks save in this browser. AI responses, cloud sync, and device control are not connected yet.</p>
+        </section>
+
+        <section class="surface plan-preview" id="plan-preview" hidden aria-live="polite" aria-labelledby="plan-preview-title">
+          <div class="surface-heading"><div><h2 id="plan-preview-title">Plan preview</h2><p id="plan-goal"></p></div><span class="stream-mark">DRY RUN</span></div>
+          <p class="plan-disclaimer">Template preview only. No files, apps, or system actions have been touched.</p>
+          <ol id="plan-steps" class="plan-steps"></ol>
+          <div class="execution-actions"><button class="primary-button" id="run-plan-button" type="button" hidden>Run read-only steps <span class="button-arrow">↗</span></button><button class="plan-button" id="cancel-run-button" type="button" hidden>Cancel run</button><button class="plan-button" id="refresh-run-button" type="button" hidden>Refresh status</button><button class="plan-button" id="review-saved-plan-button" type="button" hidden>Review plan again ↗</button></div>
+          <section class="execution-result" id="execution-result" hidden aria-live="polite">
+            <div class="surface-heading"><div><h3 id="execution-title">Run report</h3><p id="execution-note"></p></div><span class="stream-mark" id="execution-status">NOT RUN</span></div>
+            <div id="execution-steps" class="execution-steps"></div>
+          </section>
+          <section class="execution-history" aria-labelledby="execution-history-title">
+            <div class="surface-heading"><div><h3 id="execution-history-title">Recent runs</h3><p>Persistent local run records, including stopped and interrupted attempts.</p></div><button class="text-button" id="refresh-execution-history" type="button">Refresh ↻</button></div>
+            <div id="execution-history-list" class="execution-history-list"><p class="workspace-empty">No saved runs yet.</p></div>
+          </section>
+        </section>
+        <section class="surface workspace-explorer" id="workspace-explorer" aria-labelledby="workspace-title">
+          <div class="surface-heading">
+            <div><h2 id="workspace-title">Workspace explorer</h2><p id="workspace-location">Read-only access to the configured local project folder.</p></div>
+            <button class="text-button" id="refresh-workspace" type="button">Refresh <span>↻</span></button>
+          </div>
+          <div class="workspace-browser">
+            <div class="workspace-file-list" id="workspace-file-list"><p class="workspace-empty">Start the local server to inspect workspace files.</p></div>
+            <div class="workspace-file-preview">
+              <div class="workspace-preview-head"><span id="workspace-preview-path">FILE PREVIEW</span><span>READ ONLY</span></div>
+              <pre id="workspace-file-content">Choose a text file from the list to preview it. Files are never changed by this panel.</pre>
+            </div>
+          </div>
+        </section>
+        <section class="surface workspace-change-review" id="workspace-change-review" hidden aria-labelledby="workspace-change-title">
+          <div class="surface-heading">
+            <div><h2 id="workspace-change-title">Change review</h2><p>Review the complete diff. Applying or rolling back always requires a separate confirmation.</p></div>
+            <div class="workspace-change-heading-actions"><span class="execution-history-status" id="workspace-change-status">NO PROPOSAL</span><button class="text-button" id="refresh-workspace-changes" type="button">Refresh ↻</button></div>
+          </div>
+          <p class="workspace-change-path" id="workspace-change-path">No file selected.</p>
+          <pre class="workspace-change-diff" id="workspace-change-diff">Choose “Prepare change for approval” on a diff step to review the complete proposed change.</pre>
+          <p class="workspace-change-note" id="workspace-change-note">No files are changed until you explicitly apply a reviewed proposal.</p>
+          <div class="workspace-change-actions">
+            <button class="primary-button" id="apply-workspace-change" type="button" hidden>Apply reviewed change</button>
+            <button class="plan-button" id="rollback-workspace-change" type="button" hidden>Roll back applied change</button>
+          </div>
+          <div class="workspace-change-history" id="workspace-change-history"><p class="workspace-empty">No saved change proposals yet.</p></div>
+        </section>
+        <section class="surface workspace-change-history" aria-labelledby="workspace-change-history-title">
+          <div class="surface-heading"><div><h2 id="workspace-change-history-title">Change proposals</h2><p>Pending, applied, stale, and rolled-back proposals saved locally.</p></div><button class="text-button" id="refresh-workspace-changes" type="button">Refresh ↻</button></div>
+          <div id="workspace-change-history" class="workspace-change-history-list"><p class="workspace-empty">No change proposals yet.</p></div>
+        </section>
+        <div class="section-heading"><div><span class="section-index">01</span><h2>Your workspace</h2></div><span class="muted-label" id="session-label">LOCAL SESSION</span></div>
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-head"><span>Things on your list</span><span class="stat-symbol">↗</span></div><div class="stat-value" id="stat-total">00</div><div class="stat-foot">Tasks saved in this browser</div><div class="mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></article>
+          <article class="stat-card"><div class="stat-head"><span>In progress</span><span class="stat-symbol">◷</span></div><div class="stat-value" id="stat-running">00</div><div class="stat-foot">Waiting for an execution engine</div><div class="stat-line"><span></span></div></article>
+          <article class="stat-card"><div class="stat-head"><span>Needs your review</span><span class="stat-symbol">◇</span></div><div class="stat-value" id="stat-approval">00</div><div class="stat-foot">Sensitive actions require approval</div><div class="approval-mark">YOU STAY <span>IN CONTROL</span></div></article>
+        </div>
+
+        <div class="content-grid">
+          <section class="surface task-surface">
+            <div class="surface-heading"><div><h2 id="list-title">Your tasks</h2><p id="list-subtitle">Small steps make progress visible.</p></div><button class="text-button" id="view-all">View all <span>→</span></button></div>
+            <div id="task-list" class="task-list"><div class="empty-state"><div class="empty-orbit"><span>✳</span></div><strong>Your workspace starts here</strong><p>Add a task above and it will appear here.</p></div></div>
+          </section>
+          <aside class="surface activity-surface">
+            <div class="surface-heading"><div><h2>Activity</h2><p>A transparent trail of your workspace.</p></div><span class="stream-mark">LOCAL</span></div>
+            <div id="activity-list" class="activity-list"><div class="activity-entry"><span class="activity-rail"></span><span class="activity-icon">✳</span><div><strong>Virtual Hariom is ready</strong><p>Your workspace is waiting for a goal.</p><time>JUST NOW</time></div></div></div>
+            <div class="security-note"><span class="shield">⬡</span><div><strong>You stay in control</strong><p>No hidden device actions. Real execution will need explicit permissions and verification.</p></div></div>
+          </aside>
+        </div>
+        <footer class="page-footer"><span>© NEXORA <span id="year"></span></span><span>PLAN <b>·</b> ACT <b>·</b> VERIFY</span><span class="footer-state"><i></i> PREVIEW MODE</span></footer>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Nexora is the workspace. Virtual Hariom is the assistant experience: a place to capture goals, organize tasks, and eventually connect a secure execution engine. This version stores tasks locally in your browser; it does not call an AI model or control your laptop yet.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

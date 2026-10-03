@@ -1,0 +1,644 @@
+# Virtual Hariom — Development Log
+
+> Update this file on every meaningful development session and after significant implementation/test milestones. Record facts, not intentions as completed work. Include commit SHA or PR/run link where available. Never record API keys, passwords, tokens, or secrets.
+
+## Product direction
+- Project: Nexora — Virtual Hariom.
+- Goal: a personal AI assistant/workstation running on Hariom's own Windows laptop.
+- Principle: PLAN. ACT. VERIFY.
+- Order: finish and test the desktop computer experience first. Website and mobile access come later.
+- Target machine: Windows, Intel Core i5 6th generation, 12 GB RAM, approximately 200 GB free SSD.
+- Local-first runtime. GitHub is for source control and CI, not runtime hosting.
+- Do not require Supabase, Vercel, Render, public cloud hosting, or Docker for the first local version.
+
+## Intended assistant loop
+1. Accept a user request and clarify only when required.
+2. Build a structured, validated plan with a bounded number of steps.
+3. Classify risk and permissions before side effects.
+4. Show the plan and ask for approval where required.
+5. Execute one bounded step at a time through an allowlisted tool registry.
+6. Show progress, tool output, timestamps, approvals, and redacted audit records.
+7. Verify meaningful results using evidence; a successful tool call alone is not proof of success.
+8. Retry or repair only within configured limits; stop safely when uncertain.
+9. Persist tasks, conversations, audit events, and checkpoints locally.
+10. Recover interrupted tasks safely or explain why recovery is blocked.
+
+## Safety and reliability decisions
+- Bind the local service to 127.0.0.1 by default; no LAN/public exposure by default.
+- Do not implement phone access until desktop behavior is tested and LAN authentication/origin protections are designed.
+- Keep API keys out of browser code, Git, localStorage, and logs. Store secrets server-side or in OS-protected storage.
+- Disclose when an external model provider receives prompt/context data.
+- Start file access inside an explicitly selected workspace; avoid unrestricted disk access.
+- Never execute model-generated shell commands without validation and policy enforcement.
+- Require explicit approval for sensitive/destructive actions and revalidate policy immediately before execution.
+- Treat webpages, documents, screenshots, and model outputs as untrusted inputs.
+- Use bounded retries, timeouts, output limits, cancellation, structured errors, and audit logs.
+- Distinguish planned, running, completed, failed, blocked, and verified states. Never fake execution or verification.
+
+## Repository state — 2026-10-03
+### Branch and PR
+- Branch: feat/desktop-web-foundation
+- Draft PR: https://github.com/pateljiop/Nexora/pull/1
+- PR targets main and has not been merged.
+- Latest known branch commit at this entry: 41f61b8ea564f5ac08d399ef78b77f91e12bfb51 (README desktop-first update).
+- Product specification commit: d4c0ff7a31dc403e9e72a98d7a30a586a4a31006.
+
+### Existing files and responsibilities
+- index.html and styles.css: desktop-first workspace UI foundation.
+- src/main.js: browser-side interactions, task operations, activity list, navigation, quick prompts, notifications/dialogs, and browser localStorage persistence.
+- src/task-state.js: task validation, normalization, and state helper functions.
+- tests/task-state.test.js: task-state unit tests.
+- package.json: check/test scripts without npm runtime dependencies.
+- .github/workflows/ci.yml: GitHub Actions syntax and unit-test workflow.
+- docs/LOCAL_FIRST_ARCHITECTURE.md: local-first architecture and security constraints.
+- docs/DESKTOP_FIRST_SPEC.md: desktop-first product experience, assistant loop, safety, hardware assumptions, phases, and deferred scope.
+
+### Current capabilities
+- Create tasks and display them.
+- Mark tasks complete/reopen them and delete them.
+- Show a basic activity trail.
+- Persist prototype task data in browser localStorage.
+- Run task-state tests and GitHub Actions checks.
+
+### Not implemented yet
+- Local HTTP backend or SQLite-backed durable storage.
+- Connected LLM/provider routing or structured planner.
+- Real tool execution or task orchestration.
+- Actual browser automation or Windows screen/mouse/keyboard control.
+- Persistent background queue, checkpoints, and recovery.
+- Voice/wake-word assistant.
+- Secure phone-on-Wi-Fi access or a separate website.
+
+Important: marking a task complete in the current UI is a manual UI state change. It is not proof that an AI agent performed or verified the work.
+
+## Recent work log
+
+### Entry: 2026-10-03 — local-first direction
+**Why:** The assistant should run on Hariom's laptop rather than depend on a cloud runtime.
+**Changes:** Documented local-first hosting, localhost-only defaults, SQLite as the intended durable store, optional model providers, secret handling, approval gates, and future Windows computer control in docs/LOCAL_FIRST_ARCHITECTURE.md. Updated README to clarify that Supabase/Vercel/Render are not required runtime dependencies.
+**Verification:** An earlier GitHub Actions run passed on an earlier branch head. That result does not verify later commits.
+
+### Entry: 2026-10-03 — desktop-first scope
+**Why:** Hariom explicitly requested that mobile be ignored for now. Build and test the complete computer experience on the laptop first; consider a separate website/mobile experience only later.
+**Changes:** Added docs/DESKTOP_FIRST_SPEC.md; updated README.md to make desktop-first scope and limitations explicit; updated draft PR #1 title and description.
+**Verification:** GitHub Actions run #11 was queued and run #10 was in progress for commit 41f61b8ea564f5ac08d399ef78b77f91e12bfb51. Latest CI was not yet confirmed when this entry was written. Recheck https://github.com/pateljiop/Nexora/actions before reporting the branch as green.
+
+## Planned implementation sequence
+
+### Phase 1 — Desktop workspace
+- Review current HTML/CSS/JS and improve the desktop interaction flow.
+- Add clear chat, plan preview, task timeline, approvals, tool-output/evidence area, and local-runtime status.
+- Include loading, empty, error, and cancellation states.
+
+### Phase 2 — Local backend and durable state
+- Add a lightweight local server bound to localhost by default.
+- Add SQLite tables/APIs for tasks, conversations, activity/audit events, and checkpoints.
+- Use parameterized SQL, bounded request bodies, safe error responses, and strict Host/Origin protections.
+- Plan a deliberate migration/import path for existing browser-local tasks to avoid data loss.
+- Add Windows launch scripts and setup instructions.
+
+### Phase 3 — Planner and model adapter
+- Define a structured task-plan schema and strict validation.
+- Start with dry-run plans and test/fake tools before real side effects.
+- Add optional provider adapters behind the local backend.
+- Keep credentials out of frontend and source control; redact secrets from logs.
+- Make external-data sharing explicit.
+
+### Phase 4 — Execution and approvals
+- Add allowlisted tools, risk classification, approval workflow, policy revalidation, cancellation, timeouts, and bounded retries.
+- Persist task steps, tool results, audit events, and recovery checkpoints.
+- Verify outcomes independently where possible and report uncertainty honestly.
+
+### Phase 5 — Browser automation
+- Add bounded navigation/observation/actions and screenshot evidence.
+- Treat page content as untrusted input.
+- Require approval for sensitive actions; test timeouts, unexpected pages, and failed actions.
+
+### Phase 6 — Windows computer control
+- Build a narrowly permissioned Windows adapter for screen observation, mouse, keyboard, and window/app actions.
+- Start observation-only; introduce actions individually with permission gates, visible activity, stop control, and verification.
+
+### Phase 7 — Testing and local release
+- Add backend unit tests, API/security tests, planner/tool tests, UI checks, end-to-end scenarios, and failure/recovery tests.
+- Test on Hariom's actual laptop for memory, responsiveness, restart behavior, and model speed.
+- Package a repeatable local launcher after the core flow is reliable.
+
+### Phase 8 — Website/mobile (deferred)
+- Begin only after desktop testing succeeds.
+- Treat remote access as a separate security milestone, not an automatic consequence of responsive design.
+- Do not expose the local execution engine publicly without threat review and explicit user decision.
+
+## Verification/change template
+
+Append a dated entry for each meaningful session:
+
+### Entry: YYYY-MM-DD — short title
+**Goal:** What problem or milestone is being addressed?
+**Inspection:** Which files, code paths, logs, or failures were inspected?
+**Changes made:** Exact files and behaviors changed. Separate completed code from proposed work.
+**Implementation approach:** Key design choices and why they fit the laptop/hardware constraints.
+**Security/reliability impact:** Permissions, data handling, failure cases, retries, and risks considered.
+**Tests run:** Exact commands or CI link and actual result. If not run, say so.
+**Known issues:** Remaining bugs, uncertainty, or unverified behavior.
+**Next step:** One concrete next action.
+**Commit/PR:** Link or SHA when available.
+
+## Current next action
+Implement a local-only backend with SQLite and tests after inspecting existing UI/task-state contracts. Keep changes on feat/desktop-web-foundation, update this log in the same session, and merge when the milestone is complete and required verification is green. Hariom has authorized autonomous implementation, pushing, merging when appropriate, and re-verification without repeated permission requests.
+
+### Entry: 2026-10-04 — local SQLite backend and desktop API wiring
+**Goal:** Move durable task state off browser-only storage and establish a safe local runtime foundation.
+**Inspection:** Reviewed `src/main.js`, `src/task-state.js`, `tests/task-state.test.js`, `index.html`, `package.json`, and the existing CI workflow. Confirmed the previous UI was browser-local only and did not execute AI tasks.
+**Changes made:**
+- Added `server.py`: Python standard-library HTTP server bound to `127.0.0.1`, SQLite task/activity storage, health/tasks/activity APIs, task create/update/delete endpoints, and a bounded legacy browser-data import endpoint.
+- Added request protections: local Host/Origin allowlists, cross-site fetch rejection, 64 KiB request-body cap, parameterized SQL, input validation, safe API errors, static path traversal protection, no-store API responses, and restrictive static-content headers.
+- Updated `src/main.js` to detect the local backend, import existing browser data once in small batches, use SQLite-backed task CRUD when available, and show local-server/preview state honestly. Browser storage remains a fallback when the server is unavailable.
+- Added `tests/test_local_server.py` for SQLite behavior, task validation, import idempotency, activity bounds, HTTP CRUD, invalid Host, and cross-origin rejection.
+- Added `run-local.bat`, `.gitignore` for local database/Python cache files, Python test integration in `package.json` and GitHub Actions, and Windows setup/limitations in `README.md`.
+**Security/reliability impact:** The backend does not execute commands, control the desktop, access remote devices, or call an AI provider. It listens on loopback only. Legacy data import does not overwrite existing task IDs. The database is local at `data/nexora.sqlite3`.
+**Tests run:** GitHub Actions run #26 passed at commit `57dfb6ab40fe2dde955eedb130c4328314f94455` after Python API/SQLite tests were added: https://github.com/pateljiop/Nexora/actions/runs/37149933845. That run predates later frontend hardening and must not be treated as verification of the current head. Current-head GitHub Actions run #36 passed on commit `ec47c7cc94579eb5b9df26261cddeb3592cf48a6`: JavaScript syntax, Node unit tests, and Python API/SQLite tests all succeeded. Run: https://github.com/pateljiop/Nexora/actions/runs/37149995389.
+**Known issues:** LLM/provider planning, real execution tools, approvals, browser/computer control, cancellation/checkpoints/recovery, and voice are not implemented. The local server must be started with `run-local.bat`; opening `index.html` directly uses browser fallback.
+**Next step:** Verify CI for the latest branch head, fix any failures, then implement a dry-run structured planner with explicit task/plan state and tests before enabling side effects.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1. Latest code changes are pushed to GitHub; the PR remains draft while the core desktop runtime is still incomplete.
+
+
+### Entry: 2026-10-04 — structured dry-run planner preview
+**Goal:** Give the desktop workspace a real, inspectable plan-preview flow without pretending that an LLM or execution engine is connected.
+**Inspection:** Reviewed the local API/storage milestone and the current task composer, CSS layout, and test discovery setup.
+**Changes made:**
+- Added `planner.py` with strict goal bounds, a versionable plan object, four deterministic preview steps, validation, and hard guarantees that the plan remains `mode: dry_run`, `status: preview`, and `executionEnabled: false`.
+- Added a SQLite `plans` table and `/api/plans` GET/POST endpoints; generated plans are persisted and add a local activity entry.
+- Added a “Preview plan” control and plan inspector to the desktop UI. The inspector clearly states that it is a template preview and no files/apps/system actions were touched.
+- Added planner schema/guard tests and an API test for plan persistence; updated README to disclose that the planner is deterministic and not LLM reasoning.
+**Security/reliability impact:** No plan step can execute a side effect in this milestone. Goal and step sizes are bounded; invalid plans and attempts to enable execution are rejected. Plan history is bounded to 200 persisted records.
+**Tests run:** The earlier backend milestone passed current-head CI run #36 at commit `ec47c7cc94579eb5b9df26261cddeb3592cf48a6`: https://github.com/pateljiop/Nexora/actions/runs/37149995389. CI for the new planner and UI changes is pending and must be checked before treating this milestone as verified.
+**Known issues:** The plan is intentionally generic and deterministic; no LLM provider is connected. No plan execution, approval workflow, browser/computer control, voice, or recovery orchestration is available yet.
+**Next step:** Verify current CI, fix any failures, and then add an optional server-side model adapter with explicit opt-in and secret handling while keeping dry-run behavior as the safe default.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — opt-in model planner adapter
+**Goal:** Enable optional model-assisted plan drafts while preserving local-first defaults and explicit disclosure before external data sharing.
+**Changes made:**
+- Added `model_provider.py`, an OpenAI-compatible chat-completions adapter using environment-backed configuration, a 25-second timeout, bounded response reads, safe error messages, and strict structured-plan validation.
+- Added local `.env` loading without overwriting already-set environment variables; added `.env.example`; ignored `.env` so provider credentials are not committed.
+- Added local OpenAI-compatible endpoint support (e.g. a loopback model server) without requiring a remote API key. Remote HTTPS model requests remain disabled unless `NEXORA_ALLOW_REMOTE_MODEL=1` is explicitly set.
+- Added per-goal browser confirmation before sending a goal to a remote provider. Server also checks the explicit consent flag; model status never returns the API key.
+- Updated plan inspector labels to distinguish local template, local model, and remote model dry runs.
+- Added mocked provider tests for configuration, output validation, local endpoints, opt-in, and credential non-disclosure; added API consent/status coverage.
+**Security/reliability impact:** The model adapter only drafts plans; it cannot execute them. It rejects non-loopback plain HTTP endpoints, caps provider response size, times out requests, and does not log credentials or provider response bodies. External data sharing is off by default and prompts on each goal.
+**Tests run:** Initial CI exposed two test issues (missing `patch` import and an outdated activity-label assertion); both were fixed. Current-head GitHub Actions run #94 passed on commit `08e5d5cf321efa69fbaa589b30237fee4a70fde3`, including JavaScript syntax, Node tests, and Python API/planner/provider tests: https://github.com/pateljiop/Nexora/actions/runs/37150319700.
+**Known issues:** No tool execution or approval-gated execution workflow exists yet. Provider compatibility can vary; unsupported response-format options will surface as a provider error rather than being treated as success. Model-generated plan steps remain unexecuted previews.
+**Next step:** Build the execution state machine and approval ledger using test/fake tools only. Keep real filesystem, shell, browser, and desktop actions disabled until policy checks, cancellation, audit events, and verification are covered by tests.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — read-only workspace inspection
+**Goal:** Let Virtual Hariom inspect project files through bounded local APIs before any write or computer-control capabilities are introduced.
+**Changes made:**
+- Added `workspace_tools.py` with a configurable workspace root (defaults to the Nexora repository), bounded directory listings, UTF-8 text previews capped at 256 KiB, and relative-path enforcement.
+- Excluded private/runtime folders and secret-like filenames, skipped symlinks, rejected traversal/absolute paths, and exposed read-only `/api/workspace` and `/api/workspace/read` endpoints.
+- Added the workspace explorer to the desktop UI, including folder navigation, text preview, refresh, and explicit read-only messaging.
+- Added unit/API tests for traversal, symlinks, secret-path exclusion, binary/oversized files, and read-only metadata. Documented optional `NEXORA_WORKSPACE_ROOT` configuration.
+**Security/reliability impact:** This milestone only reads text files inside the configured root; it does not write files, run commands, access the whole disk, or execute model plans. File reads and listings are bounded.
+**Tests run:** GitHub Actions run #113 passed on commit `2322e240a97b471bcb00c63b2d57e8307b3db40c`: https://github.com/pateljiop/Nexora/actions/runs/37150468860. This includes JavaScript syntax, Node tests, and Python API/planner/provider/workspace tests.
+**Known issues:** No write tools, approval-gated side effects, shell/browser/computer control, execution cancellation, or final goal verification are implemented yet. Model plans are previews until a bounded tool execution loop is added.
+**Next step:** Extend structured model plans with a strict read-only tool allowlist, then add persisted, bounded execution runs and an inspector that distinguishes tool output from verified goal completion.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — bounded read-only execution loop
+**Goal:** Let an explicitly selected model-generated plan call a small read-only tool registry and preserve evidence without claiming the user's goal is complete.
+**Changes made:**
+- Added `tool_registry.py` with only `workspace.list`, `workspace.read`, and `tasks.list`. Shell, write, delete, browser, network, and desktop-control tools are not registered.
+- Added output bounds and common token/secret redaction for file previews returned through tool execution.
+- Extended model plan schema to include a validated tool name and arguments; the provider system prompt is restricted to the read-only allowlist.
+- Added `execution_engine.py`: sequential execution, maximum eight steps, no automatic retries, stop-on-first-failure behavior, and persisted per-step states/output/errors.
+- Added SQLite `executions` and `execution_steps` tables, execution APIs, and an explicit “Run read-only steps” control plus inspector in the desktop UI.
+- Execution reports explicitly set `goalVerified: false`; a successful sequence means the read-only tool calls ran, not that the overall goal was independently verified.
+- Added tests for safe execution, blocked template plans, no-tool plans, path failures, persisted API results, and output redaction. Fixed a CI failure where generic `token=` assignments were not redacted.
+**Security/reliability impact:** Only model-generated plans with explicit read-only tool calls can run, and only after a direct user click. Tool output is bounded; workspace path checks still apply. No side-effecting tools are exposed and no retries or loops run automatically.
+**Tests run:** GitHub Actions run #142 passed at commit `28bc24404a495bfe2d631fb38751d2f25a51cab9`: https://github.com/pateljiop/Nexora/actions/runs/37150671430. The run included JavaScript syntax, Node tests, and Python API/planner/provider/workspace/tool-registry/execution tests. README-only documentation updates followed in commit `5ad773457617d2dca5a26f18d6e26f6cdca6194e`; recheck latest branch CI separately.
+**Known issues:** No write/approval workflow, shell, browser automation, Windows screen/mouse/keyboard control, background recovery, cancellation, or independent goal verification yet. Model provider responses may still vary in compatibility.
+**Next step:** Add a persistent approval ledger and a narrowly scoped, approval-gated workspace write operation with atomic writes, one-time approval consumption, expiry, and tests before enabling any other side effects.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — read-only workspace explorer and first tool execution
+**Goal:** Let Virtual Hariom inspect its configured local workspace and run a small, auditable sequence of read-only tools without enabling destructive actions.
+**Changes made:**
+- Added `workspace_tools.py` with a configurable root (`NEXORA_WORKSPACE_ROOT`), relative-path-only resolution, symlink/traversal rejection, hidden/private directory exclusions, a 200-entry listing cap, and a 256 KiB UTF-8 text preview cap.
+- Added `/api/workspace` and `/api/workspace/read`; exposed a desktop explorer with list, folder navigation, refresh, and a text-only read-only preview.
+- Connected the bounded execution runner to allowlisted `workspace.list`, `workspace.read`, and `tasks.list` calls only. Execution stores step states and outputs, stops at the first failure, and explicitly leaves `goalVerified` false.
+- Added workspace unit tests and API coverage for listing, previews, and traversal rejection.
+- Corrected the health response and UI copy so the application distinguishes available read-only tools from still-disabled device control. Updated README with these boundaries.
+**Security/reliability impact:** No file writes, shell commands, browser actions, or desktop controls are available through this registry. Paths are constrained to the configured root; symlinks and known sensitive paths are excluded. Tool output is bounded and includes basic secret-pattern redaction. A tool run is not reported as goal verification.
+**Tests run:** CI run #151 passed on commit `5b5b539754aa4e7a8a9d7d84aaf2ff099706c783`: https://github.com/pateljiop/Nexora/actions/runs/37150747401. This was before the final UI/status copy changes in this entry; current-head CI is being checked separately.
+**Known issues:** Workspace reads are synchronous and intentionally capped. Secret-pattern redaction is a defense-in-depth heuristic, not a guarantee that arbitrary confidential content is safe to display. No write-capable tools, shell execution, browser control, or physical desktop control are enabled.
+**Next step:** Verify current-head CI, inspect the actual desktop flow end-to-end, then implement a persistent execution lifecycle with cancellation/recovery and explicit approvals before considering any side-effect-capable tool.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — workspace explorer and per-run review gate
+**Goal:** Make the laptop workspace inspectable from the desktop UI while ensuring model-generated read-only tools are reviewed before any tool call begins.
+**Changes made:**
+- Added a workspace explorer with directory navigation, refresh, file preview, and visible read-only labelling.
+- Added local APIs for workspace listing and bounded UTF-8 file preview. The backend filters hidden/private directories, excludes symlinks, rejects traversal/absolute paths, and caps listings and file size.
+- Added a read-only tool registry for `workspace.list`, `workspace.read`, and `tasks.list`, with bounded output and heuristic secret redaction for text previews.
+- Added a sequential execution runner that records each step and stops at the first failed tool; the goal remains explicitly unverified.
+- Added a confirmation gate that displays the goal and exact selected tool arguments before a read-only run; cancel means no tools are called.
+- Added tests for workspace API access/traversal and workspace filesystem boundaries.
+**Security/reliability impact:** No shell, browser, network, write, delete, or OS-control tools are enabled. File reads are limited to the configured workspace root. The confirmation gate is not a substitute for the backend allowlist; the backend independently validates tools and arguments.
+**Tests run:** CI run #151 passed on commit `5b5b539754aa4e7a8a9d7d84aaf2ff099706c783`: https://github.com/pateljiop/Nexora/actions/runs/37150747401. A new CI run is required for the final confirmation-gate change and will be recorded after completion.
+**Known issues:** Redaction is heuristic and cannot guarantee removal of every secret format. The runner is synchronous and has no cancellation/recovery for an in-progress tool call yet. Read-only access is deliberately the only enabled execution scope.
+**Next step:** Verify current-head CI, then add persistent run lifecycle states and safe cancellation/checkpoint recovery before considering any write-capable action.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — interrupted-run recovery
+**Goal:** Ensure an application restart never silently resumes or repeats a read-only tool sequence.
+**Changes made:**
+- Added `Store.recover_interrupted_executions()` to detect executions persisted as `running` at startup.
+- Running steps are marked failed with an explicit review message; steps not yet started are marked skipped; the execution is marked failed with `goalVerified=false`.
+- Startup invokes recovery and prints the count of interrupted runs requiring review. No automatic retry occurs.
+- Added a regression test that simulates a process interruption in the middle of a saved run and verifies failed/skipped states and idempotent recovery.
+**Security/reliability impact:** Avoids falsely presenting an interrupted run as successful and prevents implicit reruns after restart. Since current tools are read-only, the uncertainty is low-impact, but results are still marked for review.
+**Tests run:** Prior current-head CI run #163 passed on commit `ce0c6aa4222134e629d5ca5e541a15628876d21d`: https://github.com/pateljiop/Nexora/actions/runs/37150819857. CI for this recovery change is in progress: https://github.com/pateljiop/Nexora/actions/runs/37150838778.
+**Known issues:** Runs are synchronous and cannot yet be cancelled while in progress; recovery handles process restart only. No write-capable tools are enabled.
+**Next step:** Verify CI for recovery, then add persisted execution history to the desktop interface and perform another end-to-end route/security audit.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — asynchronous run lifecycle, cancellation, and recovery verification
+**Goal:** Keep the desktop responsive during tool runs and make run state observable, cancellable between read-only steps, and recoverable after a server restart.
+**Changes made:**
+- Execution requests now validate a saved model plan, create a persisted execution record, return `202 Accepted`, and run on a bounded background worker. Only one run is admitted at a time.
+- Added persisted cancellation requests. The runner checks cancellation between steps; the currently running read-only step may finish before cancellation takes effect.
+- Connected desktop polling, live run status, cancellation, and manual status refresh controls. UI copy distinguishes running, completed, cancelled, and failed states and continues to state that the overall goal is unverified.
+- Added startup recovery for persisted `running` executions: mark the in-flight step failed, mark not-started steps skipped, record an explicit server-restart note, and never auto-retry.
+- Removed duplicate recovery method definitions and aligned tests with the asynchronous API and recovery wording.
+**Security/reliability impact:** Tool allowlisting and the explicit confirmation dialog remain in place. Cancellation is cooperative between steps, not a hard interrupt of a currently running tool. No write, shell, browser, or OS-control tool is enabled.
+**Tests run:** Current-head CI passed on commit `8e28ea2ee08c30f9f95de589b1ef490ba8e00449`: runs #194 and #195 both succeeded. #195: https://github.com/pateljiop/Nexora/actions/runs/37151002006. The JavaScript syntax and unit checks and Python API/storage/provider/workspace/execution tests passed. Earlier failures were inspected; the async API test and recovery-note assertion were corrected before the successful runs.
+**Known issues:** A running tool cannot be interrupted mid-call; the UI polls for up to 60 seconds before offering manual refresh. No real-world side-effect tools or desktop control are enabled. End-to-end visual testing on the target Windows laptop still needs to happen on that machine.
+**Next step:** Add persisted execution history to the desktop UI, run a focused security/API review, and then consider whether to remove draft status from the PR. Do not merge until the core desktop flow is reviewed and all current-head checks remain green.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — background run cancellation, restart recovery, and history
+**Goal:** Keep tool runs observable and bounded while making cancellation requests, saved reports, and interrupted-run outcomes persistent across server restarts.
+**Changes made:**
+- Moved approved read-only plan execution into a background thread so the local API returns the run ID immediately instead of blocking until every step finishes.
+- Added status polling in the desktop UI, a cancellation request control, and a manual status refresh option. Cancellation is cooperative and checked between steps; the current read-only step may finish first.
+- Added persistent cancellation flags in SQLite. Runs that are still marked running when the server starts are marked failed, running steps are marked failed, remaining steps are skipped, and no automatic retry occurs.
+- Added a Recent runs panel with status labels and the ability to open saved execution reports from SQLite.
+- Added regression tests for cancellation between steps, the cancel API, run history persistence, and interrupted-run recovery.
+**Security/reliability impact:** Execution remains restricted to allowlisted read-only tools. The user must confirm the exact tool names/arguments before starting. Cancellation cannot interrupt a single in-flight read operation; it stops before the next step. Restart recovery never retries uncertain work.
+**Tests run:** Earlier CI run #203 passed on commit `a8552d036299e87ed032d3dba6ba4f80447b1fe1`: https://github.com/pateljiop/Nexora/actions/runs/37151059673. A later run found a duplicate JavaScript history handler introduced during UI integration; it was removed in commit `457f5d0d44302544732f5d429b3344834600ee39`. Current-head CI is running and must be checked before marking this milestone green.
+**Known issues:** Cancellation is cooperative, not forceful. There is no shell, browser, mouse/keyboard, or write/delete execution. A model plan that chooses `none` for any step cannot run; the UI leaves it as a preview.
+**Next step:** Verify current-head CI, then audit startup and error behavior and update the PR description to reflect the actual implemented scope. Do not merge until the foundation PR's current-head checks are green and its description is accurate.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — execution history UI cleanup and verification
+**Goal:** Finish the persisted run history interface without duplicate DOM IDs or duplicate handler registration.
+**Changes made:**
+- Kept one Recent runs panel and removed duplicate markup discovered during a fresh DOM audit.
+- Verified the run-history loader is defined once and the refresh control is wired once.
+- The report list uses stored execution records, shows run state, and opens the saved step report; active runs can still be polled/cancelled through the same persisted record.
+**Tests run:** GitHub Actions run #214 passed on commit `b7628a4eb681602dca61fc25e726bb45bfca8379`: https://github.com/pateljiop/Nexora/actions/runs/37151131923. This verifies the current code after removing the duplicate markup. The development-log update itself will trigger a fresh run.
+**Known issues:** Visual interaction has not yet been verified on the user's Windows laptop. The project remains a local desktop foundation; it does not yet control the real desktop or run arbitrary shell/file-writing actions.
+**Next step:** Perform a final code/security review of the local API and update the draft PR summary with the verified scope. Keep it unmerged until a real desktop smoke test is possible.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — static asset allowlist and final API test repair
+**Goal:** Restrict static file serving to the browser's required assets and ensure tests correctly handle HTML responses.
+**Changes made:**
+- Confirmed the local server serves only `/`, `/index.html`, `/styles.css`, `/src/main.js`, and `/src/task-state.js`; Python modules, environment files, SQLite data, docs, tests, and arbitrary repository paths return 404.
+- Added response hardening headers including `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`, and a restrictive Content Security Policy.
+- Fixed the static-asset test helper to preserve non-JSON response bodies rather than trying to parse the HTML document as JSON.
+- Updated README and PR description to match the current implemented scope and remaining limitations. PR #1 remains draft and unmerged pending a smoke test on the target Windows laptop.
+**Tests run:** GitHub Actions run #222 passed on commit `8a90755efd7f3f680d67a0b4c92e6ecb597ce112`: https://github.com/pateljiop/Nexora/actions/runs/37151233469. JavaScript syntax/unit tests and Python API/SQLite/provider/workspace/execution/static-serving tests passed. The development-log update itself will trigger another run.
+**Known issues:** Target-laptop visual smoke testing is not possible from this repository connector session. No arbitrary shell, file-writing agent tool, browser automation, Windows input/screen control, voice, or LAN/mobile access is enabled. Optional external model requests remain opt-in and require per-goal confirmation.
+**Next step:** Verify CI after this log commit, then continue with a Windows desktop smoke-test checklist and deeper API concurrency/security tests. Keep PR draft until that manual desktop test is complete.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — static asset allowlist and security boundary audit
+**Goal:** Prevent the local static server from exposing backend source, environment files, documentation, or local SQLite artifacts through guessed URLs.
+**Changes made:**
+- Replaced repository-root static file serving with a strict allowlist: `/`, `/index.html`, `/styles.css`, `/src/main.js`, and `/src/task-state.js`.
+- Unknown paths now return 404, including `server.py`, `model_provider.py`, `.env`, `.env.example`, documentation, and the data directory.
+- Added an HTTP regression test for allowed browser assets and denied backend/config/data paths.
+- Completed the recent-run panel so persisted run records can be refreshed and opened from the desktop UI.
+**Security/reliability impact:** This closes a local information-exposure issue in the earlier static handler, which could serve arbitrary files under the repository root. The API continues to validate Host/Origin and reject cross-site requests; workspace reads and execution tools remain read-only and root-constrained.
+**Tests run:** GitHub Actions run #223 passed on commit `add4bce336f5492daaf7dfa77d6fb332c85536e0`: https://github.com/pateljiop/Nexora/actions/runs/37151259254. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed.
+**Known issues:** The secret redaction filter is heuristic; do not treat workspace previews as a secure secret scanner. The Windows laptop smoke test remains outstanding. No real desktop control or side-effect-capable tool is enabled.
+**Next step:** Update the draft PR summary with the current verified scope and run, then keep the PR draft until the app is smoke-tested on the target Windows laptop. Continue toward the next milestone: controlled approval-gated file changes only after execution policy and rollback tests exist.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — single-active-run invariant
+**Goal:** Prevent concurrent tool runs from competing for workspace reads or producing confusing overlapping reports across multiple browser tabs.
+**Changes made:**
+- `Store.start_execution()` now acquires a SQLite immediate transaction, checks for an existing `running` execution, and atomically creates the execution, steps, and cancellation record.
+- A second start attempt raises a dedicated `ActiveExecutionError`; the API returns HTTP 409 instead of admitting another run.
+- Added a regression test for the single-active-run invariant.
+**Security/reliability impact:** Keeps the local execution queue bounded to one active run even when multiple tabs issue requests at nearly the same time. Existing cooperative cancellation and startup recovery remain in place.
+**Tests run:** Previous current-head CI run #222 passed after static-serving test repair: https://github.com/pateljiop/Nexora/actions/runs/37151233469. CI for the new concurrency invariant is pending on commit `1cb6fa3278c3dd9cf98f38b97e058af842678ada`: https://github.com/pateljiop/Nexora/actions/runs/37151310305.
+**Known issues:** A running read-only tool cannot be forcefully interrupted mid-call. Current tools remain read-only and do not control the OS.
+**Next step:** Verify current-head CI, then continue with desktop integration/security checks. Keep PR #1 in draft until a Windows smoke test can confirm the actual local launch and interaction flow.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — Windows launcher readiness check
+**Goal:** Avoid opening the UI before the local API is actually ready on slower laptops.
+**Changes made:**
+- Updated `run-local.bat` to detect Python availability, launch the server in a separate terminal, poll `/api/health` for up to 30 seconds, and only then open the browser.
+- Added a clear timeout message for startup failures and port conflicts.
+- Clarified that Python is the runtime requirement; Node.js is only needed for the JavaScript test suite.
+**Tests run:** Current-head GitHub Actions run #237 passed on commit `e1293cc1c02b644bd25ae17f99e07851332874b2`: https://github.com/pateljiop/Nexora/actions/runs/37151332860. JavaScript syntax, Node tests, and Python API/SQLite tests passed. The batch launcher itself still needs smoke testing on the target Windows laptop.
+**Known issues:** No direct access to the user's laptop is available in this workflow, so the final visual/browser launch test remains outstanding. The app remains read-only for agent tools.
+**Next step:** Refresh the PR's verification link to this green run, then keep the PR draft until a Windows smoke test can be completed. Continue toward a tested, approval-gated write workflow only after backups/rollback and policy tests are implemented.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — cancellation edge-case hardening
+**Goal:** Ensure a cancellation request is represented accurately even when it arrives during the final read-only tool call.
+**Changes made:**
+- Cancellation now records a finish timestamp and an explicit skip reason for every tool step not started.
+- The runner checks for a cancellation request after the last tool returns and records the run as cancelled rather than completed if the request arrived during that final operation.
+- Added regression coverage for both cancellation between steps and cancellation requested while the final step is executing.
+**Security/reliability impact:** No extra tool capabilities were enabled. A cancellation remains cooperative; it cannot forcibly stop an in-flight read-only operation. Completed step outputs remain visible for review, and the overall goal remains unverified.
+**Tests run:** CI is running on commit `76923069870413a9e699796cd8c28d3038958c90`; the outcome must be checked before this change is marked green. Previous current-head baseline CI passed on `ea050bb86ba71c04b121ad8a1cf7f92a93d4d1ae`: https://github.com/pateljiop/Nexora/actions/runs/37151363009.
+**Known issues:** Cooperative cancellation cannot preempt a blocked OS/filesystem call. No automatic retries are performed.
+**Next step:** Verify current-head CI and review the run lifecycle/API tests before choosing the next execution feature.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop run-control consistency
+**Goal:** Keep the desktop UI aligned with the persistent execution state and avoid redundant history requests.
+**Changes made:**
+- Restore the Run button label as soon as a run reaches a terminal state, including when the user later refreshes status or opens an active run from history.
+- Refresh recent-run history after the execution status becomes terminal.
+- Removed duplicate history-load calls from the normal run and application bootstrap paths.
+- Cancellation now polls until the cooperative cancellation request reaches a terminal state or the bounded polling window ends.
+**Tests run:** CI on commit `76923069870413a9e699796cd8c28d3038958c90` passed (runs #243 and #244). CI for the latest UI commit is pending and must be verified before this entry is considered green.
+**Known issues:** Polling is bounded to 60 seconds; longer runs require the user to refresh status again. The run still uses only the read-only tool allowlist.
+**Next step:** Check latest-head CI and continue with manually reviewed recovery of failed/cancelled read-only runs; no automatic retries.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — reconnect active runs after a page refresh
+**Goal:** Preserve control and visibility of a background run when the desktop page is refreshed while the local server continues working.
+**Changes made:** Run history now detects an active saved execution, fetches its report, restores the run controls, and reconnects the bounded status poll. Removed a duplicate history request from bootstrap. A JavaScript syntax error in the first patch was caught by CI and fixed in commit `51380adf86e7d7deed76cf004e1b93b5a701831c`.
+**Tests run:** The syntax-fix commit's GitHub Actions run #260 is pending at the time of this log entry: https://github.com/pateljiop/Nexora/actions/runs/37151544587. Do not treat this change as verified until that run completes successfully.
+**Known issues:** A refresh can reconnect only while the local server is running and the execution remains in its persisted state. The UI polls for a bounded window and requires a manual refresh for runs that continue beyond it.
+**Next step:** Verify run #260 and all checks on the exact latest branch head; then update the PR verification section to the current green run.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — reviewed recovery path for saved read-only plans
+**Goal:** Let the user reuse a failed, cancelled, or completed read-only plan without silently replaying it.
+**Changes made:**
+- Added a read-only API endpoint to retrieve a saved plan by ID.
+- Added a “Review plan again” control to a saved execution report. It loads the plan back into the preview; a fresh execution still requires the user to review the exact tools/arguments and explicitly confirm.
+- Added API tests for retrieving saved plans and returning 404 for unknown IDs.
+- No run is automatically retried after a page refresh or server restart.
+**Security/reliability impact:** Saved plans remain in dry-run state with `executionEnabled: false`. The existing server-side plan validation, read-only tool allowlist, single-active-run guard, and per-run confirmation still apply.
+**Tests run:** Syntax and JavaScript unit tests passed on commit `51380adf86e7d7deed76cf004e1b93b5a701831c` (CI runs #260 and #261). The new saved-plan API test is included in the current head and awaits its completed CI result: https://github.com/pateljiop/Nexora/actions/runs/37151572791.
+**Known issues:** Reusing a plan creates a new execution; this is not checkpoint resume. Previously completed reads may run again only after explicit user confirmation.
+**Next step:** Verify current-head CI, then update the PR description with current run recovery behavior and keep the PR draft until the target Windows laptop smoke test is completed.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #261 passed on code commit `51380adf86e7d7deed76cf004e1b93b5a701831c`: https://github.com/pateljiop/Nexora/actions/runs/37151547853. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed. The README and PR verification links were refreshed. The latest commits after that green run update documentation only; do not claim a Windows laptop smoke test has happened.
+
+
+### Entry: 2026-10-04 — protect active-run selection in history
+**Goal:** Prevent opening a previous run from accidentally detaching the visible cancel/status controls from a currently running execution.
+**Changes made:** The history UI now refuses to switch the report selection to a different run while one execution is active. This keeps the active run ID and its cancellation/status controls aligned; the user can inspect older reports after the active run reaches a terminal state.
+**Tests run:** The saved-plan retrieval/API and JavaScript checks passed on the prior code head `39aa5c273e06e2b7de01b825fe2ca394ef3db799` (CI run #263: https://github.com/pateljiop/Nexora/actions/runs/37151572791). CI for the active-run selection guard is pending.
+**Known issues:** The UI intentionally does not allow switching to an older report while a run is active. The backend still enforces one active execution regardless of UI state.
+**Next step:** Verify current-head CI, then review the final PR scope and retain draft status until the target Windows smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** Current code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` passed GitHub Actions run #269: https://github.com/pateljiop/Nexora/actions/runs/37151632594. The run-control UI and saved-plan review endpoint passed JavaScript syntax, Node unit tests, and Python API/SQLite/security tests. The README and PR verification references were updated. The PR remains draft pending a real smoke test on the target Windows laptop.
+
+
+### Entry: 2026-10-04 — reduce duplicate history polling
+**Goal:** Keep background-run status refreshes bounded without unnecessary repeated API calls.
+**Changes made:** Removed redundant execution-history fetches after terminal status polling and after reconnecting to an active run. The status poll itself refreshes history when it reaches a terminal state.
+**Tests run:** The active-run selection guard passed JavaScript syntax, Node unit tests, and Python API/SQLite/security tests on code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` (CI #269/#270). The current cleanup's CI result is pending.
+**Known issues:** The browser polls for up to 60 seconds per poll session; longer runs remain visible in persistent history and can be manually refreshed.
+**Next step:** Verify current-head CI and review the PR's final code-vs-documentation commit state.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — strengthen secret redaction for quoted JSON values
+**Goal:** Reduce the chance that read-only file previews expose credentials stored in common JSON or quoted assignment formats.
+**Changes made:** Expanded the heuristic redaction pattern to recognize quoted keys and quoted values (for example `"api_key": "…"`, `'client_secret': '…'`, and `PASSWORD = "…"`). Added regression tests for these formats. This remains best-effort redaction, not a guarantee that arbitrary secrets will be detected.
+**Tests run:** GitHub Actions has been triggered by the code and test commits; current-head result is pending and must be checked before treating this as verified.
+**Security/reliability impact:** The change improves common-format coverage without changing the read-only tool allowlist or expanding file access.
+**Known issues:** Heuristic redaction can miss secrets with uncommon field names, multiline formats, or unusual encodings. Users should not point the workspace root at secret stores.
+**Next step:** Verify current-head CI and inspect the redaction tests' actual results. Then refresh README/PR CI links and continue the approval-gated execution design without enabling writes until diff review, backups, and rollback are tested.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — broader credential-shape redaction
+**Goal:** Catch additional common provider credentials that may appear in local text previews.
+**Changes made:** Added best-effort patterns for GitHub classic/fine-grained tokens, Slack tokens, Google API keys, AWS access-key IDs, and JWT-shaped strings. Added regression tests with synthetic token-shaped values; no real credentials are used in tests.
+**Tests run:** CI is triggered by the implementation and regression-test commits. Current-head result is pending.
+**Security/reliability impact:** This reduces accidental disclosure in tool output but is not a secret-scanning guarantee. Workspace path exclusions and local-only binding remain the primary boundary.
+**Known issues:** Tokens can use unknown formats or appear split/encoded; previews should not be treated as a secure secret vault.
+**Next step:** Verify current-head CI, then audit the current plan and tool argument validation before considering any write-capable tools.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**CI follow-up (2026-10-04):** The first credential-shape patch omitted a tuple comma; Python tests caught the import-time error. Fixed in commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`. CI for the fix is pending. This is precisely why the change remains behind the allowlisted redaction helper and why CI must pass before proceeding.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #304 passed on code commit `da3ac512b30e34ec65b68009d84266fa12cf6bda`: https://github.com/pateljiop/Nexora/actions/runs/37151846504. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed, including synthetic JSON/quoted-secret and common provider-token redaction cases. The README verification link was refreshed. The subsequent commit only records this verification in the development log.
+
+
+### Entry: 2026-10-04 — read-only workspace diff preview
+**Goal:** Give Virtual Hariom a safe first step toward proposing code changes without enabling file writes.
+**Changes made:**
+- Added `workspace.diff`, a bounded tool that compares proposed UTF-8 text against an existing workspace file or previews a new file.
+- The diff tool is non-mutating, constrained to the configured workspace root, rejects traversal/sensitive paths/symlinks/binary files/oversized content, and redacts common secrets from the returned diff.
+- Extended structured plan validation and the model planner prompt to allow this tool. The desktop runner still requires explicit review of tool arguments before the read-only plan starts.
+- Added tests proving existing files are unchanged, new files are not created, unsafe/oversized proposals are rejected, and diff output is redacted.
+**Tests run:** CI runs #309–#311 passed for the UI, workspace preview implementation, and workspace preview tests. The final plan-schema regression test is queued in run #314: https://github.com/pateljiop/Nexora/actions/runs/37151885538. Do not mark the complete diff-preview milestone green until current-head CI finishes.
+**Security/reliability impact:** This is a preview-only tool. It does not call the existing write method and cannot modify a file. This is not a substitute for a future approval-gated write transaction with backups, diff confirmation, and rollback.
+**Known issues:** The plan confirmation dialog includes proposed content in its arguments and may be long for larger proposals. Redaction is heuristic. No write, delete, shell, browser, or desktop-control tools are enabled.
+**Next step:** Verify current-head CI and review diff output truncation/redaction. Then design the write transaction separately, including atomic writes, backups, explicit approval, and rollback tests before enabling any mutation.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Diff-preview follow-up (2026-10-04):** CI initially exposed two integration issues: the planner's new path validator rejected a traversal-path test earlier than the old test expected, and the model prompt did not fully explain the new tool's arguments. The planner now rejects unsafe relative paths before a plan can be saved, the regression test asserts this earlier rejection, and the model prompt explicitly distinguishes diff preview from file-writing tools. The report renders unified diffs as readable text rather than escaped JSON. CI on commit `2c6f153d56d7b82913538c51b27a566276b1e6c1` is running: https://github.com/pateljiop/Nexora/actions/runs/37152064400. This milestone remains unverified until that run passes.
+
+
+### Entry: 2026-10-04 — validate sensitive paths before saving diff plans
+**Goal:** Ensure the planner rejects sensitive workspace paths before a model-generated diff plan can be saved or shown as executable.
+**Changes made:** The initial diff-preview tests caught that traversal checks were not yet applied in the structured plan validator. Added early path validation for traversal, absolute/Windows-style paths, hidden files, secret/config directories, generated-data folders, and key/certificate suffixes. Added regression tests for `.env`, `.git`, `data`, `node_modules`, and private-key paths.
+**Tests run:** CI had failed on the original traversal-validation test; the planner and tests have now been updated. Current-head CI is pending.
+**Security/reliability impact:** Invalid paths are rejected at plan construction/validation and still independently checked by the workspace filesystem layer at execution time.
+**Known issues:** Workspace roots can be configured to any existing directory; the user must choose a project/workspace root carefully. No mutation tool is enabled.
+**Next step:** Verify current-head CI, inspect any remaining failures, then refresh PR verification only after green checks.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** The diff-preview and sensitive-path validation changes passed GitHub Actions run #342 on commit `e34d40c2c2b947d8af809461cfdfd05ecb99b16f`: https://github.com/pateljiop/Nexora/actions/runs/37152108435. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed. The README and draft PR verification sections now point to that green run. No file-writing tool has been enabled; `workspace.diff` remains a read-only preview.
+
+
+### Entry: 2026-10-04 — isolated reversible workspace-change manager
+**Goal:** Build and test the backup/rollback safety layer before exposing any write action to the UI or model tool registry.
+**Changes made:**
+- Added `workspace_changes.py`, which persists proposed diffs and original/proposed hashes in SQLite without changing workspace files.
+- Applying a proposal requires an explicit boolean approval, a pending proposal, and an unchanged original hash. The existing workspace writer creates an atomic backup before replacement and refuses stale content.
+- Rollback uses the recorded write receipt and backup integrity checks; it refuses to overwrite a file that changed after the approved write. Newly created files are removed only when their current hash matches the receipt.
+- Interrupted apply/rollback records can be marked for review; they are never automatically retried.
+- Added isolated tests for non-mutating preview, explicit approval, backup + rollback, created-file rollback, stale proposal rejection, post-apply edits, and backup failure.
+**Tests run:** New tests are committed; current-head GitHub Actions result is pending. The manager is not yet connected to HTTP routes or the model execution registry, so no file-writing tool is currently exposed to the UI.
+**Security/reliability impact:** The transaction layer is isolated and default-deny. Backup failure or a stale target must stop the operation rather than overwrite user changes.
+**Known issues:** The UI review/apply/rollback flow and HTTP endpoint tests are not implemented yet. Crash recovery marks uncertain transactions for review instead of attempting an automatic repair.
+**Next step:** Verify current-head tests; then integrate local-only proposal/apply/rollback routes with explicit approval payloads and add API security tests before building the UI controls.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Test follow-up (2026-10-04):** The first manager test run caught that the stale-target error text was not classified as a stale proposal (the file itself was not overwritten). Updated the status classifier to recognize “changed after preview” in commit `1780d9dcfb5b89b2c9aad6a0d4cd65395a391f74`. CI is pending; verify the new test result before integration.
+
+
+### Entry: 2026-10-04 — isolated reversible workspace-change manager
+**Goal:** Build and test the file-change transaction layer before connecting any mutation to the agent or desktop UI.
+**Changes made:**
+- Added a persistent `WorkspaceChangeManager` that stores pending proposals, the exact proposed content, unified diff, original content/hash, and lifecycle status in SQLite.
+- Apply requires explicit approval, rechecks the file's hash against the preview, creates a local backup, and atomically replaces the file only if the target still matches the reviewed version.
+- Rollback requires a second explicit approval and only restores/removes the file if its current hash still matches the exact content Nexora applied. Later user edits are not overwritten.
+- Added backup integrity checks, guarded deletion for newly created files, and tests for preview-only behavior, approval denial, stale previews, backup failure, apply/rollback, and post-apply edits.
+- Kept the change manager isolated from the read-only tool registry and HTTP routes. No file-writing endpoint or agent write tool is enabled yet.
+**Tests run:** GitHub Actions run #374 passed on commit `c08d3ba085d8b946dba21c125731c41201048c31`: https://github.com/pateljiop/Nexora/actions/runs/37152374449. The manager and workspace primitive tests passed with the existing JavaScript and API/security suite.
+**Security/reliability impact:** This is a tested primitive, not an enabled capability. The agent still cannot mutate files. Any later integration must add a separate diff-review screen, explicit apply/rollback confirmation, server-side path validation, API tests, and audit logging.
+**Known issues:** The backup and change-manager records currently use separate persistence locations (local backup files plus SQLite proposal state); a future integration must handle backup cleanup/retention and interrupted apply states explicitly. The transaction layer is not yet exposed through the HTTP API.
+**Next step:** Design the two-stage proposal → user review → apply workflow and its UI/API tests. Do not connect model-generated file writes directly to the runner.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — local change-proposal API
+**Goal:** Expose the isolated reversible change manager through the same loopback-only API, without adding file-writing to model plans.
+**Changes made:**
+- Added GET routes for change history/details and POST routes to create a non-mutating proposal, explicitly apply a pending proposal, and explicitly roll back an applied proposal.
+- Wired manager initialization and startup recovery into the local server. Interrupted change operations are marked for review and are never retried automatically.
+- Added API tests for preview non-mutation, required approval, backup-backed apply/rollback, and stale-proposal rejection.
+**Tests run:** API integration commits are in CI; current-head result is pending.
+**Security/reliability impact:** Routes inherit the server's loopback binding and Host/Origin checks. Apply/rollback require an explicit `approved: true` payload, a stored pending/applied state, and hash-verified file/backup receipts. The model tool registry still cannot write or delete files.
+**Known issues:** The desktop UI does not yet expose proposal/apply/rollback controls. API tests must pass before UI integration. The approval boolean is a local API workflow guard, not a cryptographic identity boundary against code already running on the user's own machine.
+**Next step:** Verify current-head CI, fix any API/test issues, then build a clear diff review and separate Apply/Roll back controls in the desktop UI.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop proposal history and diff-review controls
+**Goal:** Make the tested local change manager usable from the desktop without allowing a plan run to directly write files.
+**Changes made:**
+- Added persistent proposal history with status labels and report loading.
+- Connected the existing “Prepare change for approval” button on a completed `workspace.diff` step to the local proposal API.
+- Added a full diff review panel with separate Apply and Roll back controls. Both actions require a fresh browser confirmation and call the hash-checked API; later manual edits prevent overwrite/rollback.
+- Added status-specific explanatory text and responsive styling for the review/history panels.
+- Corrected the history container ID to match the JavaScript controller.
+**Tests run:** API tests for proposal preview, approval denial, apply/rollback, and stale-file protection passed in CI run #378 on commit `aafde3b100b7ed8b37312a90593742c81cbe2116`: https://github.com/pateljiop/Nexora/actions/runs/37152452023. The current desktop UI integration's CI is pending.
+**Security/reliability impact:** The model still cannot call a file-writing tool. It can produce a diff preview; the user must create a saved proposal, inspect the complete diff, and separately confirm Apply. Rollback also requires separate confirmation and refuses to overwrite later edits.
+**Known issues:** The API's approval boolean is a local workflow guard, not a cryptographic boundary against other code already running as the same user. The desktop integration still needs current-head CI and a real Windows smoke test.
+**Next step:** Verify the UI integration, then update README/PR scope to distinguish agent-disabled writes from explicitly approved manual proposal application.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop diff review, apply, rollback, and history
+**Goal:** Let the user review the full persisted diff and separately approve a reversible workspace change from the desktop interface.
+**Changes made:**
+- Added a dedicated Change review panel with the complete diff, proposal status, file path, and persistent change history.
+- Completed `workspace.diff` run reports now include a “Prepare change for approval” action. Preparing creates a saved proposal but does not alter files.
+- Added separate Apply and Roll back controls; each asks for confirmation, calls the local change API, refreshes status/history, and refreshes the workspace listing after success.
+- On startup, the UI restores the latest saved proposal and exposes actions only when its persisted status allows them.
+**Tests run:** JavaScript syntax and Node tests passed on the current UI commit; full API/SQLite tests are running on current head. Do not mark this milestone green until current-head CI succeeds.
+**Security/reliability impact:** The diff is displayed before Apply; apply verifies the target still matches the proposal and writes a backup first. Rollback verifies the exact written content and backup receipt. Mutating calls remain outside the model tool registry and require a separate explicit user action.
+**Known issues:** Final browser-level interaction and visual verification on Windows are still outstanding. This does not add shell, arbitrary delete, browser, or desktop-control tools.
+**Next step:** Verify current-head CI, fix any integration failures, then update README/PR status. Keep PR draft until Windows smoke test is completed.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** Desktop proposal history and diff-review controls passed CI run #386 on code commit `8143a5a2767d61e7b71559349005e283c9e141b6`: https://github.com/pateljiop/Nexora/actions/runs/37152569941. The latest branch head, including the README and PR-scope updates, passed CI run #389 on commit `04150dfc1583787205493f8df6b7a0181a2e1571`: https://github.com/pateljiop/Nexora/actions/runs/37152611123. The PR remains draft until the target Windows laptop is smoke-tested.
+
+
+### Entry: 2026-10-04 — crash reconciliation for file changes
+**Goal:** Avoid losing recoverability if the process stops between replacing a file and persisting its write receipt.
+**Changes made:** Change records now distinguish apply from rollback operations. Startup recovery compares the current file hash with the original/proposed snapshots and reconciles the record as applied, rolled back, failed-before-write, or stale without replaying any mutation. If the proposed content reached disk but the receipt was not persisted, an explicitly approved rollback can restore the original text from the SQLite snapshot; it creates a fresh backup before restoring.
+**Tests run:** Added a regression test simulating a crash after the file replacement but before the receipt is saved. Current-head CI is pending.
+**Security/reliability impact:** Recovery is observational only; it does not write, delete, retry, or overwrite automatically. Unknown disk states are marked stale for manual inspection.
+**Known issues:** A hard crash may leave an orphan backup file if the file write succeeded but its receipt was not committed; the SQLite snapshot provides the explicit rollback path. This path needs CI verification.
+**Next step:** Verify recovery tests, then audit rollback of newly created files and backup-directory handling before declaring file-change transactions stable.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #396 passed on branch head `803fdc8f1ceb83244086d7a54952bb96ad908471`: https://github.com/pateljiop/Nexora/actions/runs/37152728033. JavaScript syntax, Node unit tests, Python API/SQLite tests, and workspace-change manager recovery tests passed. README and PR verification references were refreshed. The next task is to verify the latest docs commit and continue auditing the file-change lifecycle; the Windows desktop smoke test remains outstanding.
+
+
+### Entry: 2026-10-04 — close rollback time-of-check windows
+**Goal:** Reduce the chance of rollback overwriting or deleting a file that a person edited after the first verification check.
+**Changes made:** Existing-file restore now rechecks the target hash immediately before atomic replacement. Rollback of a newly created file rechecks its hash immediately before unlinking. Added a race-simulation regression test that edits a created file between rollback checks and verifies the human edit is preserved.
+**Tests run:** Implementation and regression-test commits are in CI; current-head result is pending.
+**Security/reliability impact:** This narrows the race window and fails closed when the file differs from the recorded write receipt. A local filesystem race cannot be eliminated completely with portable Python path operations, so the code uses repeated checks and atomic replacement rather than claiming perfect locking.
+**Known issues:** The desktop UI has not yet been smoke-tested on the target Windows laptop. Backup and restore behavior still requires a real local filesystem test.
+**Next step:** Verify current-head CI, then review Windows compatibility and update docs/PR verification links.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — clarify separate file-change approval in status UI
+**Goal:** Make the difference between read-only model-plan execution and separately approved file edits visible at the point of use.
+**Changes made:** Updated the local connection banner to state that model plans can only run allowlisted read-only tools, and file changes require a saved diff proposal plus separate approval. Device control remains disabled.
+**Tests run:** Rollback race-hardening and regression tests passed in CI run #400 on code commit `45b03ef835265608a5a5f181121407949f3e9303`: https://github.com/pateljiop/Nexora/actions/runs/37152826149. The banner copy change's CI is pending.
+**Known issues:** No target-Windows smoke test has been performed. Current-head CI must be green before this milestone is closed.
+**Next step:** Verify the banner change and refresh README/PR verification links to the latest green head.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #404 passed on head `868ff003e0f3eaad2bce9ce7f6ee4cb49d2379db`: https://github.com/pateljiop/Nexora/actions/runs/37152867999. The rollback race-simulation test and current approval-boundary banner passed with the JavaScript and API/SQLite suite. README and PR verification references were refreshed. The PR remains draft pending Windows smoke testing.
+
+
+### Entry: 2026-10-04 — surface rollback errors in saved change reports
+**Goal:** Ensure a failed rollback remains visible when the user reopens a saved proposal.
+**Changes made:** The change-review panel now displays a persisted error for an applied change when rollback was refused or failed, rather than showing only the normal “backup available” status note.
+**Tests run:** JavaScript syntax and UI regression checks are running in CI for the latest commit.
+**Next step:** Verify current-head CI, then continue with end-to-end checks and Windows compatibility review.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — Windows CI smoke test
+**Goal:** Verify the local server starts and serves the desktop entry point on Windows, not only Linux.
+**Changes made:** Added a `windows-latest` GitHub Actions job that checks JavaScript syntax/tests, compiles the Python modules, launches the loopback server, polls `/api/health`, and verifies the HTML and browser JavaScript assets. The job stops the server process in a `finally` block.
+**Tests run:** Linux verification passed on commit `3a4b6e249654f4fadadff772caa2378afcf553cf`; the Windows smoke job is currently running in CI run #410: https://github.com/pateljiop/Nexora/actions/runs/37152932710.
+**Known issues:** Hosted Windows CI is not a substitute for a smoke test on the target Windows 10 laptop. The job currently verifies startup, health, and static assets; it does not exercise model-provider configuration or the browser's full apply/rollback interaction.
+**Next step:** Verify the Windows job, fix any platform-specific issue, then refresh the README/PR verification links and retain draft status until the real laptop smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** Windows CI passed in run #410 on commit `3a4b6e249654f4fadadff772caa2378afcf553cf`: https://github.com/pateljiop/Nexora/actions/runs/37152932710. Both Linux verification and the Windows smoke job passed. The pending proposal cap also passed in run #407: https://github.com/pateljiop/Nexora/actions/runs/37152905449. The README and draft PR now point to the Windows-verified code commit; the latest documentation-only head is running CI separately.
+
+
+### Entry: 2026-10-04 — unify change-history rendering
+**Goal:** Ensure rollback/apply errors remain visible when reopening a saved proposal from history.
+**Changes made:** The history loader now reuses the same proposal renderer as newly created proposals instead of maintaining a second copy of the status/error rendering logic.
+**Tests run:** Windows smoke CI passed on code commit `3a4b6e249654f4fadadff772caa2378afcf553cf`; the current UI cleanup has a new CI run pending.
+**Known issues:** Current branch still needs a target-Windows 10 laptop smoke test; hosted Windows CI only verifies startup, health, and static asset serving.
+**Next step:** Verify latest-head CI and refresh the final status links.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop DOM contract checks and branch hygiene
+**Goal:** Catch mismatches between JavaScript selectors and the actual desktop HTML before a Windows smoke test.
+**Changes made:** Added Node tests that compare every static `$("#...")` selector used by `src/main.js` against IDs in `index.html`, and assert that the proposal review/apply/rollback controls exist. README and draft PR verification links now point to the green Linux+Windows run.
+**Tests run:** GitHub Actions run #418 passed on commit `6c38f1300c4c9f611bb6eb3784ff2905757afd34`: https://github.com/pateljiop/Nexora/actions/runs/37153152711. Both Linux verification and Windows smoke tests passed.
+**Repository hygiene note:** A test-only file was briefly committed to the default branch because a GitHub create-file call omitted the branch parameter; it was immediately deleted in the next commit. No application code or feature changes were merged to the default branch. All subsequent file mutations explicitly specify `feat/desktop-web-foundation`.
+**Known issues:** Hosted Windows CI is not a substitute for the target Windows 10 laptop smoke test. The PR remains draft.
+**Next step:** Verify the newest documentation commit's CI, then continue final desktop integration hardening without merging before the real-laptop smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
