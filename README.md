@@ -12,6 +12,8 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - A transparent structured dry-run planner (`local_template` source), with bounded steps and explicit `executionEnabled: false`.
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Read-only workspace explorer for bounded UTF-8 file previews inside the configured project root; private paths, symlinks, binary files, and oversized files are excluded.
+- Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, and `tasks.list` only.
+- Persistent execution records with per-step status/output/error and an explicit note that tool completion is not proof that the overall goal was verified.
 - Host and Origin checks, request-body limit, parameterized SQL, path traversal protection, and restrictive response headers.
 - JavaScript and Python automated tests in GitHub Actions.
 - Windows launcher: `run-local.bat`.
@@ -51,14 +53,15 @@ The planner works without a provider by showing a clearly labelled deterministic
 
 A local OpenAI-compatible endpoint such as Ollama can use a loopback HTTP URL and does not need a remote API key. Use the commented local example in `.env.example`. Local model speed depends on the installed model, CPU/GPU, quantization, and available RAM.
 
-The provider adapter sends only the goal needed for planning and asks for structured JSON. It never executes the returned plan. Invalid responses, timeouts, and provider errors are surfaced as errors; they are not silently treated as successful plans. The `.env` file is ignored by Git and must never be committed.
+The provider adapter sends only the goal needed for planning and asks for structured JSON. It can propose only the read-only tool allowlist; a plan runs only after you explicitly click **Run read-only steps**. Invalid responses, timeouts, and provider errors are surfaced as errors; they are not silently treated as successful plans. The `.env` file is ignored by Git and must never be committed.
 
 ## Honest current limitations
 
 This is a working local-storage foundation, **not yet a working AI agent**.
 
 - The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. No tools are executed.
-- No file writes, shell execution, model-generated tool execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
+- No file writes, shell execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
+- No approval-gated write actions yet. Read-only tool completion does not independently verify the user’s overall goal.
 - No background orchestration, checkpoints, or crash recovery yet.
 - Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
 - Marking a task complete is a manual list update, not evidence of AI execution or verification.
