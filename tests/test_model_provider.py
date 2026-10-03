@@ -60,13 +60,29 @@ class ModelProviderTests(unittest.TestCase):
             with self.assertRaises(ModelProviderError):
                 build_model_plan("Plan something")
 
+    def test_local_endpoint_needs_no_api_key_or_remote_opt_in(self):
+        local_steps = [{"title": f"Local step {i}", "detail": "Preview only."} for i in range(1, 4)]
+        with patch.dict(os.environ, {
+            "NEXORA_MODEL_BASE_URL": "http://127.0.0.1:11434/v1",
+            "NEXORA_MODEL_API_KEY": "",
+            "NEXORA_MODEL_NAME": "qwen2.5:3b",
+            "NEXORA_ALLOW_REMOTE_MODEL": "0"
+        }):
+            status = get_model_status()
+            self.assertTrue(status["enabled"])
+            self.assertEqual(status["dataSharing"], "local_goal_stays_on_laptop")
+            with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": local_steps}))) as mocked:
+                plan = build_model_plan("Plan locally")
+            self.assertEqual(plan["source"], "remote_model")
+            self.assertIsNone(mocked.call_args.args[0].get_header("Authorization"))
+
     def test_rejects_invalid_model_output(self):
         with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": [{"title": "Only one", "detail": ""}]}))):
             with self.assertRaises(ModelProviderError):
                 build_model_plan("Plan something")
 
     def test_remote_planning_requires_explicit_opt_in(self):
-        with patch.dict(os.environ, {"NEXORA_ALLOW_REMOTE_MODEL": "0"}):
+        with patch.dict(os.environ, {"NEXORA_MODEL_BASE_URL": "https://models.example/v1", "NEXORA_MODEL_API_KEY": "test-secret", "NEXORA_MODEL_NAME": "test-model", "NEXORA_ALLOW_REMOTE_MODEL": "0"}):
             self.assertFalse(get_model_status()["enabled"])
             with self.assertRaises(ModelProviderError):
                 build_model_plan("Plan something")
