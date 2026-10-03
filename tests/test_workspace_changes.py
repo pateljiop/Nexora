@@ -66,6 +66,13 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "edit after apply\n")
         self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
 
+    def test_secret_like_proposals_are_rejected_and_saved_diffs_are_redacted(self):
+        with self.assertRaises(WorkspaceChangeError):
+            self.manager.preview("notes.txt", "API_KEY=supersecret123\n")
+        proposal = self.manager.preview("notes.txt", "safe content\n")
+        self.assertNotIn("original text", proposal["diff"])
+        self.assertIn("[REDACTED]", proposal["diff"])
+
     def test_backup_failure_does_not_mutate_target(self):
         blocked_backup_path = Path(self.temp.name) / "not-a-directory"
         blocked_backup_path.write_text("not a directory", encoding="utf-8")
