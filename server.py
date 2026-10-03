@@ -313,7 +313,7 @@ class Store:
                                   finished_at=?
                               WHERE execution_id=? AND status='not_started'""", (now, execution_id))
                 db.execute("""UPDATE executions SET status='failed', finished_at=?,
-                              verification_note='The server restarted during this run. No automatic retry occurred; review recorded steps. The goal is unverified.'
+                              verification_note='Server restarted during this run. No automatic retry occurred; review recorded steps. The goal is unverified.'
                               WHERE id=? AND status='running'""", (now, execution_id))
         for _execution_id in ids:
             self.add_activity("Interrupted read-only run marked for review", "The server restarted; no automatic retry was attempted.")
