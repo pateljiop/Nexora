@@ -76,6 +76,9 @@ class Store:
                 arguments_json TEXT NOT NULL, status TEXT NOT NULL,
                 output_json TEXT, error TEXT, started_at TEXT, finished_at TEXT,
                 FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS execution_controls (
+                execution_id TEXT PRIMARY KEY, cancel_requested INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE)""")
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=5)
@@ -226,7 +229,41 @@ class Store:
                 db.execute("INSERT INTO execution_steps(id,execution_id,ordinal,plan_step_id,title,tool,arguments_json,status) VALUES(?,?,?,?,?,?,?,'not_started')",
                            (str(uuid.uuid4()), execution_id, ordinal, step["id"], step["title"], step["tool"],
                             json.dumps(step.get("arguments", {}), ensure_ascii=False)))
+        with self.connect() as db:
+            db.execute("INSERT INTO execution_controls(execution_id,cancel_requested) VALUES(?,0)", (execution_id,))
         return self.get_execution(execution_id)
+
+    def request_execution_cancel(self, execution_id):
+        if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
+            return None
+        with self.connect() as db:
+            row = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not row:
+                return None
+            if row["status"] != "running":
+                return {"id": execution_id, "status": row["status"], "cancelRequested": False}
+            db.execute("INSERT INTO execution_controls(execution_id,cancel_requested) VALUES(?,1) ON CONFLICT(execution_id) DO UPDATE SET cancel_requested=1",
+                       (execution_id,))
+        return {"id": execution_id, "status": "running", "cancelRequested": True}
+
+    def is_execution_cancel_requested(self, execution_id):
+        with self.connect() as db:
+            row = db.execute("SELECT cancel_requested FROM execution_controls WHERE execution_id=?", (execution_id,)).fetchone()
+        return bool(row and row["cancel_requested"])
+
+    def recover_interrupted_executions(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT id,goal FROM executions WHERE status='running'").fetchall()
+            for row in rows:
+                db.execute("UPDATE execution_steps SET status='failed',error='Server restarted before this step finished.',finished_at=? WHERE execution_id=? AND status='running'",
+                           (now_iso(), row["id"]))
+                db.execute("UPDATE execution_steps SET status='skipped',error='Skipped because the server restarted.',finished_at=? WHERE execution_id=? AND status='not_started'",
+                           (now_iso(), row["id"]))
+                db.execute("UPDATE executions SET status='failed',finished_at=?,verification_note='Server restarted during the run. The execution was marked failed; inspect the step log before retrying.' WHERE id=?",
+                           (now_iso(), row["id"]))
+        for row in rows:
+            self.add_activity("Interrupted run recovered as failed", row["goal"])
+        return len(rows)
 
     def set_execution_step_status(self, execution_id, plan_step_id, status):
         if status not in {"not_started", "running", "completed", "failed", "skipped"}:
@@ -242,7 +279,7 @@ class Store:
                        (status, json.dumps(output, ensure_ascii=False) if output is not None else None,
                         error[:500] if error else None, now_iso(), execution_id, plan_step_id))
 
-    def finish_execution(self, execution_id, status):
+    def finish_execution(self, execution_id, status, note=None):
         if status not in {"completed", "failed", "blocked", "cancelled"}:
             raise ValueError("Unsupported execution status.")
         note = ("Read-only tool steps completed; the user's overall goal has not been independently verified."
@@ -412,6 +449,13 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/executions":
                 execution = run_plan_execution(payload.get("planId"), self.store, self.workspace)
                 self.send_json(201, {"execution": execution})
+            elif re.fullmatch(r"/api/executions/[^/]+/cancel", path):
+                execution_id = unquote(path.split("/")[-2])
+                result = self.store.request_execution_cancel(execution_id)
+                if result is None:
+                    self.send_json(404, {"error": "Execution not found."})
+                else:
+                    self.send_json(200, {"execution": result})
             else:
                 self.send_json(404, {"error": "API route not found."})
         except ValueError as exc:
