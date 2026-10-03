@@ -270,6 +270,30 @@ class Store:
                 "goalVerified": bool(row["goal_verified"]), "verificationNote": row["verification_note"],
                 "createdAt": row["created_at"], "finishedAt": row["finished_at"], "steps": steps}
 
+    def recover_interrupted_executions(self):
+        """Never resume a run automatically after restart; mark uncertain work for review."""
+        now = now_iso()
+        with self.connect() as db:
+            active = db.execute("SELECT id FROM executions WHERE status='running'").fetchall()
+            ids = [row["id"] for row in active]
+            if not ids:
+                return 0
+            for execution_id in ids:
+                db.execute("""UPDATE execution_steps
+                              SET status='failed', error='Server restarted during this step; outcome requires review.',
+                                  finished_at=?
+                              WHERE execution_id=? AND status='running'""", (now, execution_id))
+                db.execute("""UPDATE execution_steps
+                              SET status='skipped', error='Skipped because the server restarted before this step began.',
+                                  finished_at=?
+                              WHERE execution_id=? AND status='not_started'""", (now, execution_id))
+                db.execute("""UPDATE executions SET status='failed', finished_at=?,
+                              verification_note='The server restarted during this run. No automatic retry occurred; review recorded steps. The goal is unverified.'
+                              WHERE id=? AND status='running'""", (now, execution_id))
+        for _execution_id in ids:
+            self.add_activity("Interrupted read-only run marked for review", "The server restarted; no automatic retry was attempted.")
+        return len(ids)
+
     def list_executions(self):
         with self.connect() as db:
             rows = db.execute("SELECT id FROM executions ORDER BY created_at DESC LIMIT 20").fetchall()
@@ -461,6 +485,9 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     Handler.store = Store(DB_PATH)
+    recovered = Handler.store.recover_interrupted_executions()
+    if recovered:
+        print(f"Marked {recovered} interrupted run(s) for review; no automatic retry.")
     Handler.workspace = Workspace()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
