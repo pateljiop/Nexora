@@ -144,10 +144,9 @@ class WorkspaceChangeManager:
                            (status, message[:500], proposal_id))
             raise WorkspaceChangeError(message) from None
         except Exception:
-            with self.store.connect() as db:
-                db.execute("""UPDATE workspace_changes SET status='failed',
-                              error='Apply failed unexpectedly; inspect the file and backup before retrying.'
-                              WHERE id=? AND status='applying'""", (proposal_id,))
+            # A low-level failure may happen after the atomic replace but before the
+            # receipt/status commit. Observe disk and reconcile; never guess or replay.
+            self.recover_interrupted_changes()
             raise
 
     def rollback(self, proposal_id, approved):
@@ -188,6 +187,11 @@ class WorkspaceChangeManager:
                 db.execute("UPDATE workspace_changes SET status='applied',error=? WHERE id=? AND status='applying'",
                            (str(exc)[:500], proposal_id))
             raise WorkspaceChangeError(str(exc)) from None
+        except Exception:
+            # Rollback may have reached disk before a persistence failure. Reconcile
+            # against the original/proposed hashes rather than leaving a false state.
+            self.recover_interrupted_changes()
+            raise
 
     def recover_interrupted_changes(self):
         """Reconcile disk state after interruption without repeating any mutation."""
