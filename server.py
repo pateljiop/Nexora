@@ -14,6 +14,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from planner import build_dry_run_plan, validate_plan
 from model_provider import ModelProviderError, build_model_plan, get_model_status
 from workspace_tools import Workspace, WorkspaceError
+from execution_engine import ExecutionError, run_plan_execution
 
 ROOT = Path(__file__).resolve().parent
 
@@ -64,6 +65,17 @@ class Store:
                 detail TEXT NOT NULL DEFAULT '', at TEXT NOT NULL)""")
             db.execute("""CREATE TABLE IF NOT EXISTS plans (
                 id TEXT PRIMARY KEY, goal TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS executions (
+                id TEXT PRIMARY KEY, plan_id TEXT NOT NULL, goal TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('running', 'completed', 'failed', 'blocked', 'cancelled')),
+                goal_verified INTEGER NOT NULL DEFAULT 0, verification_note TEXT NOT NULL,
+                created_at TEXT NOT NULL, finished_at TEXT)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS execution_steps (
+                id TEXT PRIMARY KEY, execution_id TEXT NOT NULL, ordinal INTEGER NOT NULL,
+                plan_step_id TEXT NOT NULL, title TEXT NOT NULL, tool TEXT NOT NULL,
+                arguments_json TEXT NOT NULL, status TEXT NOT NULL,
+                output_json TEXT, error TEXT, started_at TEXT, finished_at TEXT,
+                FOREIGN KEY(execution_id) REFERENCES executions(id) ON DELETE CASCADE)""")
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=5)
@@ -196,6 +208,69 @@ class Store:
             rows = db.execute("SELECT payload_json FROM plans ORDER BY created_at DESC LIMIT 50").fetchall()
         return [json.loads(row["payload_json"]) for row in rows]
 
+    def get_plan(self, plan_id):
+        if not isinstance(plan_id, str) or not ID_PATTERN.fullmatch(plan_id):
+            return None
+        with self.connect() as db:
+            row = db.execute("SELECT payload_json FROM plans WHERE id=?", (plan_id,)).fetchone()
+        return json.loads(row["payload_json"]) if row else None
+
+    def start_execution(self, plan, steps):
+        execution_id = str(uuid.uuid4())
+        created = now_iso()
+        note = "Read-only tool steps completed; the user's overall goal has not been independently verified."
+        with self.connect() as db:
+            db.execute("INSERT INTO executions(id,plan_id,goal,status,goal_verified,verification_note,created_at) VALUES(?,?,?,'running',0,?,?)",
+                       (execution_id, plan["id"], plan["goal"], note, created))
+            for ordinal, step in enumerate(steps, start=1):
+                db.execute("INSERT INTO execution_steps(id,execution_id,ordinal,plan_step_id,title,tool,arguments_json,status) VALUES(?,?,?,?,?,?,?,'not_started')",
+                           (str(uuid.uuid4()), execution_id, ordinal, step["id"], step["title"], step["tool"],
+                            json.dumps(step.get("arguments", {}), ensure_ascii=False)))
+        return self.get_execution(execution_id)
+
+    def set_execution_step_status(self, execution_id, plan_step_id, status):
+        if status not in {"not_started", "running", "completed", "failed", "skipped"}:
+            raise ValueError("Unsupported execution step status.")
+        started = now_iso() if status == "running" else None
+        with self.connect() as db:
+            db.execute("UPDATE execution_steps SET status=?, started_at=COALESCE(started_at, ?) WHERE execution_id=? AND plan_step_id=?",
+                       (status, started, execution_id, plan_step_id))
+
+    def finish_execution_step(self, execution_id, plan_step_id, status, output=None, error=None):
+        with self.connect() as db:
+            db.execute("UPDATE execution_steps SET status=?, output_json=?, error=?, finished_at=? WHERE execution_id=? AND plan_step_id=?",
+                       (status, json.dumps(output, ensure_ascii=False) if output is not None else None,
+                        error[:500] if error else None, now_iso(), execution_id, plan_step_id))
+
+    def finish_execution(self, execution_id, status):
+        if status not in {"completed", "failed", "blocked", "cancelled"}:
+            raise ValueError("Unsupported execution status.")
+        with self.connect() as db:
+            db.execute("UPDATE executions SET status=?, finished_at=? WHERE id=?", (status, now_iso(), execution_id))
+
+    def get_execution(self, execution_id):
+        if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
+            return None
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not row:
+                return None
+            step_rows = db.execute("SELECT * FROM execution_steps WHERE execution_id=? ORDER BY ordinal", (execution_id,)).fetchall()
+        steps = []
+        for item in step_rows:
+            steps.append({"id": item["plan_step_id"], "title": item["title"], "tool": item["tool"],
+                          "arguments": json.loads(item["arguments_json"]), "status": item["status"],
+                          "output": json.loads(item["output_json"]) if item["output_json"] else None,
+                          "error": item["error"], "startedAt": item["started_at"], "finishedAt": item["finished_at"]})
+        return {"id": row["id"], "planId": row["plan_id"], "goal": row["goal"], "status": row["status"],
+                "goalVerified": bool(row["goal_verified"]), "verificationNote": row["verification_note"],
+                "createdAt": row["created_at"], "finishedAt": row["finished_at"], "steps": steps}
+
+    def list_executions(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT id FROM executions ORDER BY created_at DESC LIMIT 20").fetchall()
+        return [self.get_execution(row["id"]) for row in rows]
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "NexoraLocal/1.0"
     store = None
@@ -270,6 +345,11 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, self.workspace.read_file(relative))
                 except WorkspaceError as exc:
                     self.send_json(400, {"error": str(exc)})
+            elif path == "/api/executions":
+                self.send_json(200, {"executions": self.store.list_executions()})
+            elif re.fullmatch(r"/api/executions/[^/]+", path):
+                execution = self.store.get_execution(unquote(path.rsplit("/", 1)[-1]))
+                self.send_json(200, {"execution": execution}) if execution else self.send_json(404, {"error": "Execution not found."})
             elif path.startswith("/api/"):
                 self.send_json(404, {"error": "API route not found."})
             else:
@@ -301,6 +381,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     plan = self.store.create_plan(payload.get("goal"))
                 self.send_json(201, {"plan": plan})
+            elif path == "/api/executions":
+                execution = run_plan_execution(payload.get("planId"), self.store, self.workspace)
+                self.send_json(201, {"execution": execution})
             else:
                 self.send_json(404, {"error": "API route not found."})
         except ValueError as exc:
