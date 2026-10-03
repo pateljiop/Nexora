@@ -282,3 +282,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** A running tool cannot be interrupted mid-call; the UI polls for up to 60 seconds before offering manual refresh. No real-world side-effect tools or desktop control are enabled. End-to-end visual testing on the target Windows laptop still needs to happen on that machine.
 **Next step:** Add persisted execution history to the desktop UI, run a focused security/API review, and then consider whether to remove draft status from the PR. Do not merge until the core desktop flow is reviewed and all current-head checks remain green.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — background run cancellation, restart recovery, and history
+**Goal:** Keep tool runs observable and bounded while making cancellation requests, saved reports, and interrupted-run outcomes persistent across server restarts.
+**Changes made:**
+- Moved approved read-only plan execution into a background thread so the local API returns the run ID immediately instead of blocking until every step finishes.
+- Added status polling in the desktop UI, a cancellation request control, and a manual status refresh option. Cancellation is cooperative and checked between steps; the current read-only step may finish first.
+- Added persistent cancellation flags in SQLite. Runs that are still marked running when the server starts are marked failed, running steps are marked failed, remaining steps are skipped, and no automatic retry occurs.
+- Added a Recent runs panel with status labels and the ability to open saved execution reports from SQLite.
+- Added regression tests for cancellation between steps, the cancel API, run history persistence, and interrupted-run recovery.
+**Security/reliability impact:** Execution remains restricted to allowlisted read-only tools. The user must confirm the exact tool names/arguments before starting. Cancellation cannot interrupt a single in-flight read operation; it stops before the next step. Restart recovery never retries uncertain work.
+**Tests run:** Earlier CI run #203 passed on commit `a8552d036299e87ed032d3dba6ba4f80447b1fe1`: https://github.com/pateljiop/Nexora/actions/runs/37151059673. A later run found a duplicate JavaScript history handler introduced during UI integration; it was removed in commit `457f5d0d44302544732f5d429b3344834600ee39`. Current-head CI is running and must be checked before marking this milestone green.
+**Known issues:** Cancellation is cooperative, not forceful. There is no shell, browser, mouse/keyboard, or write/delete execution. A model plan that chooses `none` for any step cannot run; the UI leaves it as a preview.
+**Next step:** Verify current-head CI, then audit startup and error behavior and update the PR description to reflect the actual implemented scope. Do not merge until the foundation PR's current-head checks are green and its description is accurate.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
