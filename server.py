@@ -328,7 +328,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             if path == "/api/health":
-                self.send_json(200, {"status": "ok", "storage": "sqlite", "execution": "disabled"})
+                self.send_json(200, {"status": "ok", "storage": "sqlite", "execution": "read_only_tools_only"})
             elif path == "/api/tasks":
                 self.send_json(200, {"tasks": self.store.list_tasks()})
             elif path == "/api/activity":
