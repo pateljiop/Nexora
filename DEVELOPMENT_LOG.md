@@ -578,3 +578,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** A hard crash may leave an orphan backup file if the file write succeeded but its receipt was not committed; the SQLite snapshot provides the explicit rollback path. This path needs CI verification.
 **Next step:** Verify recovery tests, then audit rollback of newly created files and backup-directory handling before declaring file-change transactions stable.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** GitHub Actions run #396 passed on branch head `803fdc8f1ceb83244086d7a54952bb96ad908471`: https://github.com/pateljiop/Nexora/actions/runs/37152728033. JavaScript syntax, Node unit tests, Python API/SQLite tests, and workspace-change manager recovery tests passed. README and PR verification references were refreshed. The next task is to verify the latest docs commit and continue auditing the file-change lifecycle; the Windows desktop smoke test remains outstanding.
