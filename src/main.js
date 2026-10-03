@@ -823,8 +823,12 @@ function stopScreenShare() {
   if (stop) stop.hidden = true;
   const capture = $("#capture-screen-frame");
   if (capture) capture.disabled = true;
+  const frameImage = $("#screen-frame-image");
+  if (frameImage) frameImage.removeAttribute("src");
+  const frameResult = $("#screen-frame-result");
+  if (frameResult) frameResult.hidden = true;
   if (document.querySelector("#screen-observer-message")) {
-    setScreenObserverMessage("Screen sharing stopped. Any last captured frame remains in browser memory until this page is closed.");
+    setScreenObserverMessage("Screen sharing stopped. The captured frame was cleared from the preview.");
   }
 }
 
