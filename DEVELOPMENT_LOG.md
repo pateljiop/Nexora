@@ -191,3 +191,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** No tool execution or approval-gated execution workflow exists yet. Provider compatibility can vary; unsupported response-format options will surface as a provider error rather than being treated as success. Model-generated plan steps remain unexecuted previews.
 **Next step:** Build the execution state machine and approval ledger using test/fake tools only. Keep real filesystem, shell, browser, and desktop actions disabled until policy checks, cancellation, audit events, and verification are covered by tests.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — read-only workspace inspection
+**Goal:** Let Virtual Hariom inspect project files through bounded local APIs before any write or computer-control capabilities are introduced.
+**Changes made:**
+- Added `workspace_tools.py` with a configurable workspace root (defaults to the Nexora repository), bounded directory listings, UTF-8 text previews capped at 256 KiB, and relative-path enforcement.
+- Excluded private/runtime folders and secret-like filenames, skipped symlinks, rejected traversal/absolute paths, and exposed read-only `/api/workspace` and `/api/workspace/read` endpoints.
+- Added the workspace explorer to the desktop UI, including folder navigation, text preview, refresh, and explicit read-only messaging.
+- Added unit/API tests for traversal, symlinks, secret-path exclusion, binary/oversized files, and read-only metadata. Documented optional `NEXORA_WORKSPACE_ROOT` configuration.
+**Security/reliability impact:** This milestone only reads text files inside the configured root; it does not write files, run commands, access the whole disk, or execute model plans. File reads and listings are bounded.
+**Tests run:** GitHub Actions run #113 passed on commit `2322e240a97b471bcb00c63b2d57e8307b3db40c`: https://github.com/pateljiop/Nexora/actions/runs/37150468860. This includes JavaScript syntax, Node tests, and Python API/planner/provider/workspace tests.
+**Known issues:** No write tools, approval-gated side effects, shell/browser/computer control, execution cancellation, or final goal verification are implemented yet. Model plans are previews until a bounded tool execution loop is added.
+**Next step:** Extend structured model plans with a strict read-only tool allowlist, then add persisted, bounded execution runs and an inspector that distinguishes tool output from verified goal completion.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
