@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+import threading
 import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -448,8 +449,28 @@ class Handler(BaseHTTPRequestHandler):
                     plan = self.store.create_plan(payload.get("goal"))
                 self.send_json(201, {"plan": plan})
             elif path == "/api/executions":
-                execution = run_plan_execution(payload.get("planId"), self.store, self.workspace)
-                self.send_json(201, {"execution": execution})
+                plan_id = payload.get("planId")
+                plan = self.store.get_plan(plan_id)
+                if not plan:
+                    raise ValueError("Plan not found.")
+                validate_plan(plan)
+                steps = plan.get("steps", [])
+                if plan.get("source") not in {"local_model", "remote_model"}:
+                    raise ValueError("Only model-generated plans with explicit read-only tool calls can run.")
+                if not 1 <= len(steps) <= 8 or any(step.get("tool") in (None, "none") for step in steps):
+                    raise ValueError("Every step must select an allowlisted read-only tool before running.")
+                execution = self.store.start_execution(plan, steps)
+
+                def worker():
+                    try:
+                        run_plan_execution(plan_id, self.store, self.workspace, execution_id=execution["id"])
+                    except Exception:
+                        self.store.finish_execution(execution["id"], "failed",
+                            "The background runner stopped unexpectedly. Inspect the step log before retrying.")
+                        self.store.add_activity("Read-only run failed unexpectedly", plan["goal"])
+
+                threading.Thread(target=worker, name="nexora-readonly-run", daemon=True).start()
+                self.send_json(202, {"execution": execution})
             elif re.fullmatch(r"/api/executions/[^/]+/cancel", path):
                 execution_id = unquote(path.split("/")[-2])
                 result = self.store.request_execution_cancel(execution_id)
