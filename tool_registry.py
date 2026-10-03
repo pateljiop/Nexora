@@ -8,7 +8,7 @@ from workspace_tools import WorkspaceError
 
 MAX_TOOL_OUTPUT_CHARS = 12_000
 SECRET_PATTERNS = (
-    (re.compile(r"(?i)\b(api[_-]?key|access[_-]?token|refresh[_-]?token|password|client_secret|secret)\b(\s*[:=]\s*)([\"']?)[^\s,\"']+"), r"\1\2[REDACTED]"),
+    (re.compile(r"(?i)\b(api[_-]?key|access[_-]?token|refresh[_-]?token|token|password|client_secret|secret)\b(\s*[:=]\s*)([\"']?)[^\s,\"']+"), r"\1\2[REDACTED]"),
     (re.compile(r"\bsk-[A-Za-z0-9_-]{16,}\b"), "[REDACTED_KEY]"),
     (re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{12,}"), "Bearer [REDACTED]")
 )
