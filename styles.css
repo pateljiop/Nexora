@@ -86,3 +86,8 @@
 .execution-history-status.completed{color:#91dfbd;background:rgba(78,195,143,.08)}
 .execution-history-status.failed,.execution-history-status.cancelled,.execution-history-status.blocked{color:#ffadad;background:rgba(240,115,115,.08)}
 .execution-history-status.running{color:#b7c4ff;background:rgba(124,146,255,.1)}
+
+
+/* Diff output stays text-only and scrolls inside the run report. */
+.execution-step pre.execution-diff{max-height:420px;overflow:auto;white-space:pre;tab-size:2;font-family:"DM Mono",monospace;font-size:10px;line-height:1.7;color:#d8e4f8;background:rgba(5,10,22,.72);border:1px solid rgba(117,151,202,.18);border-radius:8px;padding:14px}
+.execution-output-note{color:var(--muted,#9ca9c5);font-size:9px;line-height:1.5;margin-top:7px}
