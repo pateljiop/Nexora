@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from execution_engine import ExecutionError, run_plan_execution
 from planner import build_remote_plan
@@ -78,6 +79,62 @@ class ExecutionEngineTests(unittest.TestCase):
         self.assertEqual(result["status"], "cancelled")
         self.assertTrue(all(step["status"] == "completed" for step in result["steps"]))
         self.assertIn("final read-only step", result["verificationNote"])
+
+    def test_failed_step_marks_remaining_steps_skipped(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "First read.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Must be skipped.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Must also be skipped.", "tool": "tasks.list", "arguments": {}},
+        ])
+        self.store.save_plan(plan)
+        with patch("execution_engine.execute_read_only_tool", side_effect=ValueError("simulated invalid result")):
+            result = run_plan_execution(plan["id"], self.store, self.workspace)
+
+        self.assertEqual(result["status"], "failed")
+        self.assertFalse(result["goalVerified"])
+        self.assertEqual([step["status"] for step in result["steps"]], ["failed", "skipped", "skipped"])
+        self.assertTrue(all(step["finishedAt"] for step in result["steps"]))
+
+    def test_execution_state_transitions_are_one_way(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}},
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        step_id = plan["steps"][0]["id"]
+        self.store.set_execution_step_status(execution["id"], step_id, "running")
+        with self.assertRaises(ValueError):
+            self.store.set_execution_step_status(execution["id"], step_id, "running")
+        self.store.finish_execution_step(execution["id"], step_id, "completed", output={"ok": True})
+        with self.assertRaises(ValueError):
+            self.store.finish_execution_step(execution["id"], step_id, "failed", error="must not overwrite")
+        with self.assertRaises(ValueError):
+            self.store.finish_execution(execution["id"], "completed")
+        self.store.finish_execution_step(execution["id"], plan["steps"][1]["id"], "skipped", error="test skip")
+        self.store.finish_execution_step(execution["id"], plan["steps"][2]["id"], "skipped", error="test skip")
+        with self.assertRaises(ValueError):
+            self.store.finish_execution(execution["id"], "completed")
+        self.assertEqual(self.store.get_execution(execution["id"])["steps"][0]["status"], "completed")
+        self.assertFalse(self.store.get_execution(execution["id"])["goalVerified"])
+
+    def test_unexpected_runner_failure_marks_running_step_failed_and_skips_rest(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}},
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "running")
+
+        self.assertTrue(self.store.fail_unexpected_execution(execution["id"]))
+        result = self.store.get_execution(execution["id"])
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual([step["status"] for step in result["steps"]], ["failed", "skipped", "skipped"])
+        self.assertFalse(result["goalVerified"])
+        self.assertFalse(self.store.fail_unexpected_execution(execution["id"]))
 
     def test_rejects_local_template_plan(self):
         from planner import build_dry_run_plan
