@@ -413,3 +413,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** GitHub Actions run #261 passed on code commit `51380adf86e7d7deed76cf004e1b93b5a701831c`: https://github.com/pateljiop/Nexora/actions/runs/37151547853. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed. The README and PR verification links were refreshed. The latest commits after that green run update documentation only; do not claim a Windows laptop smoke test has happened.
+
+
+### Entry: 2026-10-04 — protect active-run selection in history
+**Goal:** Prevent opening a previous run from accidentally detaching the visible cancel/status controls from a currently running execution.
+**Changes made:** The history UI now refuses to switch the report selection to a different run while one execution is active. This keeps the active run ID and its cancellation/status controls aligned; the user can inspect older reports after the active run reaches a terminal state.
+**Tests run:** The saved-plan retrieval/API and JavaScript checks passed on the prior code head `39aa5c273e06e2b7de01b825fe2ca394ef3db799` (CI run #263: https://github.com/pateljiop/Nexora/actions/runs/37151572791). CI for the active-run selection guard is pending.
+**Known issues:** The UI intentionally does not allow switching to an older report while a run is active. The backend still enforces one active execution regardless of UI state.
+**Next step:** Verify current-head CI, then review the final PR scope and retain draft status until the target Windows smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
