@@ -662,3 +662,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Windows and POSIX filesystems have different locking/symlink semantics; the smoke workflow validates startup and loopback API, not adversarial concurrent filesystem mutation.
 **Next step:** Verify current-head CI and inspect any failures before continuing.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification (2026-10-04):** CI run #429 passed on commit `fdd570501bf01df7773a3faecf4d87cd28f9f822`. Ubuntu and Windows jobs passed, including Python compilation, path-revalidation tests, and the local server smoke test. The latest documentation-only commit has its own CI run pending.
