@@ -11,6 +11,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from planner import build_dry_run_plan, validate_plan
+
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "nexora.sqlite3"
@@ -40,6 +42,8 @@ class Store:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 message TEXT NOT NULL CHECK(length(message) BETWEEN 1 AND 180),
                 detail TEXT NOT NULL DEFAULT '', at TEXT NOT NULL)""")
+            db.execute("""CREATE TABLE IF NOT EXISTS plans (
+                id TEXT PRIMARY KEY, goal TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL)""")
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=5)
@@ -155,6 +159,20 @@ class Store:
         return imported
 
 
+    def create_plan(self, goal):
+        plan = validate_plan(build_dry_run_plan(goal))
+        with self.connect() as db:
+            db.execute("INSERT INTO plans(id,goal,payload_json,created_at) VALUES(?,?,?,?)",
+                       (plan["id"], plan["goal"], json.dumps(plan, ensure_ascii=False), plan["createdAt"]))
+            db.execute("DELETE FROM plans WHERE id NOT IN (SELECT id FROM plans ORDER BY created_at DESC LIMIT 200)")
+        self.add_activity("Dry-run plan preview created", plan["goal"])
+        return plan
+
+    def list_plans(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT payload_json FROM plans ORDER BY created_at DESC LIMIT 50").fetchall()
+        return [json.loads(row["payload_json"]) for row in rows]
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "NexoraLocal/1.0"
     store = None
@@ -212,6 +230,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"tasks": self.store.list_tasks()})
             elif path == "/api/activity":
                 self.send_json(200, {"activities": self.store.list_activity()})
+            elif path == "/api/plans":
+                self.send_json(200, {"plans": self.store.list_plans()})
             elif path.startswith("/api/"):
                 self.send_json(404, {"error": "API route not found."})
             else:
@@ -232,6 +252,9 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/import-local":
                 count = self.store.import_local(payload.get("tasks", []), payload.get("activities", []))
                 self.send_json(200, {"importedTasks": count, "status": "ok"})
+            elif path == "/api/plans":
+                plan = self.store.create_plan(payload.get("goal"))
+                self.send_json(201, {"plan": plan})
             else:
                 self.send_json(404, {"error": "API route not found."})
         except ValueError as exc:
