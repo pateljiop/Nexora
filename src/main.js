@@ -350,7 +350,7 @@ aboutDialog.addEventListener("click", event => {
 
 function renderExecution(execution, scroll = true) {
   const panel = $("#execution-result");
-  $("#execution-title").textContent = execution.status === "completed" ? "Read-only run finished" : "Read-only run stopped";
+  $("#execution-title").textContent = execution.status === "running" ? "Read-only run in progress" : execution.status === "completed" ? "Read-only run finished" : "Read-only run stopped";
   $("#execution-note").textContent = execution.verificationNote;
   $("#execution-status").textContent = execution.status.toUpperCase();
   const list = $("#execution-steps");
@@ -406,7 +406,7 @@ async function cancelCurrentExecution() {
   try {
     const result = await api(`/api/executions/${encodeURIComponent(activeExecutionId)}/cancel`, { method: "POST", body: JSON.stringify({}) });
     showToast(result.execution.cancelRequested ? "Cancellation requested. The current read-only step may finish first." : "This run has already stopped.");
-    await refreshExecutionStatus({ poll: true });
+    await refreshExecutionStatus();
   } catch (error) {
     showToast(error instanceof Error ? error.message : "Could not cancel this run.");
   } finally {
