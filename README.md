@@ -17,6 +17,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - Unit tests for task validation, state transitions, deletion, summaries, and persisted-data normalization.
 - GitHub Actions CI for JavaScript syntax and unit tests.
 - Local-first architecture and desktop-first product scope documented under `docs/`.
+- A chronological development record in `DEVELOPMENT_LOG.md` to capture decisions, implementation steps, tests, known issues, and next actions after each meaningful session.
 
 ## Current limitations
 
@@ -44,6 +45,6 @@ Serve the repository root using a local static HTTP server and open `index.html`
 - Explicit permissions, approval gates, bounded retries, cancellation, audit trails, and post-action verification.
 - Desktop-first UI with a plan panel, task timeline, approvals, tool output, screenshots/evidence, and runtime status.
 
-See `docs/DESKTOP_FIRST_SPEC.md` for the product scope and phase order, and `docs/LOCAL_FIRST_ARCHITECTURE.md` for local-hosting and security decisions.
+See `docs/DESKTOP_FIRST_SPEC.md` for the product scope and phase order, `docs/LOCAL_FIRST_ARCHITECTURE.md` for local-hosting and security decisions, and `DEVELOPMENT_LOG.md` for the running implementation record.
 
 Supabase, Vercel, and Render are not required runtime dependencies for this personal local setup. GitHub remains useful for source control and CI.
