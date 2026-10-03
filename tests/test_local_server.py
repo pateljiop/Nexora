@@ -15,6 +15,13 @@ from planner import build_dry_run_plan, build_remote_plan
 
 
 class StoreTests(unittest.TestCase):
+    def test_local_port_configuration_is_bounded(self):
+        self.assertEqual(server.parse_local_port("8765"), 8765)
+        self.assertEqual(server.parse_local_port("65535"), 65535)
+        for value in ("", "abc", "0", "80", "65536", None):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                server.parse_local_port(value)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.store = server.Store(Path(self.temp.name) / "test.sqlite3")
