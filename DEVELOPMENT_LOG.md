@@ -568,3 +568,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** Desktop proposal history and diff-review controls passed CI run #386 on code commit `8143a5a2767d61e7b71559349005e283c9e141b6`: https://github.com/pateljiop/Nexora/actions/runs/37152569941. The latest branch head, including the README and PR-scope updates, passed CI run #389 on commit `04150dfc1583787205493f8df6b7a0181a2e1571`: https://github.com/pateljiop/Nexora/actions/runs/37152611123. The PR remains draft until the target Windows laptop is smoke-tested.
+
+
+### Entry: 2026-10-04 — crash reconciliation for file changes
+**Goal:** Avoid losing recoverability if the process stops between replacing a file and persisting its write receipt.
+**Changes made:** Change records now distinguish apply from rollback operations. Startup recovery compares the current file hash with the original/proposed snapshots and reconciles the record as applied, rolled back, failed-before-write, or stale without replaying any mutation. If the proposed content reached disk but the receipt was not persisted, an explicitly approved rollback can restore the original text from the SQLite snapshot; it creates a fresh backup before restoring.
+**Tests run:** Added a regression test simulating a crash after the file replacement but before the receipt is saved. Current-head CI is pending.
+**Security/reliability impact:** Recovery is observational only; it does not write, delete, retry, or overwrite automatically. Unknown disk states are marked stale for manual inspection.
+**Known issues:** A hard crash may leave an orphan backup file if the file write succeeded but its receipt was not committed; the SQLite snapshot provides the explicit rollback path. This path needs CI verification.
+**Next step:** Verify recovery tests, then audit rollback of newly created files and backup-directory handling before declaring file-change transactions stable.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
