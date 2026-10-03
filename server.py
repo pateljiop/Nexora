@@ -261,18 +261,50 @@ class Store:
         return bool(row and row["cancel_requested"])
 
     def set_execution_step_status(self, execution_id, plan_step_id, status):
-        if status not in {"not_started", "running", "completed", "failed", "skipped"}:
-            raise ValueError("Unsupported execution step status.")
-        started = now_iso() if status == "running" else None
+        if status != "running":
+            raise ValueError("Only a not-started step can transition to running.")
+        started = now_iso()
         with self.connect() as db:
-            db.execute("UPDATE execution_steps SET status=?, started_at=COALESCE(started_at, ?) WHERE execution_id=? AND plan_step_id=?",
-                       (status, started, execution_id, plan_step_id))
+            db.execute("BEGIN IMMEDIATE")
+            execution = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not execution or execution["status"] != "running":
+                raise ValueError("Only a running execution can start a step.")
+            cursor = db.execute(
+                "UPDATE execution_steps SET status='running', started_at=COALESCE(started_at, ?) "
+                "WHERE execution_id=? AND plan_step_id=? AND status='not_started'",
+                (started, execution_id, plan_step_id),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Execution step is missing or is not in a startable state.")
 
     def finish_execution_step(self, execution_id, plan_step_id, status, output=None, error=None):
+        if status not in {"completed", "failed", "skipped"}:
+            raise ValueError("Unsupported terminal execution step status.")
+        if error is not None and not isinstance(error, str):
+            raise ValueError("Execution step error must be text.")
+        output_json = json.dumps(output, ensure_ascii=False) if output is not None else None
         with self.connect() as db:
-            db.execute("UPDATE execution_steps SET status=?, output_json=?, error=?, finished_at=? WHERE execution_id=? AND plan_step_id=?",
-                       (status, json.dumps(output, ensure_ascii=False) if output is not None else None,
-                        error[:500] if error else None, now_iso(), execution_id, plan_step_id))
+            db.execute("BEGIN IMMEDIATE")
+            execution = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
+            if not execution or execution["status"] != "running":
+                raise ValueError("Only a running execution can finish a step.")
+            row = db.execute(
+                "SELECT status FROM execution_steps WHERE execution_id=? AND plan_step_id=?",
+                (execution_id, plan_step_id),
+            ).fetchone()
+            if not row:
+                raise ValueError("Execution step was not found.")
+            expected = "not_started" if status == "skipped" else "running"
+            if row["status"] != expected:
+                raise ValueError("Execution step cannot transition from its current state.")
+            cursor = db.execute(
+                "UPDATE execution_steps SET status=?, output_json=?, error=?, finished_at=? "
+                "WHERE execution_id=? AND plan_step_id=? AND status=?",
+                (status, output_json, error[:500] if error else None, now_iso(),
+                 execution_id, plan_step_id, expected),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Execution step state changed before the result could be saved.")
 
     def finish_execution(self, execution_id, status, note=None):
         if status not in {"completed", "failed", "blocked", "cancelled"}:
@@ -282,8 +314,14 @@ class Store:
                     if status == "completed" else
                     "The read-only run stopped before all steps completed; the user's overall goal has not been independently verified.")
         with self.connect() as db:
-            db.execute("UPDATE executions SET status=?, finished_at=?, verification_note=? WHERE id=?",
-                       (status, now_iso(), note, execution_id))
+            db.execute("BEGIN IMMEDIATE")
+            cursor = db.execute(
+                "UPDATE executions SET status=?, finished_at=?, verification_note=? "
+                "WHERE id=? AND status='running'",
+                (status, now_iso(), note, execution_id),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Only a running execution can transition to a terminal state.")
 
     def get_execution(self, execution_id):
         if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
