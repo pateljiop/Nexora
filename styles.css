@@ -131,3 +131,27 @@
 .execution-history-status.stale,.execution-history-status.failed{color:#ffb3b3;border-color:rgba(255,120,120,.35)}
 .execution-history-status.rolled_back{color:#b8c6e8;border-color:rgba(184,198,232,.3)}
 @media(max-width:640px){.workspace-change-history-item{align-items:flex-start;flex-direction:column}.workspace-change-diff{font-size:9px;padding:10px}}
+
+
+/* Explicit local-only screen observation */
+.screen-observer{margin-bottom:18px;overflow:hidden}
+.screen-observer .surface-heading p{max-width:720px}
+.screen-observer-stage{position:relative;display:grid;place-items:center;min-height:260px;max-height:680px;overflow:hidden;border:1px solid var(--line-strong);border-radius:12px;background:radial-gradient(ellipse at center,rgba(75,94,146,.13),rgba(4,8,18,.96) 72%);margin-top:14px}
+.screen-observer-stage video{display:block;width:100%;max-height:680px;object-fit:contain;background:#050812}
+.screen-observer-placeholder{display:grid;justify-items:center;gap:8px;padding:34px 18px;text-align:center}
+.screen-observer-placeholder[hidden]{display:none}
+.screen-observer-placeholder strong{font-size:13px}
+.screen-observer-placeholder>span:last-child{max-width:420px;color:var(--muted);font-size:11px}
+.screen-observer-icon{display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(120,228,238,.22);border-radius:14px;color:var(--cyan);font-size:24px;background:rgba(120,228,238,.06)}
+.screen-observer-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.screen-observer-actions button[hidden]{display:none}
+.screen-observer-actions button:disabled{opacity:.45;cursor:not-allowed}
+.screen-observer-message{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.6}
+.screen-observer-message.error{color:#ffb3b3}
+.screen-frame-result{margin-top:18px;padding-top:15px;border-top:1px solid var(--line)}
+.screen-frame-result[hidden]{display:none}
+.screen-frame-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.screen-frame-heading strong{font-size:12px}
+.screen-frame-heading span{font-size:10px;color:var(--muted)}
+.screen-frame-result img{display:block;max-width:100%;max-height:520px;object-fit:contain;border:1px solid var(--line-strong);border-radius:9px;background:#050812}
+@media(max-width:640px){.screen-observer-stage{min-height:190px}.screen-observer-actions{align-items:stretch}.screen-observer-actions button{flex:1}.screen-frame-heading{align-items:flex-start;flex-direction:column}}
