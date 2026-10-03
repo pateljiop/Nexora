@@ -222,3 +222,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** No write/approval workflow, shell, browser automation, Windows screen/mouse/keyboard control, background recovery, cancellation, or independent goal verification yet. Model provider responses may still vary in compatibility.
 **Next step:** Add a persistent approval ledger and a narrowly scoped, approval-gated workspace write operation with atomic writes, one-time approval consumption, expiry, and tests before enabling any other side effects.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — read-only workspace explorer and first tool execution
+**Goal:** Let Virtual Hariom inspect its configured local workspace and run a small, auditable sequence of read-only tools without enabling destructive actions.
+**Changes made:**
+- Added `workspace_tools.py` with a configurable root (`NEXORA_WORKSPACE_ROOT`), relative-path-only resolution, symlink/traversal rejection, hidden/private directory exclusions, a 200-entry listing cap, and a 256 KiB UTF-8 text preview cap.
+- Added `/api/workspace` and `/api/workspace/read`; exposed a desktop explorer with list, folder navigation, refresh, and a text-only read-only preview.
+- Connected the bounded execution runner to allowlisted `workspace.list`, `workspace.read`, and `tasks.list` calls only. Execution stores step states and outputs, stops at the first failure, and explicitly leaves `goalVerified` false.
+- Added workspace unit tests and API coverage for listing, previews, and traversal rejection.
+- Corrected the health response and UI copy so the application distinguishes available read-only tools from still-disabled device control. Updated README with these boundaries.
+**Security/reliability impact:** No file writes, shell commands, browser actions, or desktop controls are available through this registry. Paths are constrained to the configured root; symlinks and known sensitive paths are excluded. Tool output is bounded and includes basic secret-pattern redaction. A tool run is not reported as goal verification.
+**Tests run:** CI run #151 passed on commit `5b5b539754aa4e7a8a9d7d84aaf2ff099706c783`: https://github.com/pateljiop/Nexora/actions/runs/37150747401. This was before the final UI/status copy changes in this entry; current-head CI is being checked separately.
+**Known issues:** Workspace reads are synchronous and intentionally capped. Secret-pattern redaction is a defense-in-depth heuristic, not a guarantee that arbitrary confidential content is safe to display. No write-capable tools, shell execution, browser control, or physical desktop control are enabled.
+**Next step:** Verify current-head CI, inspect the actual desktop flow end-to-end, then implement a persistent execution lifecycle with cancellation/recovery and explicit approvals before considering any side-effect-capable tool.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
