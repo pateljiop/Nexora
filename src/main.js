@@ -247,6 +247,45 @@ async function removeTask(id) {
   showToast(backendAvailable ? "Task removed from this laptop." : "Task removed from this browser.");
 }
 
+function renderPlan(plan) {
+  const panel = $("#plan-preview");
+  $("#plan-goal").textContent = plan.goal;
+  const list = $("#plan-steps");
+  list.replaceChildren();
+  for (const step of plan.steps) {
+    const item = makeElement("li", "plan-step");
+    const copy = makeElement("div", "plan-step-copy");
+    copy.append(makeElement("strong", "", step.title), makeElement("p", "", step.detail));
+    item.append(copy);
+    list.append(item);
+  }
+  panel.hidden = false;
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function requestPlanPreview() {
+  const goal = taskInput.value.trim();
+  if (!goal) {
+    showToast("Write a goal first, then preview a plan.");
+    taskInput.focus();
+    return;
+  }
+  if (!backendAvailable) {
+    showToast("Start the local server with run-local.bat to create a saved plan preview.");
+    return;
+  }
+  try {
+    const result = await api("/api/plans", { method: "POST", body: JSON.stringify({ goal }) });
+    renderPlan(result.plan);
+    await refreshFromServer();
+    showToast("Plan preview saved locally. No actions were executed.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not create the plan preview.");
+  }
+}
+
+$("#plan-button").addEventListener("click", requestPlanPreview);
+
 taskForm.addEventListener("submit", async event => {
   event.preventDefault();
   try {
