@@ -73,7 +73,7 @@ class ModelProviderTests(unittest.TestCase):
             self.assertEqual(status["dataSharing"], "local_goal_stays_on_laptop")
             with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": local_steps}))) as mocked:
                 plan = build_model_plan("Plan locally")
-            self.assertEqual(plan["source"], "remote_model")
+            self.assertEqual(plan["source"], "local_model")
             self.assertIsNone(mocked.call_args.args[0].get_header("Authorization"))
 
     def test_rejects_invalid_model_output(self):
