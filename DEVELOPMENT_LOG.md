@@ -786,10 +786,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Security/reliability impact:** A lost response does not trigger a second execution. The UI preserves the active execution ID and keeps status refresh available so the user can reconcile server state before taking further action.
 
-**Tests run/results:** Added static UI contract coverage. Current PR CI pending; no local test execution is claimed.
+**Tests run/results:** Added static UI contract coverage. PR CI run #490 passed on head `d19f26eef131668cf8c61cd8e4df9371ed8258a5`: https://github.com/pateljiop/Nexora/actions/runs/37156773855. No local test execution is claimed.
 
 **Known issues:** Browser-level accessibility and network interruption testing on the target Windows laptop remain pending. This UI does not add per-step timeouts or automatic retries.
 
 **Next step:** Run Linux and Windows CI; fix any failures, update this log with exact results, and merge only after the current head is green.
 
-**Commit/branch:** `fix/execution-refresh-errors`; implementation/test commits through `77ee1887c17e38f5ae2662836c7526583ccb21d4` before this log update.
+**Commit/branch:** PR #10 (`fix/execution-refresh-errors`) merged into `main` as `1843592a0129a299a2fb382c5d2fad96268ee800`.
+
+
+**Post-merge verification (2026-10-04):** PR #10 merged after CI run #490 passed on its exact head. Merge commit: `1843592a0129a299a2fb382c5d2fad96268ee800`. Main CI for the merged commit is pending; verify the current main HEAD after the log update. Target Windows laptop accessibility/network-interruption testing remains pending.
