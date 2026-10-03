@@ -339,6 +339,55 @@ aboutDialog.addEventListener("click", event => {
   if (event.target === aboutDialog) aboutDialog.close();
 });
 
+async function readWorkspaceFile(relativePath) {
+  try {
+    const result = await api(`/api/workspace/read?path=${encodeURIComponent(relativePath)}`);
+    $("#workspace-preview-path").textContent = result.path;
+    $("#workspace-file-content").textContent = result.content;
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not preview that file.");
+  }
+}
+
+async function loadWorkspace(relativePath = ".") {
+  const list = $("#workspace-file-list");
+  if (!backendAvailable) {
+    list.replaceChildren(makeElement("p", "workspace-empty", "Start the local server with run-local.bat to inspect files."));
+    $("#workspace-location").textContent = "Local server disconnected.";
+    return;
+  }
+  try {
+    const result = await api(`/api/workspace?path=${encodeURIComponent(relativePath)}`);
+    list.replaceChildren();
+    const current = result.relativePath || ".";
+    $("#workspace-location").textContent = `${result.rootName} / ${current} · read-only · no files changed`;
+    if (current !== ".") {
+      const up = makeElement("button", "workspace-file-button");
+      up.type = "button";
+      up.append(makeElement("span", "file-glyph", "↰"), makeElement("span", "file-path", "Go up"));
+      const parts = current.split("/");
+      parts.pop();
+      up.addEventListener("click", () => loadWorkspace(parts.length ? parts.join("/") : "."));
+      list.append(up);
+    }
+    if (!result.entries.length) list.append(makeElement("p", "workspace-empty", "No visible files or folders here."));
+    for (const entry of result.entries) {
+      const button = makeElement("button", "workspace-file-button");
+      button.type = "button";
+      button.title = entry.path;
+      button.append(makeElement("span", "file-glyph", entry.kind === "directory" ? "▸" : "⌑"),
+        makeElement("span", "file-path", entry.path));
+      button.addEventListener("click", () => entry.kind === "directory" ? loadWorkspace(entry.path) : readWorkspaceFile(entry.path));
+      list.append(button);
+    }
+    if (result.truncated) list.append(makeElement("p", "workspace-empty", "Listing capped at 200 entries."));
+  } catch (error) {
+    list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Workspace listing failed."));
+  }
+}
+
+$("#refresh-workspace").addEventListener("click", () => loadWorkspace("."));
+
 async function bootstrap() {
   try {
     const health = await api("/api/health");
@@ -363,6 +412,7 @@ async function bootstrap() {
   }
   renderConnection();
   render();
+  await loadWorkspace(".");
   if (tasks.length && !activities.length && !backendAvailable) logActivity("Workspace restored", `${tasks.length} task(s) loaded from this browser.`);
 }
 
