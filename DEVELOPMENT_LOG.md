@@ -505,3 +505,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The UI review/apply/rollback flow and HTTP endpoint tests are not implemented yet. Crash recovery marks uncertain transactions for review instead of attempting an automatic repair.
 **Next step:** Verify current-head tests; then integrate local-only proposal/apply/rollback routes with explicit approval payloads and add API security tests before building the UI controls.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Test follow-up (2026-10-04):** The first manager test run caught that the stale-target error text was not classified as a stale proposal (the file itself was not overwritten). Updated the status classifier to recognize “changed after preview” in commit `1780d9dcfb5b89b2c9aad6a0d4cd65395a391f74`. CI is pending; verify the new test result before integration.
