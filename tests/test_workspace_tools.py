@@ -68,6 +68,45 @@ class WorkspaceToolTests(unittest.TestCase):
         with self.assertRaises(WorkspaceError):
             self.workspace.preview_write("notes.txt", "x" * (64 * 1024 + 1))
 
+    def test_approved_write_requires_fresh_preview_and_can_rollback(self):
+        backups = Path(self.temp.name) / "backups"
+        before = (self.root / "notes.txt").read_text(encoding="utf-8")
+        preview = self.workspace.preview_write("notes.txt", "reviewed replacement")
+        receipt = self.workspace.write_file(
+            "notes.txt", "reviewed replacement",
+            expected_sha256=preview["expectedSha256"], backup_root=backups
+        )
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "reviewed replacement")
+        self.assertTrue(Path(receipt["backupPath"]).is_file())
+        self.assertFalse(receipt["readOnly"])
+        rollback = self.workspace.rollback_write(receipt, backup_root=backups)
+        self.assertTrue(rollback["rolledBack"])
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), before)
+
+    def test_stale_write_preview_and_changed_rollback_are_rejected(self):
+        backups = Path(self.temp.name) / "backups"
+        preview = self.workspace.preview_write("notes.txt", "first proposal")
+        (self.root / "notes.txt").write_text("edited by someone else", encoding="utf-8")
+        with self.assertRaises(WorkspaceError):
+            self.workspace.write_file("notes.txt", "first proposal",
+                                      expected_sha256=preview["expectedSha256"], backup_root=backups)
+        fresh = self.workspace.preview_write("notes.txt", "approved proposal")
+        receipt = self.workspace.write_file("notes.txt", "approved proposal",
+                                            expected_sha256=fresh["expectedSha256"], backup_root=backups)
+        (self.root / "notes.txt").write_text("subsequent edit", encoding="utf-8")
+        with self.assertRaises(WorkspaceError):
+            self.workspace.rollback_write(receipt, backup_root=backups)
+
+    def test_created_file_rollback_removes_only_unchanged_created_file(self):
+        backups = Path(self.temp.name) / "backups"
+        preview = self.workspace.preview_write("src/new.py", "print('new')")
+        self.assertEqual(preview["expectedSha256"], "missing")
+        receipt = self.workspace.write_file("src/new.py", "print('new')",
+                                            expected_sha256=preview["expectedSha256"], backup_root=backups)
+        result = self.workspace.rollback_write(receipt, backup_root=backups)
+        self.assertTrue(result["removedCreatedFile"])
+        self.assertFalse((self.root / "src" / "new.py").exists())
+
     def test_rejects_symlink_outside_root(self):
         outside = Path(self.temp.name) / "outside.txt"
         outside.write_text("outside", encoding="utf-8")
