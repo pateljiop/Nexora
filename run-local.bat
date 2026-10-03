@@ -2,6 +2,11 @@
 setlocal
 cd /d "%~dp0"
 
+if not defined NEXORA_PORT (
+  if exist ".env" (
+    for /f "tokens=1,* delims==" %%A in ('findstr /b /c:"NEXORA_PORT=" ".env"') do set "NEXORA_PORT=%%B"
+  )
+)
 if not defined NEXORA_PORT set "NEXORA_PORT=8765"
 powershell -NoProfile -Command "$p=$env:NEXORA_PORT; if ($p -notmatch '^\d{1,5}$') { exit 1 }; $n=[int]$p; if ($n -lt 1024 -or $n -gt 65535) { exit 1 }" >nul 2>nul
 if errorlevel 1 (
