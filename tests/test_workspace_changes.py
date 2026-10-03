@@ -110,6 +110,12 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         self.assertEqual(target.read_text(encoding="utf-8"), "human edit\n")
         self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
 
+    def test_pending_proposals_are_bounded(self):
+        for index in range(50):
+            self.manager.preview("notes.txt", f"proposal number {index}\n")
+        with self.assertRaises(WorkspaceChangeError):
+            self.manager.preview("notes.txt", "one too many\n")
+
     def test_backup_failure_does_not_mutate_target(self):
         blocked_backup_path = Path(self.temp.name) / "not-a-directory"
         blocked_backup_path.write_text("not a directory", encoding="utf-8")
