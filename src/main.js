@@ -479,6 +479,7 @@ async function loadExecutionHistory() {
       list.append(makeElement("p", "workspace-empty", "No read-only runs have been recorded yet."));
       return;
     }
+    const runningExecution = result.executions.find(execution => execution.status === "running");
     for (const execution of result.executions) {
       const button = makeElement("button", "execution-history-item");
       button.type = "button";
@@ -498,6 +499,18 @@ async function loadExecutionHistory() {
         }
       });
       list.append(button);
+    }
+    if (runningExecution && !activeExecutionId) {
+      const detail = await api(\`/api/executions/\${encodeURIComponent(runningExecution.id)}\`);
+      if (detail.execution?.status === "running") {
+        activeExecutionId = detail.execution.id;
+        $("#cancel-run-button").hidden = false;
+        $("#refresh-run-button").hidden = false;
+        $("#run-plan-button").disabled = true;
+        $("#run-plan-button").textContent = "Run in progress…";
+        renderExecution(detail.execution, false);
+        void refreshExecutionStatus({ poll: true }).then(() => loadExecutionHistory()).catch(error => showToast(error.message));
+      }
     }
   } catch (error) {
     list.replaceChildren(makeElement("p", "workspace-empty", error instanceof Error ? error.message : "Could not load run history."));
