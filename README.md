@@ -20,10 +20,10 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 
 ## Run on Windows
 
-1. Install Python 3.10+ and Node.js 22+.
+1. Install Python 3.10+ (required to run the app). Node.js 22+ is only needed to run the JavaScript test suite.
 2. Download/clone this repository to your laptop.
 3. Double-click `run-local.bat`.
-4. The local workspace opens at `http://127.0.0.1:8765`.
+4. The launcher waits up to 30 seconds for `/api/health` before opening `http://127.0.0.1:8765`; if startup fails, inspect the server terminal for Python errors or a port conflict.
 5. Keep the server terminal open while using Nexora. Press Ctrl+C in that window to stop it.
 
 Or start it manually from the repository directory:
