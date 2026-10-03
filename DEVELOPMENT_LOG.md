@@ -831,12 +831,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Security/reliability impact:** The server still binds only to `127.0.0.1`; this does not enable LAN/public access. Port conflicts or invalid configuration fail with an actionable launcher message instead of opening an unrelated endpoint.
 
-**Tests run/results:** Added Python tests for accepted/rejected port values. Current PR CI pending; no local test execution is claimed. Main baseline at branch creation: `6de6273d35b73c34b2fd4be4c1f7dfaa1e78945a`, CI run #497 passed: https://github.com/pateljiop/Nexora/actions/runs/37157008804.
+**Tests run/results:** Added Python tests for accepted/rejected port values and a launcher contract asserting configured-port health checks remain loopback-only. Current PR CI pending; no local test execution is claimed. Main baseline at branch creation: `6de6273d35b73c34b2fd4be4c1f7dfaa1e78945a`, CI run #497 passed: https://github.com/pateljiop/Nexora/actions/runs/37157008804.
 
 **Known issues:** The actual Windows desktop launcher still needs manual verification on the user's laptop; CI validates server startup and loopback health, not interactive desktop browser behavior.
 
 **Next step:** Run Linux/Windows CI, inspect failures, update the log, and merge only after the latest PR head is green.
 
-**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `7dda83f5de3d285ea03c7f83ceeda4d1ec4e2bb5` before this log update.
+**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `6ed04b846564d908e2eac80361ac7d2aa8219813` before this log update.
 
 **Configuration example correction (2026-10-04):** Kept the explanatory comment on its own line so uncommenting `NEXORA_PORT=8765` produces a valid value for both the Python env loader and the batch launcher.
