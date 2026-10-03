@@ -561,7 +561,7 @@ function renderWorkspaceChange(change) {
   $("#workspace-change-note").textContent = change.status === "pending"
     ? "No file has been changed. Review the entire diff above; applying creates a backup for existing files."
     : change.status === "applied"
-      ? "The change was applied after explicit approval. A verified backup receipt is recorded for rollback."
+      ? (change.error || "The change was applied after explicit approval. A verified backup receipt is recorded for rollback.")
       : change.status === "rolled_back"
         ? "The approved change was rolled back. The saved record is retained for audit."
         : change.status === "stale"
@@ -632,7 +632,7 @@ async function loadWorkspaceChanges(selectedId = null) {
         $("#workspace-change-note").textContent = detail.change.status === "pending"
           ? "No file has been changed. Review the entire diff above; applying creates a backup for existing files."
           : detail.change.status === "applied"
-            ? "Applied after approval. A verified backup receipt is available for rollback."
+            ? (detail.change.error || "Applied after approval. A verified backup receipt is available for rollback.")
             : detail.change.status === "rolled_back"
               ? "This change was rolled back; its audit record is retained."
               : detail.change.error || "This proposal requires review.";
