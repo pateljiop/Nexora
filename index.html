@@ -99,7 +99,7 @@
         <section class="surface workspace-change-review" id="workspace-change-review" hidden aria-labelledby="workspace-change-title">
           <div class="surface-heading">
             <div><h2 id="workspace-change-title">Change review</h2><p>Review the complete diff. Applying or rolling back always requires a separate confirmation.</p></div>
-            <span class="execution-history-status" id="workspace-change-status">NO PROPOSAL</span>
+            <div class="workspace-change-heading-actions"><span class="execution-history-status" id="workspace-change-status">NO PROPOSAL</span><button class="text-button" id="refresh-workspace-changes" type="button">Refresh ↻</button></div>
           </div>
           <p class="workspace-change-path" id="workspace-change-path">No file selected.</p>
           <pre class="workspace-change-diff" id="workspace-change-diff">Choose “Prepare change for approval” on a diff step to review the complete proposed change.</pre>
@@ -108,6 +108,7 @@
             <button class="primary-button" id="apply-workspace-change" type="button" hidden>Apply reviewed change</button>
             <button class="plan-button" id="rollback-workspace-change" type="button" hidden>Roll back applied change</button>
           </div>
+          <div class="workspace-change-history" id="workspace-change-history"><p class="workspace-empty">No saved change proposals yet.</p></div>
         </section>
         <div class="section-heading"><div><span class="section-index">01</span><h2>Your workspace</h2></div><span class="muted-label" id="session-label">LOCAL SESSION</span></div>
         <div class="stats-grid">
