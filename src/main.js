@@ -831,7 +831,11 @@ function stopScreenShare() {
 $("#start-screen-share").addEventListener("click", startScreenShare);
 $("#capture-screen-frame").addEventListener("click", captureScreenFrame);
 $("#stop-screen-share").addEventListener("click", stopScreenShare);
-window.addEventListener("pagehide", stopScreenShare);
+window.addEventListener("pagehide", () => {
+  stopScreenShare();
+  $("#screen-frame-image").removeAttribute("src");
+  $("#screen-frame-result").hidden = true;
+});
 
 async function bootstrap() {
   try {
