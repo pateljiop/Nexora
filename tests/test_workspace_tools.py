@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from workspace_tools import Workspace, WorkspaceError
@@ -116,6 +117,13 @@ class WorkspaceToolTests(unittest.TestCase):
         result = self.workspace.rollback_write(receipt, backup_root=backups)
         self.assertTrue(result["removedCreatedFile"])
         self.assertFalse((self.root / "src" / "new.py").exists())
+
+    def test_revalidates_target_immediately_before_new_file_mutation(self):
+        with patch.object(self.workspace, "_assert_stable_target",
+                          side_effect=WorkspaceError("Workspace target changed during review; no mutation was performed.")):
+            with self.assertRaisesRegex(WorkspaceError, "changed during review"):
+                self.workspace.write_file("new-note.txt", "content", expected_sha256="missing")
+        self.assertFalse((self.root / "new-note.txt").exists())
 
     def test_rejects_symlink_outside_root(self):
         outside = Path(self.temp.name) / "outside.txt"
