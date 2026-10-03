@@ -375,8 +375,15 @@ function renderExecution(execution, scroll = true) {
     if (step.error) item.append(makeElement("p", "", step.error));
     if (step.output) {
       item.append(makeElement("p", "", step.output.summary || "Tool output"));
-      const pre = makeElement("pre", "", JSON.stringify(step.output.data ?? step.output, null, 2));
-      item.append(pre);
+      if (step.output.tool === "workspace.diff" && step.output.data) {
+        const diff = step.output.data.diff || "(No textual differences.)";
+        item.append(makeElement("pre", "execution-diff", diff));
+        if (step.output.data.truncated) item.append(makeElement("p", "execution-output-note", "Diff preview truncated at the output safety limit."));
+        item.append(makeElement("p", "execution-output-note", (step.output.data.created ? "Proposed new file" : "Proposed update") + " · " + step.output.data.proposedBytes + " bytes · preview only"));
+      } else {
+        const pre = makeElement("pre", "", JSON.stringify(step.output.data ?? step.output, null, 2));
+        item.append(pre);
+      }
     }
     list.append(item);
   }
