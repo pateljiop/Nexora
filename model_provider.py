@@ -103,6 +103,6 @@ def build_model_plan(goal):
     except (UnicodeDecodeError, json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError):
         raise ModelProviderError("Model response did not match the required plan schema.") from None
     try:
-        return build_remote_plan(goal, steps)
+        return build_remote_plan(goal, steps, source="local_model" if config["local_endpoint"] else "remote_model")
     except ValueError as exc:
         raise ModelProviderError(f"Model plan failed validation: {exc}") from None
