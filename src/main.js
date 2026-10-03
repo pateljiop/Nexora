@@ -13,6 +13,7 @@ const sidebar = $("#sidebar");
 const aboutDialog = $("#about-dialog");
 let currentView = "overview";
 let backendAvailable = false;
+let currentPlan = null;
 let tasks = readJson(STORAGE_KEY, []);
 let activities = readJson(ACTIVITY_KEY, []);
 
@@ -248,6 +249,9 @@ async function removeTask(id) {
 }
 
 function renderPlan(plan) {
+  currentPlan = plan;
+  const runnable = ["local_model", "remote_model"].includes(plan.source) && plan.steps.length > 0 && plan.steps.every(step => ["workspace.list", "workspace.read", "tasks.list"].includes(step.tool));
+  $("#run-plan-button").hidden = !runnable;
   const panel = $("#plan-preview");
   $("#plan-goal").textContent = plan.goal;
   const list = $("#plan-steps");
@@ -256,6 +260,7 @@ function renderPlan(plan) {
     const item = makeElement("li", "plan-step");
     const copy = makeElement("div", "plan-step-copy");
     copy.append(makeElement("strong", "", step.title), makeElement("p", "", step.detail));
+    if (step.tool) copy.append(makeElement("span", "tool-chip", step.tool));
     item.append(copy);
     list.append(item);
   }
@@ -293,6 +298,7 @@ async function requestPlanPreview() {
 }
 
 $("#plan-button").addEventListener("click", requestPlanPreview);
+$("#run-plan-button").addEventListener("click", runCurrentPlan);
 
 taskForm.addEventListener("submit", async event => {
   event.preventDefault();
@@ -338,6 +344,48 @@ $("#close-dialog").addEventListener("click", () => aboutDialog.close());
 aboutDialog.addEventListener("click", event => {
   if (event.target === aboutDialog) aboutDialog.close();
 });
+
+function renderExecution(execution) {
+  const panel = $("#execution-result");
+  $("#execution-title").textContent = execution.status === "completed" ? "Read-only run finished" : "Read-only run stopped";
+  $("#execution-note").textContent = execution.verificationNote;
+  $("#execution-status").textContent = execution.status.toUpperCase();
+  const list = $("#execution-steps");
+  list.replaceChildren();
+  for (const step of execution.steps) {
+    const item = makeElement("article", `execution-step ${step.status}`);
+    const head = makeElement("div", "execution-step-head");
+    head.append(makeElement("strong", "", step.title), makeElement("span", "", `${step.tool} · ${step.status.toUpperCase()}`));
+    item.append(head);
+    if (step.error) item.append(makeElement("p", "", step.error));
+    if (step.output) {
+      item.append(makeElement("p", "", step.output.summary || "Tool output"));
+      const pre = makeElement("pre", "", JSON.stringify(step.output.data ?? step.output, null, 2));
+      item.append(pre);
+    }
+    list.append(item);
+  }
+  panel.hidden = false;
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function runCurrentPlan() {
+  if (!currentPlan || $("#run-plan-button").disabled) return;
+  const button = $("#run-plan-button");
+  button.disabled = true;
+  button.textContent = "Running read-only tools…";
+  try {
+    const result = await api("/api/executions", { method: "POST", body: JSON.stringify({ planId: currentPlan.id }) });
+    renderExecution(result.execution);
+    await refreshFromServer();
+    showToast(result.execution.status === "completed" ? "Read-only tools finished. The overall goal is still unverified." : "Run stopped safely. Review the step report.");
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "Could not run the read-only plan.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Run read-only steps ↗";
+  }
+}
 
 async function readWorkspaceFile(relativePath) {
   try {
