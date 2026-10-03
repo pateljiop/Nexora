@@ -196,9 +196,10 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(self.httpd.RequestHandlerClass.store.is_execution_cancel_requested(execution["id"]))
 
     def test_static_server_only_exposes_browser_assets(self):
-        self.assertEqual(self.request("/")[0], 200)
-        self.assertEqual(self.request("/styles.css")[0], 200)
-        self.assertEqual(self.request("/src/main.js")[0], 200)
+        for path in ("/", "/styles.css", "/src/main.js", "/src/task-state.js"):
+            with urlopen(self.base + path, timeout=2) as response:
+                self.assertEqual(response.status, 200, path)
+                self.assertGreater(len(response.read()), 0)
         for path in ("/server.py", "/model_provider.py", "/DEVELOPMENT_LOG.md", "/.env", "/.env.example", "/data/state.sqlite3"):
             self.assertEqual(self.request(path)[0], 404, path)
 
