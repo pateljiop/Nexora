@@ -190,7 +190,7 @@ function renderConnection() {
   $("#connection-subtitle").textContent = backendAvailable ? "SQLite · read-only tools only" : "Browser fallback · no execution";
   $(".orb-caption small").textContent = backendAvailable ? "LOCAL STORAGE READY" : "PREVIEW MODE";
   $(".notice").innerHTML = backendAvailable
-    ? '<span>ⓘ</span> Local SQLite is connected. Plan previews and allowlisted read-only tools are available; device control is disabled.'
+    ? '<span>ⓘ</span> Local SQLite is connected. Model plans can only run allowlisted read-only tools. File changes require a saved diff proposal and separate approval; device control is disabled.'
     : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Nexora with run-local.bat. Model planning needs local configuration; device control is not connected.';
   const footer = $(".footer-state");
   if (footer) footer.lastChild.textContent = backendAvailable ? " LOCAL SQLITE" : " PREVIEW MODE";
