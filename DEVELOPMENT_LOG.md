@@ -603,3 +603,11 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** GitHub Actions run #404 passed on head `868ff003e0f3eaad2bce9ce7f6ee4cb49d2379db`: https://github.com/pateljiop/Nexora/actions/runs/37152867999. The rollback race-simulation test and current approval-boundary banner passed with the JavaScript and API/SQLite suite. README and PR verification references were refreshed. The PR remains draft pending Windows smoke testing.
+
+
+### Entry: 2026-10-04 — surface rollback errors in saved change reports
+**Goal:** Ensure a failed rollback remains visible when the user reopens a saved proposal.
+**Changes made:** The change-review panel now displays a persisted error for an applied change when rollback was refused or failed, rather than showing only the normal “backup available” status note.
+**Tests run:** JavaScript syntax and UI regression checks are running in CI for the latest commit.
+**Next step:** Verify current-head CI, then continue with end-to-end checks and Windows compatibility review.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
