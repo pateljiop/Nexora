@@ -205,3 +205,20 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** No write tools, approval-gated side effects, shell/browser/computer control, execution cancellation, or final goal verification are implemented yet. Model plans are previews until a bounded tool execution loop is added.
 **Next step:** Extend structured model plans with a strict read-only tool allowlist, then add persisted, bounded execution runs and an inspector that distinguishes tool output from verified goal completion.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — bounded read-only execution loop
+**Goal:** Let an explicitly selected model-generated plan call a small read-only tool registry and preserve evidence without claiming the user's goal is complete.
+**Changes made:**
+- Added `tool_registry.py` with only `workspace.list`, `workspace.read`, and `tasks.list`. Shell, write, delete, browser, network, and desktop-control tools are not registered.
+- Added output bounds and common token/secret redaction for file previews returned through tool execution.
+- Extended model plan schema to include a validated tool name and arguments; the provider system prompt is restricted to the read-only allowlist.
+- Added `execution_engine.py`: sequential execution, maximum eight steps, no automatic retries, stop-on-first-failure behavior, and persisted per-step states/output/errors.
+- Added SQLite `executions` and `execution_steps` tables, execution APIs, and an explicit “Run read-only steps” control plus inspector in the desktop UI.
+- Execution reports explicitly set `goalVerified: false`; a successful sequence means the read-only tool calls ran, not that the overall goal was independently verified.
+- Added tests for safe execution, blocked template plans, no-tool plans, path failures, persisted API results, and output redaction. Fixed a CI failure where generic `token=` assignments were not redacted.
+**Security/reliability impact:** Only model-generated plans with explicit read-only tool calls can run, and only after a direct user click. Tool output is bounded; workspace path checks still apply. No side-effecting tools are exposed and no retries or loops run automatically.
+**Tests run:** GitHub Actions run #142 passed at commit `28bc24404a495bfe2d631fb38751d2f25a51cab9`: https://github.com/pateljiop/Nexora/actions/runs/37150671430. The run included JavaScript syntax, Node tests, and Python API/planner/provider/workspace/tool-registry/execution tests. README-only documentation updates followed in commit `5ad773457617d2dca5a26f18d6e26f6cdca6194e`; recheck latest branch CI separately.
+**Known issues:** No write/approval workflow, shell, browser automation, Windows screen/mouse/keyboard control, background recovery, cancellation, or independent goal verification yet. Model provider responses may still vary in compatibility.
+**Next step:** Add a persistent approval ledger and a narrowly scoped, approval-gated workspace write operation with atomic writes, one-time approval consumption, expiry, and tests before enabling any other side effects.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
