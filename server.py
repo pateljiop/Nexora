@@ -252,20 +252,6 @@ class Store:
             row = db.execute("SELECT cancel_requested FROM execution_controls WHERE execution_id=?", (execution_id,)).fetchone()
         return bool(row and row["cancel_requested"])
 
-    def recover_interrupted_executions(self):
-        with self.connect() as db:
-            rows = db.execute("SELECT id,goal FROM executions WHERE status='running'").fetchall()
-            for row in rows:
-                db.execute("UPDATE execution_steps SET status='failed',error='Server restarted before this step finished.',finished_at=? WHERE execution_id=? AND status='running'",
-                           (now_iso(), row["id"]))
-                db.execute("UPDATE execution_steps SET status='skipped',error='Skipped because the server restarted.',finished_at=? WHERE execution_id=? AND status='not_started'",
-                           (now_iso(), row["id"]))
-                db.execute("UPDATE executions SET status='failed',finished_at=?,verification_note='Server restarted during the run. The execution was marked failed; inspect the step log before retrying.' WHERE id=?",
-                           (now_iso(), row["id"]))
-        for row in rows:
-            self.add_activity("Interrupted run recovered as failed", row["goal"])
-        return len(rows)
-
     def set_execution_step_status(self, execution_id, plan_step_id, status):
         if status not in {"not_started", "running", "completed", "failed", "skipped"}:
             raise ValueError("Unsupported execution step status.")
