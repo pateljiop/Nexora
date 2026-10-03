@@ -37,11 +37,24 @@ Requires Node.js 22+ and Python 3.10+.
 
 This runs JavaScript syntax checks, JavaScript unit tests, and Python tests for SQLite/API behavior and local request protections.
 
+## Optional model planning
+
+The planner works without a provider by showing a clearly labelled deterministic local template. To use a compatible model for plan drafts:
+
+1. Copy `.env.example` to `.env` in the repository root.
+2. Set `NEXORA_MODEL_BASE_URL`, `NEXORA_MODEL_NAME`, and (for remote providers) `NEXORA_MODEL_API_KEY`.
+3. For an external HTTPS provider, explicitly change `NEXORA_ALLOW_REMOTE_MODEL=1`. Remote requests stay disabled by default.
+4. Restart `run-local.bat`. Each external plan request displays a confirmation naming the configured provider host and model before sending the goal.
+
+A local OpenAI-compatible endpoint such as Ollama can use a loopback HTTP URL and does not need a remote API key. Use the commented local example in `.env.example`. Local model speed depends on the installed model, CPU/GPU, quantization, and available RAM.
+
+The provider adapter sends only the goal needed for planning and asks for structured JSON. It never executes the returned plan. Invalid responses, timeouts, and provider errors are surfaced as errors; they are not silently treated as successful plans. The `.env` file is ignored by Git and must never be committed.
+
 ## Honest current limitations
 
 This is a working local-storage foundation, **not yet a working AI agent**.
 
-- No LLM provider or structured task planner is connected.
+- The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. No tools are executed.
 - No model-generated tool execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
 - No background orchestration, checkpoints, or crash recovery yet.
 - Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
