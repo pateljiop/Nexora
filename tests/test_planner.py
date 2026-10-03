@@ -48,6 +48,18 @@ class DryRunPlannerTests(unittest.TestCase):
                 dict(steps[0]), dict(steps[1], arguments={"path": "src/main.py", "content": "x" * 16001}), dict(steps[2])
             ])
 
+    def test_model_plan_rejects_sensitive_workspace_paths(self):
+        from planner import build_remote_plan
+        for path in (".env", ".git/config", "data/state.sqlite3", "node_modules/pkg/index.js", "src/private.key"):
+            with self.subTest(path=path):
+                steps = [
+                    {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+                    {"title": "Preview change", "detail": "Non-mutating preview.", "tool": "workspace.diff", "arguments": {"path": path, "content": "proposed"}},
+                    {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}}
+                ]
+                with self.assertRaises(ValueError):
+                    build_remote_plan("Preview safely", steps)
+
     def test_validator_rejects_execution_enabled_plan(self):
         plan = build_dry_run_plan("Review a change")
         plan["executionEnabled"] = True
