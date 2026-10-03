@@ -85,6 +85,7 @@ class ApiTests(unittest.TestCase):
         status, health = self.request("/api/health")
         self.assertEqual(status, 200)
         self.assertEqual(health["storage"], "sqlite")
+        self.assertEqual(health["execution"], "read_only_tools_only")
         status, created = self.request("/api/tasks", "POST", {"title": "Test task"})
         self.assertEqual(status, 201)
         task_id = created["task"]["id"]
