@@ -143,7 +143,7 @@ class Store:
     def update_task(self, task_id, status):
         if not isinstance(task_id, str) or not ID_PATTERN.fullmatch(task_id):
             raise ValueError("Invalid task id.")
-        if status not in STATUSES:
+        if not isinstance(status, str) or status not in STATUSES:
             raise ValueError("Unsupported task status.")
         with self.connect() as db:
             cursor = db.execute("UPDATE tasks SET status=?,updated_at=? WHERE id=?", (status, now_iso(), task_id))
@@ -153,7 +153,7 @@ class Store:
         return self.task_dict(row) if row else None
 
     def delete_task(self, task_id):
-        if not ID_PATTERN.fullmatch(task_id):
+        if not isinstance(task_id, str) or not ID_PATTERN.fullmatch(task_id):
             raise ValueError("Invalid task id.")
         with self.connect() as db:
             row = db.execute("SELECT title FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -245,8 +245,12 @@ class Store:
     def finish_execution(self, execution_id, status):
         if status not in {"completed", "failed", "blocked", "cancelled"}:
             raise ValueError("Unsupported execution status.")
+        note = ("Read-only tool steps completed; the user's overall goal has not been independently verified."
+                if status == "completed" else
+                "The read-only run stopped before all steps completed; the user's overall goal has not been independently verified.")
         with self.connect() as db:
-            db.execute("UPDATE executions SET status=?, finished_at=? WHERE id=?", (status, now_iso(), execution_id))
+            db.execute("UPDATE executions SET status=?, finished_at=?, verification_note=? WHERE id=?",
+                       (status, now_iso(), note, execution_id))
 
     def get_execution(self, execution_id):
         if not isinstance(execution_id, str) or not ID_PATTERN.fullmatch(execution_id):
