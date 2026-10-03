@@ -180,6 +180,25 @@ function render() {
   renderNavigation();
 }
 
+function renderConnection() {
+  $("#connection-dot").classList.toggle("muted", !backendAvailable);
+  $("#connection-title").textContent = backendAvailable ? "Local storage connected" : "Local server not connected";
+  $("#connection-subtitle").textContent = backendAvailable ? "SQLite · loopback only" : "Browser fallback · no execution";
+  $(".orb-caption small").textContent = backendAvailable ? "LOCAL STORAGE READY" : "PREVIEW MODE";
+  $(".notice").innerHTML = backendAvailable
+    ? '<span>ⓘ</span> Local SQLite storage is connected. AI planning and device control are still disabled.'
+    : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Nexora with run-local.bat. AI responses and device control are not connected.';
+  const footer = $(".footer-state");
+  if (footer) footer.lastChild.textContent = backendAvailable ? " LOCAL SQLITE" : " PREVIEW MODE";
+}
+
+async function refreshFromServer() {
+  const [taskPayload, activityPayload] = await Promise.all([api("/api/tasks"), api("/api/activity")]);
+  tasks = normalizeTasks(taskPayload.tasks);
+  activities = normalizeActivities(activityPayload.activities);
+  render();
+}
+
 async function addTask(title) {
   if (backendAvailable) {
     const result = await api("/api/tasks", { method: "POST", body: JSON.stringify({ title }) });
