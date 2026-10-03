@@ -652,3 +652,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** OS-level race windows around path validation and atomic replacement still warrant a separate security audit; this is not a claim of full transactional filesystem semantics.
 **Next step:** Confirm current-head CI; if green, audit symlink/path race handling and local API request limits, then rerun CI.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — final workspace target revalidation
+**Goal:** Narrow the time window between path validation and a reviewed file mutation.
+**Changes made:** Added a final workspace-root/path/symlink revalidation immediately before atomic replacement, before rollback restoration, and before removing a file created by a reviewed proposal. Added a regression test proving a rejected final revalidation leaves a new-file target absent. Final path-change failures are classified as stale proposals rather than generic failures.
+**Tests run:** New tests are committed; latest CI is pending.
+**Security/reliability impact:** This is defense-in-depth against path redirection, not a claim that portable path-based filesystem operations eliminate every possible OS-level TOCTOU race.
+**Known issues:** Windows and POSIX filesystems have different locking/symlink semantics; the smoke workflow validates startup and loopback API, not adversarial concurrent filesystem mutation.
+**Next step:** Verify current-head CI and inspect any failures before continuing.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
