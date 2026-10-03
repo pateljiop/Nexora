@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from server import Store
 from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
@@ -88,6 +89,26 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         rolled_back = self.manager.rollback(proposal["id"], True)
         self.assertEqual(rolled_back["status"], "rolled_back")
         self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "original text\n")
+
+    def test_rollback_rechecks_created_file_before_deleting(self):
+        proposal = self.manager.preview("generated.txt", "generated\n")
+        self.manager.apply(proposal["id"], True)
+        target = self.root / "generated.txt"
+        real_read = Path.read_bytes
+        reads = {"target": 0}
+
+        def race_on_second_read(path):
+            if path == target:
+                reads["target"] += 1
+                if reads["target"] == 2:
+                    target.write_text("human edit\n", encoding="utf-8")
+            return real_read(path)
+
+        with patch.object(Path, "read_bytes", new=race_on_second_read):
+            with self.assertRaises(WorkspaceChangeError):
+                self.manager.rollback(proposal["id"], True)
+        self.assertEqual(target.read_text(encoding="utf-8"), "human edit\n")
+        self.assertEqual(self.manager.get(proposal["id"])["status"], "applied")
 
     def test_backup_failure_does_not_mutate_target(self):
         blocked_backup_path = Path(self.temp.name) / "not-a-directory"
