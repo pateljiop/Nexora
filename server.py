@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 from planner import build_dry_run_plan, validate_plan
+from model_provider import ModelProviderError, build_model_plan, get_model_status
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
@@ -159,14 +160,17 @@ class Store:
         return imported
 
 
-    def create_plan(self, goal):
-        plan = validate_plan(build_dry_run_plan(goal))
+    def save_plan(self, plan):
+        plan = validate_plan(plan)
         with self.connect() as db:
             db.execute("INSERT INTO plans(id,goal,payload_json,created_at) VALUES(?,?,?,?)",
                        (plan["id"], plan["goal"], json.dumps(plan, ensure_ascii=False), plan["createdAt"]))
             db.execute("DELETE FROM plans WHERE id NOT IN (SELECT id FROM plans ORDER BY created_at DESC LIMIT 200)")
-        self.add_activity("Dry-run plan preview created", plan["goal"])
+        self.add_activity("Plan preview created", plan["goal"])
         return plan
+
+    def create_plan(self, goal):
+        return self.save_plan(validate_plan(build_dry_run_plan(goal)))
 
     def list_plans(self):
         with self.connect() as db:
@@ -232,6 +236,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"activities": self.store.list_activity()})
             elif path == "/api/plans":
                 self.send_json(200, {"plans": self.store.list_plans()})
+            elif path == "/api/model/status":
+                self.send_json(200, get_model_status())
             elif path.startswith("/api/"):
                 self.send_json(404, {"error": "API route not found."})
             else:
@@ -253,12 +259,19 @@ class Handler(BaseHTTPRequestHandler):
                 count = self.store.import_local(payload.get("tasks", []), payload.get("activities", []))
                 self.send_json(200, {"importedTasks": count, "status": "ok"})
             elif path == "/api/plans":
-                plan = self.store.create_plan(payload.get("goal"))
+                if payload.get("remoteConsent") is True:
+                    if not get_model_status().get("enabled"):
+                        raise ValueError("Remote model planning is not enabled in local server settings.")
+                    plan = self.store.save_plan(build_model_plan(payload.get("goal")))
+                else:
+                    plan = self.store.create_plan(payload.get("goal"))
                 self.send_json(201, {"plan": plan})
             else:
                 self.send_json(404, {"error": "API route not found."})
         except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
+        except ModelProviderError as exc:
+            self.send_json(502, {"error": str(exc)})
         except sqlite3.IntegrityError:
             self.send_json(409, {"error": "That task already exists."})
         except sqlite3.Error:
