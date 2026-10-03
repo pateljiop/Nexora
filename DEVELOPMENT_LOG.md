@@ -632,3 +632,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Current branch still needs a target-Windows 10 laptop smoke test; hosted Windows CI only verifies startup, health, and static asset serving.
 **Next step:** Verify latest-head CI and refresh the final status links.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop DOM contract checks and branch hygiene
+**Goal:** Catch mismatches between JavaScript selectors and the actual desktop HTML before a Windows smoke test.
+**Changes made:** Added Node tests that compare every static `$("#...")` selector used by `src/main.js` against IDs in `index.html`, and assert that the proposal review/apply/rollback controls exist. README and draft PR verification links now point to the green Linux+Windows run.
+**Tests run:** GitHub Actions run #418 passed on commit `6c38f1300c4c9f611bb6eb3784ff2905757afd34`: https://github.com/pateljiop/Nexora/actions/runs/37153152711. Both Linux verification and Windows smoke tests passed.
+**Repository hygiene note:** A test-only file was briefly committed to the default branch because a GitHub create-file call omitted the branch parameter; it was immediately deleted in the next commit. No application code or feature changes were merged to the default branch. All subsequent file mutations explicitly specify `feat/desktop-web-foundation`.
+**Known issues:** Hosted Windows CI is not a substitute for the target Windows 10 laptop smoke test. The PR remains draft.
+**Next step:** Verify the newest documentation commit's CI, then continue final desktop integration hardening without merging before the real-laptop smoke test.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
