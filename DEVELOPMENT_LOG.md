@@ -361,3 +361,16 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** No direct access to the user's laptop is available in this workflow, so the final visual/browser launch test remains outstanding. The app remains read-only for agent tools.
 **Next step:** Refresh the PR's verification link to this green run, then keep the PR draft until a Windows smoke test can be completed. Continue toward a tested, approval-gated write workflow only after backups/rollback and policy tests are implemented.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — cancellation edge-case hardening
+**Goal:** Ensure a cancellation request is represented accurately even when it arrives during the final read-only tool call.
+**Changes made:**
+- Cancellation now records a finish timestamp and an explicit skip reason for every tool step not started.
+- The runner checks for a cancellation request after the last tool returns and records the run as cancelled rather than completed if the request arrived during that final operation.
+- Added regression coverage for both cancellation between steps and cancellation requested while the final step is executing.
+**Security/reliability impact:** No extra tool capabilities were enabled. A cancellation remains cooperative; it cannot forcibly stop an in-flight read-only operation. Completed step outputs remain visible for review, and the overall goal remains unverified.
+**Tests run:** CI is running on commit `76923069870413a9e699796cd8c28d3038958c90`; the outcome must be checked before this change is marked green. Previous current-head baseline CI passed on `ea050bb86ba71c04b121ad8a1cf7f92a93d4d1ae`: https://github.com/pateljiop/Nexora/actions/runs/37151363009.
+**Known issues:** Cooperative cancellation cannot preempt a blocked OS/filesystem call. No automatic retries are performed.
+**Next step:** Verify current-head CI and review the run lifecycle/API tests before choosing the next execution feature.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
