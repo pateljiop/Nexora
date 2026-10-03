@@ -57,12 +57,12 @@ The provider adapter sends only the goal needed for planning and asks for struct
 
 ## Honest current limitations
 
-This is a working local-storage foundation, **not yet a working AI agent**.
+This is an early local-first Virtual Hariom foundation. It can draft plans with an optional model, inspect a configured workspace with allowlisted read-only tools, and persist run reports. It is **not yet a full desktop-controlling AI agent**.
 
-- The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. No tools are executed.
+- The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. Only model plans containing allowlisted read-only tool calls can run.
 - No file writes, shell execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
 - No approval-gated write actions yet. Read-only tool completion does not independently verify the user’s overall goal.
-- No background orchestration, checkpoints, or crash recovery yet.
+- Read-only runs use a background worker, can be cancelled between steps, and are recorded in SQLite. On server restart, interrupted runs are marked failed for review rather than retried. General multi-task orchestration and checkpoint/resume are not implemented.
 - Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
 - Marking a task complete is a manual list update, not evidence of AI execution or verification.
 - If the local server is unavailable, the UI falls back to browser storage; the connection panel explains which mode is active.
@@ -71,9 +71,9 @@ This is a working local-storage foundation, **not yet a working AI agent**.
 
 - Runtime binds to loopback; it is not intended to be accessed from another device.
 - No cloud runtime or Supabase project is required.
-- No API keys are used or stored by this milestone.
+- Optional provider credentials are read from a local `.env` file or environment variables; `.env` is Git-ignored. Remote requests are disabled by default and require per-goal confirmation.
 - The server does not execute shell commands or control the computer.
-- Task and activity data remain in the local SQLite file, except legacy data intentionally imported from browser storage on first successful connection.
+- Tasks, activity, plan previews, execution states, and run reports remain in the local SQLite file, except legacy data intentionally imported from browser storage on first successful connection. Remote model planning sends the goal only after explicit confirmation.
 - Back up the `data` directory before deleting or reinstalling the project.
 
 ## Architecture and project record
