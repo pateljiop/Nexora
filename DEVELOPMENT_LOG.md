@@ -336,3 +336,16 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The secret redaction filter is heuristic; do not treat workspace previews as a secure secret scanner. The Windows laptop smoke test remains outstanding. No real desktop control or side-effect-capable tool is enabled.
 **Next step:** Update the draft PR summary with the current verified scope and run, then keep the PR draft until the app is smoke-tested on the target Windows laptop. Continue toward the next milestone: controlled approval-gated file changes only after execution policy and rollback tests exist.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — single-active-run invariant
+**Goal:** Prevent concurrent tool runs from competing for workspace reads or producing confusing overlapping reports across multiple browser tabs.
+**Changes made:**
+- `Store.start_execution()` now acquires a SQLite immediate transaction, checks for an existing `running` execution, and atomically creates the execution, steps, and cancellation record.
+- A second start attempt raises a dedicated `ActiveExecutionError`; the API returns HTTP 409 instead of admitting another run.
+- Added a regression test for the single-active-run invariant.
+**Security/reliability impact:** Keeps the local execution queue bounded to one active run even when multiple tabs issue requests at nearly the same time. Existing cooperative cancellation and startup recovery remain in place.
+**Tests run:** Previous current-head CI run #222 passed after static-serving test repair: https://github.com/pateljiop/Nexora/actions/runs/37151233469. CI for the new concurrency invariant is pending on commit `1cb6fa3278c3dd9cf98f38b97e058af842678ada`: https://github.com/pateljiop/Nexora/actions/runs/37151310305.
+**Known issues:** A running read-only tool cannot be forcefully interrupted mid-call. Current tools remain read-only and do not control the OS.
+**Next step:** Verify current-head CI, then continue with desktop integration/security checks. Keep PR #1 in draft until a Windows smoke test can confirm the actual local launch and interaction flow.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
