@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 import difflib
 import hashlib
 import tempfile
@@ -260,6 +261,25 @@ class Workspace:
             raise WorkspaceError("Backup integrity check failed; rollback was stopped.")
         self._atomic_replace(path, original, ".nexora-rollback-")
         return {"path": receipt["path"], "rolledBack": True, "removedCreatedFile": False}
+
+    def delete_file_if_hash(self, relative, expected_sha256):
+        """Delete a file only when its current bytes match the reviewed proposal hash."""
+        if not isinstance(expected_sha256, str) or not re.fullmatch(r"[a-f0-9]{64}", expected_sha256):
+            raise WorkspaceError("A valid expected file hash is required.")
+        path = self._resolve(relative)
+        if not path.is_file():
+            raise WorkspaceError("Delete target must be a file.")
+        try:
+            content = path.read_bytes()
+        except OSError:
+            raise WorkspaceError("Delete target could not be checked.") from None
+        if hashlib.sha256(content).hexdigest() != expected_sha256:
+            raise WorkspaceError("File changed after Nexora applied the proposal; deletion was refused.")
+        try:
+            path.unlink()
+        except OSError:
+            raise WorkspaceError("Could not remove the reviewed file.") from None
+        return {"path": path.relative_to(self.root).as_posix(), "deleted": True}
 
     def read_file(self, relative):
         path = self._resolve(relative)
