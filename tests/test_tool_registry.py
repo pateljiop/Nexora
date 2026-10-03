@@ -28,6 +28,19 @@ class ReadOnlyToolRegistryTests(unittest.TestCase):
         self.assertIn("[REDACTED]", preview["data"]["content"])
         self.assertIn("normal text", preview["data"]["content"])
 
+    def test_diff_preview_is_read_only_and_redacts_secrets(self):
+        result = execute_read_only_tool(
+            "workspace.diff",
+            {"path": "sample.txt", "content": "API_KEY=another-secret-value\nupdated text"},
+            self.workspace,
+            self.store
+        )
+        self.assertTrue(result["readOnly"])
+        self.assertIn("No files were changed", result["summary"])
+        self.assertIn("[REDACTED]", result["data"]["diff"])
+        self.assertNotIn("another-secret-value", result["data"]["diff"])
+        self.assertEqual((self.root / "sample.txt").read_text(encoding="utf-8"), "API_KEY=supersecret123\nnormal text")
+
     def test_task_list_and_unknown_tools(self):
         self.store.create_task("Keep safe", task_id="task-1")
         result = execute_read_only_tool("tasks.list", {}, self.workspace, self.store)
