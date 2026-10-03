@@ -160,3 +160,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** LLM/provider planning, real execution tools, approvals, browser/computer control, cancellation/checkpoints/recovery, and voice are not implemented. The local server must be started with `run-local.bat`; opening `index.html` directly uses browser fallback.
 **Next step:** Verify CI for the latest branch head, fix any failures, then implement a dry-run structured planner with explicit task/plan state and tests before enabling side effects.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1. Latest code changes are pushed to GitHub; the PR remains draft while the core desktop runtime is still incomplete.
+
+
+### Entry: 2026-10-04 — structured dry-run planner preview
+**Goal:** Give the desktop workspace a real, inspectable plan-preview flow without pretending that an LLM or execution engine is connected.
+**Inspection:** Reviewed the local API/storage milestone and the current task composer, CSS layout, and test discovery setup.
+**Changes made:**
+- Added `planner.py` with strict goal bounds, a versionable plan object, four deterministic preview steps, validation, and hard guarantees that the plan remains `mode: dry_run`, `status: preview`, and `executionEnabled: false`.
+- Added a SQLite `plans` table and `/api/plans` GET/POST endpoints; generated plans are persisted and add a local activity entry.
+- Added a “Preview plan” control and plan inspector to the desktop UI. The inspector clearly states that it is a template preview and no files/apps/system actions were touched.
+- Added planner schema/guard tests and an API test for plan persistence; updated README to disclose that the planner is deterministic and not LLM reasoning.
+**Security/reliability impact:** No plan step can execute a side effect in this milestone. Goal and step sizes are bounded; invalid plans and attempts to enable execution are rejected. Plan history is bounded to 200 persisted records.
+**Tests run:** The earlier backend milestone passed current-head CI run #36 at commit `ec47c7cc94579eb5b9df26261cddeb3592cf48a6`: https://github.com/pateljiop/Nexora/actions/runs/37149995389. CI for the new planner and UI changes is pending and must be checked before treating this milestone as verified.
+**Known issues:** The plan is intentionally generic and deterministic; no LLM provider is connected. No plan execution, approval workflow, browser/computer control, voice, or recovery orchestration is available yet.
+**Next step:** Verify current CI, fix any failures, and then add an optional server-side model adapter with explicit opt-in and secret handling while keeping dry-run behavior as the safe default.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
