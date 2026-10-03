@@ -184,12 +184,12 @@ class WorkspaceChangeManager:
             # If a failure was raised after the filesystem mutation, reconcile it.
             # If no mutation happened, recovery sees the proposed hash and retains
             # 'applied'; unknown or changed disk state becomes 'stale'.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise WorkspaceChangeError(str(exc)) from None
         except Exception:
             # Rollback may have reached disk before a persistence failure. Reconcile
             # against the original/proposed hashes rather than leaving a false state.
-            self.recover_interrupted_changes()
+            self.recover_interrupted_changes(proposal_id)
             raise
 
     def recover_interrupted_changes(self, proposal_id=None):
