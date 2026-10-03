@@ -267,3 +267,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Runs are synchronous and cannot yet be cancelled while in progress; recovery handles process restart only. No write-capable tools are enabled.
 **Next step:** Verify CI for recovery, then add persisted execution history to the desktop interface and perform another end-to-end route/security audit.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — asynchronous run lifecycle, cancellation, and recovery verification
+**Goal:** Keep the desktop responsive during tool runs and make run state observable, cancellable between read-only steps, and recoverable after a server restart.
+**Changes made:**
+- Execution requests now validate a saved model plan, create a persisted execution record, return `202 Accepted`, and run on a bounded background worker. Only one run is admitted at a time.
+- Added persisted cancellation requests. The runner checks cancellation between steps; the currently running read-only step may finish before cancellation takes effect.
+- Connected desktop polling, live run status, cancellation, and manual status refresh controls. UI copy distinguishes running, completed, cancelled, and failed states and continues to state that the overall goal is unverified.
+- Added startup recovery for persisted `running` executions: mark the in-flight step failed, mark not-started steps skipped, record an explicit server-restart note, and never auto-retry.
+- Removed duplicate recovery method definitions and aligned tests with the asynchronous API and recovery wording.
+**Security/reliability impact:** Tool allowlisting and the explicit confirmation dialog remain in place. Cancellation is cooperative between steps, not a hard interrupt of a currently running tool. No write, shell, browser, or OS-control tool is enabled.
+**Tests run:** Current-head CI passed on commit `8e28ea2ee08c30f9f95de589b1ef490ba8e00449`: runs #194 and #195 both succeeded. #195: https://github.com/pateljiop/Nexora/actions/runs/37151002006. The JavaScript syntax and unit checks and Python API/storage/provider/workspace/execution tests passed. Earlier failures were inspected; the async API test and recovery-note assertion were corrected before the successful runs.
+**Known issues:** A running tool cannot be interrupted mid-call; the UI polls for up to 60 seconds before offering manual refresh. No real-world side-effect tools or desktop control are enabled. End-to-end visual testing on the target Windows laptop still needs to happen on that machine.
+**Next step:** Add persisted execution history to the desktop UI, run a focused security/API review, and then consider whether to remove draft status from the PR. Do not merge until the core desktop flow is reviewed and all current-head checks remain green.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
