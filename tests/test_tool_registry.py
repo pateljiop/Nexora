@@ -46,6 +46,18 @@ class ReadOnlyToolRegistryTests(unittest.TestCase):
         self.assertNotIn("abcdefghijklmno", result)
         self.assertIn("[REDACTED]", result)
 
+    def test_redacts_json_and_quoted_secret_assignments(self):
+        samples = [
+            '{"api_key": "json-super-secret-value"}',
+            "{'client_secret': 'quoted-secret-value'}",
+            'PASSWORD = "env-secret-value"',
+        ]
+        for sample, secret in zip(samples, ("json-super-secret-value", "quoted-secret-value", "env-secret-value")):
+            with self.subTest(sample=sample):
+                result = redact_text(sample)
+                self.assertNotIn(secret, result)
+                self.assertIn("[REDACTED]", result)
+
 
 if __name__ == "__main__":
     unittest.main()
