@@ -5,6 +5,7 @@ import os
 import re
 import difflib
 import hashlib
+import stat
 import tempfile
 import threading
 import uuid
@@ -327,13 +328,19 @@ class Workspace:
             return None
         except OSError:
             raise WorkspaceError("Workspace target state could not be determined.") from None
-        if path.is_symlink() or not path.is_file():
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
             raise WorkspaceError("Workspace target state is not a regular file.")
+        digest = hashlib.sha256()
         try:
-            content = path.read_bytes()
+            with path.open("rb") as handle:
+                while True:
+                    chunk = handle.read(64 * 1024)
+                    if not chunk:
+                        break
+                    digest.update(chunk)
         except OSError:
             raise WorkspaceError("Workspace target state could not be read.") from None
-        return hashlib.sha256(content).hexdigest()
+        return digest.hexdigest()
 
     def read_file(self, relative):
         path = self._resolve(relative)
