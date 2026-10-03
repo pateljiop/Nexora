@@ -374,3 +374,16 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Cooperative cancellation cannot preempt a blocked OS/filesystem call. No automatic retries are performed.
 **Next step:** Verify current-head CI and review the run lifecycle/API tests before choosing the next execution feature.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop run-control consistency
+**Goal:** Keep the desktop UI aligned with the persistent execution state and avoid redundant history requests.
+**Changes made:**
+- Restore the Run button label as soon as a run reaches a terminal state, including when the user later refreshes status or opens an active run from history.
+- Refresh recent-run history after the execution status becomes terminal.
+- Removed duplicate history-load calls from the normal run and application bootstrap paths.
+- Cancellation now polls until the cooperative cancellation request reaches a terminal state or the bounded polling window ends.
+**Tests run:** CI on commit `76923069870413a9e699796cd8c28d3038958c90` passed (runs #243 and #244). CI for the latest UI commit is pending and must be verified before this entry is considered green.
+**Known issues:** Polling is bounded to 60 seconds; longer runs require the user to refresh status again. The run still uses only the read-only tool allowlist.
+**Next step:** Check latest-head CI and continue with manually reviewed recovery of failed/cancelled read-only runs; no automatic retries.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
