@@ -623,3 +623,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** Windows CI passed in run #410 on commit `3a4b6e249654f4fadadff772caa2378afcf553cf`: https://github.com/pateljiop/Nexora/actions/runs/37152932710. Both Linux verification and the Windows smoke job passed. The pending proposal cap also passed in run #407: https://github.com/pateljiop/Nexora/actions/runs/37152905449. The README and draft PR now point to the Windows-verified code commit; the latest documentation-only head is running CI separately.
+
+
+### Entry: 2026-10-04 — unify change-history rendering
+**Goal:** Ensure rollback/apply errors remain visible when reopening a saved proposal from history.
+**Changes made:** The history loader now reuses the same proposal renderer as newly created proposals instead of maintaining a second copy of the status/error rendering logic.
+**Tests run:** Windows smoke CI passed on code commit `3a4b6e249654f4fadadff772caa2378afcf553cf`; the current UI cleanup has a new CI run pending.
+**Known issues:** Current branch still needs a target-Windows 10 laptop smoke test; hosted Windows CI only verifies startup, health, and static asset serving.
+**Next step:** Verify latest-head CI and refresh the final status links.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
