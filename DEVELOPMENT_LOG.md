@@ -309,3 +309,16 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Visual interaction has not yet been verified on the user's Windows laptop. The project remains a local desktop foundation; it does not yet control the real desktop or run arbitrary shell/file-writing actions.
 **Next step:** Perform a final code/security review of the local API and update the draft PR summary with the verified scope. Keep it unmerged until a real desktop smoke test is possible.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — static asset allowlist and final API test repair
+**Goal:** Restrict static file serving to the browser's required assets and ensure tests correctly handle HTML responses.
+**Changes made:**
+- Confirmed the local server serves only `/`, `/index.html`, `/styles.css`, `/src/main.js`, and `/src/task-state.js`; Python modules, environment files, SQLite data, docs, tests, and arbitrary repository paths return 404.
+- Added response hardening headers including `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`, and a restrictive Content Security Policy.
+- Fixed the static-asset test helper to preserve non-JSON response bodies rather than trying to parse the HTML document as JSON.
+- Updated README and PR description to match the current implemented scope and remaining limitations. PR #1 remains draft and unmerged pending a smoke test on the target Windows laptop.
+**Tests run:** GitHub Actions run #222 passed on commit `8a90755efd7f3f680d67a0b4c92e6ecb597ce112`: https://github.com/pateljiop/Nexora/actions/runs/37151233469. JavaScript syntax/unit tests and Python API/SQLite/provider/workspace/execution/static-serving tests passed. The development-log update itself will trigger another run.
+**Known issues:** Target-laptop visual smoke testing is not possible from this repository connector session. No arbitrary shell, file-writing agent tool, browser automation, Windows input/screen control, voice, or LAN/mobile access is enabled. Optional external model requests remain opt-in and require per-goal confirmation.
+**Next step:** Verify CI after this log commit, then continue with a Windows desktop smoke-test checklist and deeper API concurrency/security tests. Keep PR draft until that manual desktop test is complete.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
