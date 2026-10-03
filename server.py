@@ -584,7 +584,7 @@ def main():
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
     print(f"Nexora local server ready at http://{HOST}:{PORT}")
-    print("SQLite persistence enabled. Plan previews are available; device execution remains disabled.")
+    print("SQLite persistence enabled. Read-only agent tools are available; file changes require separate review and explicit approval. Shell/device execution remains disabled.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
