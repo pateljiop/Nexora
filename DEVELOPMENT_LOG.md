@@ -322,3 +322,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Target-laptop visual smoke testing is not possible from this repository connector session. No arbitrary shell, file-writing agent tool, browser automation, Windows input/screen control, voice, or LAN/mobile access is enabled. Optional external model requests remain opt-in and require per-goal confirmation.
 **Next step:** Verify CI after this log commit, then continue with a Windows desktop smoke-test checklist and deeper API concurrency/security tests. Keep PR draft until that manual desktop test is complete.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — static asset allowlist and security boundary audit
+**Goal:** Prevent the local static server from exposing backend source, environment files, documentation, or local SQLite artifacts through guessed URLs.
+**Changes made:**
+- Replaced repository-root static file serving with a strict allowlist: `/`, `/index.html`, `/styles.css`, `/src/main.js`, and `/src/task-state.js`.
+- Unknown paths now return 404, including `server.py`, `model_provider.py`, `.env`, `.env.example`, documentation, and the data directory.
+- Added an HTTP regression test for allowed browser assets and denied backend/config/data paths.
+- Completed the recent-run panel so persisted run records can be refreshed and opened from the desktop UI.
+**Security/reliability impact:** This closes a local information-exposure issue in the earlier static handler, which could serve arbitrary files under the repository root. The API continues to validate Host/Origin and reject cross-site requests; workspace reads and execution tools remain read-only and root-constrained.
+**Tests run:** GitHub Actions run #223 passed on commit `add4bce336f5492daaf7dfa77d6fb332c85536e0`: https://github.com/pateljiop/Nexora/actions/runs/37151259254. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed.
+**Known issues:** The secret redaction filter is heuristic; do not treat workspace previews as a secure secret scanner. The Windows laptop smoke test remains outstanding. No real desktop control or side-effect-capable tool is enabled.
+**Next step:** Update the draft PR summary with the current verified scope and run, then keep the PR draft until the app is smoke-tested on the target Windows laptop. Continue toward the next milestone: controlled approval-gated file changes only after execution policy and rollback tests exist.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
