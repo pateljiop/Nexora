@@ -10,6 +10,7 @@ import json
 import uuid
 
 from planner import now_iso
+from tool_registry import redact_text
 from workspace_tools import MAX_WRITE_BYTES, WorkspaceError
 
 MAX_PROPOSALS = 50
@@ -44,7 +45,7 @@ class WorkspaceChangeManager:
 
     def _metadata(self, row):
         return {
-            "id": row["id"], "path": row["path"], "diff": row["diff"],
+            "id": row["id"], "path": row["path"], "diff": redact_text(row["diff"]),
             "created": not bool(row["original_exists"]),
             "originalSha256": row["original_sha256"],
             "proposedSha256": row["proposed_sha256"],
@@ -55,6 +56,10 @@ class WorkspaceChangeManager:
 
     def preview(self, relative, content):
         try:
+            if not isinstance(content, str):
+                raise WorkspaceChangeError("Proposed content must be text.")
+            if redact_text(content) != content:
+                raise WorkspaceChangeError("Proposed content resembles a credential or token. Remove secrets before creating a change proposal.")
             preview = self.workspace.preview_write(relative, content)
             original_exists = not preview["created"]
             original_content = None
