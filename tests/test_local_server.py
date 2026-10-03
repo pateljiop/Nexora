@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 from unittest.mock import patch
 
 import server
+from workspace_tools import Workspace
 
 
 class StoreTests(unittest.TestCase):
@@ -55,7 +56,10 @@ class StoreTests(unittest.TestCase):
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        handler = type("TestHandler", (server.Handler,), {"store": server.Store(Path(self.temp.name) / "api.sqlite3")})
+        workspace_root = Path(self.temp.name) / "workspace"
+        workspace_root.mkdir()
+        (workspace_root / "sample.txt").write_text("workspace sample", encoding="utf-8")
+        handler = type("TestHandler", (server.Handler,), {"store": server.Store(Path(self.temp.name) / "api.sqlite3"), "workspace": Workspace(workspace_root)})
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -105,6 +109,16 @@ class ApiTests(unittest.TestCase):
             code, payload = self.request("/api/plans", "POST", {"goal": "Test", "useModel": True, "remoteConsent": True})
         self.assertEqual(code, 400)
         self.assertIn("not enabled", payload["error"])
+
+    def test_read_only_workspace_api_and_traversal_protection(self):
+        status, listing = self.request("/api/workspace")
+        self.assertEqual(status, 200)
+        self.assertIn("sample.txt", [item["path"] for item in listing["entries"]])
+        status, preview = self.request("/api/workspace/read?path=sample.txt")
+        self.assertEqual(status, 200)
+        self.assertEqual(preview["content"], "workspace sample")
+        self.assertTrue(preview["readOnly"])
+        self.assertEqual(self.request("/api/workspace/read?path=..%2Foutside.txt")[0], 400)
 
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
