@@ -112,6 +112,7 @@ class Workspace:
         if path == self.root:
             raise WorkspaceError("Workspace root cannot be replaced.")
         parent = path.parent
+        created = not path.exists()
         if not parent.is_dir():
             raise WorkspaceError("The destination directory must already exist.")
         if path.exists():
@@ -142,7 +143,7 @@ class Workspace:
                     pass
             raise WorkspaceError("Atomic workspace write failed.") from None
         return {"path": path.relative_to(self.root).as_posix(), "bytes": len(encoded),
-                "sha256": hashlib.sha256(encoded).hexdigest(), "created": len(existing) == 0 if 'existing' in locals() else True,
+                "sha256": hashlib.sha256(encoded).hexdigest(), "created": created,
                 "readOnly": False}
 
     def read_file(self, relative):
