@@ -15,6 +15,24 @@ from planner import build_dry_run_plan, validate_plan
 from model_provider import ModelProviderError, build_model_plan, get_model_status
 
 ROOT = Path(__file__).resolve().parent
+
+def load_local_env():
+    env_file = ROOT / ".env"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", key) or key in os.environ:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ[key] = value
+
+load_local_env()
 DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "nexora.sqlite3"
 HOST = "127.0.0.1"
@@ -259,9 +277,12 @@ class Handler(BaseHTTPRequestHandler):
                 count = self.store.import_local(payload.get("tasks", []), payload.get("activities", []))
                 self.send_json(200, {"importedTasks": count, "status": "ok"})
             elif path == "/api/plans":
-                if payload.get("remoteConsent") is True:
-                    if not get_model_status().get("enabled"):
-                        raise ValueError("Remote model planning is not enabled in local server settings.")
+                if payload.get("useModel") is True:
+                    model_status = get_model_status()
+                    if not model_status.get("enabled"):
+                        raise ValueError("Model requests are not enabled in local server settings.")
+                    if model_status.get("remote") and payload.get("remoteConsent") is not True:
+                        raise ValueError("Remote model requests require per-request consent.")
                     plan = self.store.save_plan(build_model_plan(payload.get("goal")))
                 else:
                     plan = self.store.create_plan(payload.get("goal"))
@@ -342,7 +363,7 @@ def main():
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
     print(f"Nexora local server ready at http://{HOST}:{PORT}")
-    print("SQLite persistence enabled. AI planning and device execution remain disabled.")
+    print("SQLite persistence enabled. Plan previews are available; device execution remains disabled.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
