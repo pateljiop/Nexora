@@ -565,3 +565,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** Final browser-level interaction and visual verification on Windows are still outstanding. This does not add shell, arbitrary delete, browser, or desktop-control tools.
 **Next step:** Verify current-head CI, fix any integration failures, then update README/PR status. Keep PR draft until Windows smoke test is completed.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** Desktop proposal history and diff-review controls passed CI run #386 on code commit `8143a5a2767d61e7b71559349005e283c9e141b6`: https://github.com/pateljiop/Nexora/actions/runs/37152569941. The latest branch head, including the README and PR-scope updates, passed CI run #389 on commit `04150dfc1583787205493f8df6b7a0181a2e1571`: https://github.com/pateljiop/Nexora/actions/runs/37152611123. The PR remains draft until the target Windows laptop is smoke-tested.
