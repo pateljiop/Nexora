@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import server
 from workspace_tools import Workspace
+from workspace_changes import WorkspaceChangeManager
 from planner import build_dry_run_plan, build_remote_plan
 
 
@@ -87,7 +88,10 @@ class ApiTests(unittest.TestCase):
         workspace_root = Path(self.temp.name) / "workspace"
         workspace_root.mkdir()
         (workspace_root / "sample.txt").write_text("workspace sample", encoding="utf-8")
-        handler = type("TestHandler", (server.Handler,), {"store": server.Store(Path(self.temp.name) / "api.sqlite3"), "workspace": Workspace(workspace_root)})
+        store = server.Store(Path(self.temp.name) / "api.sqlite3")
+        workspace = Workspace(workspace_root)
+        changes = WorkspaceChangeManager(store, workspace, Path(self.temp.name) / "backups")
+        handler = type("TestHandler", (server.Handler,), {"store": store, "workspace": workspace, "changes": changes})
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
         self.thread.start()
@@ -227,6 +231,35 @@ class ApiTests(unittest.TestCase):
                 self.assertGreater(len(response.read()), 0)
         for path in ("/server.py", "/model_provider.py", "/DEVELOPMENT_LOG.md", "/.env", "/.env.example", "/data/state.sqlite3"):
             self.assertEqual(self.request(path)[0], 404, path)
+
+    def test_change_preview_apply_and_rollback_routes_require_approval(self):
+        original = (Path(self.temp.name) / "workspace" / "sample.txt").read_text(encoding="utf-8")
+        status, payload = self.request("/api/workspace/changes", "POST", {"path": "sample.txt", "content": "reviewed replacement"})
+        self.assertEqual(status, 201)
+        change = payload["change"]
+        self.assertEqual(change["status"], "pending")
+        self.assertEqual((Path(self.temp.name) / "workspace" / "sample.txt").read_text(encoding="utf-8"), original)
+        status, rejected = self.request(f"/api/workspace/changes/{change['id']}/apply", "POST", {"approved": False})
+        self.assertEqual(status, 400)
+        self.assertEqual((Path(self.temp.name) / "workspace" / "sample.txt").read_text(encoding="utf-8"), original)
+        status, applied = self.request(f"/api/workspace/changes/{change['id']}/apply", "POST", {"approved": True})
+        self.assertEqual(status, 200)
+        self.assertEqual(applied["change"]["status"], "applied")
+        self.assertEqual((Path(self.temp.name) / "workspace" / "sample.txt").read_text(encoding="utf-8"), "reviewed replacement")
+        status, rolled = self.request(f"/api/workspace/changes/{change['id']}/rollback", "POST", {"approved": True})
+        self.assertEqual(status, 200)
+        self.assertEqual(rolled["change"]["status"], "rolled_back")
+        self.assertEqual((Path(self.temp.name) / "workspace" / "sample.txt").read_text(encoding="utf-8"), original)
+
+    def test_change_api_rejects_stale_proposal_and_preserves_newer_edit(self):
+        target = Path(self.temp.name) / "workspace" / "sample.txt"
+        status, payload = self.request("/api/workspace/changes", "POST", {"path": "sample.txt", "content": "model version"})
+        self.assertEqual(status, 201)
+        target.write_text("human edit", encoding="utf-8")
+        status, result = self.request(f"/api/workspace/changes/{payload['change']['id']}/apply", "POST", {"approved": True})
+        self.assertEqual(status, 400)
+        self.assertEqual(target.read_text(encoding="utf-8"), "human edit")
+        self.assertEqual(self.httpd.RequestHandlerClass.changes.get(payload["change"]["id"])["status"], "stale")
 
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
