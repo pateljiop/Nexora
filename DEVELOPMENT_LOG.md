@@ -422,3 +422,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The UI intentionally does not allow switching to an older report while a run is active. The backend still enforces one active execution regardless of UI state.
 **Next step:** Verify current-head CI, then review the final PR scope and retain draft status until the target Windows smoke test.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+**Verification follow-up (2026-10-04):** Current code commit `07927e30cc96f8ae2a8f59ee9e6bbaefad445f8d` passed GitHub Actions run #269: https://github.com/pateljiop/Nexora/actions/runs/37151632594. The run-control UI and saved-plan review endpoint passed JavaScript syntax, Node unit tests, and Python API/SQLite/security tests. The README and PR verification references were updated. The PR remains draft pending a real smoke test on the target Windows laptop.
