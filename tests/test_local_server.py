@@ -261,6 +261,20 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(target.read_text(encoding="utf-8"), "human edit")
         self.assertEqual(self.httpd.RequestHandlerClass.changes.get(payload["change"]["id"])["status"], "stale")
 
+    def test_unexpected_local_operation_error_returns_safe_json(self):
+        status, payload = self.request("/api/workspace/changes", "POST",
+                                       {"path": "sample.txt", "content": "proposed"})
+        self.assertEqual(status, 201)
+        proposal_id = payload["change"]["id"]
+        with patch.object(self.httpd.RequestHandlerClass.changes, "apply",
+                          side_effect=RuntimeError("sensitive internal exception")):
+            status, result = self.request(
+                f"/api/workspace/changes/{proposal_id}/apply", "POST", {"approved": True}
+            )
+        self.assertEqual(status, 500)
+        self.assertIn("Refresh the saved status", result["error"])
+        self.assertNotIn("sensitive internal exception", json.dumps(result))
+
     def test_rejects_invalid_payload_and_host(self):
         self.assertEqual(self.request("/api/tasks", "POST", {"title": " "})[0], 400)
         req = Request(self.base + "/api/health", headers={"Host": "attacker.example"})

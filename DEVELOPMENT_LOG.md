@@ -665,3 +665,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification (2026-10-04):** CI run #429 passed on commit `fdd570501bf01df7773a3faecf4d87cd28f9f822`. Ubuntu and Windows jobs passed, including Python compilation, path-revalidation tests, and the local server smoke test. The latest documentation-only commit has its own CI run pending.
+
+
+### Entry: 2026-10-04 — safe API errors for unexpected operations
+**Goal:** Keep unexpected local-operation exceptions from breaking the HTTP connection or exposing internal exception text to the browser.
+**Changes made:** The POST API now returns a generic JSON 500 response for unexpected exceptions. Added an API integration test that injects an internal exception and verifies the response is stable and does not disclose its text.
+**Tests run:** PR CI is pending.
+**Security/reliability impact:** The client receives a clear signal to refresh persisted state before retrying; manager-level recovery remains responsible for reconciling uncertain file changes.
+**Known issues:** This does not add automatic retries or claim that an operation failed before touching disk; the saved proposal status remains the source of truth.
+**Next step:** Verify Linux and Windows CI, merge if green, then continue local-first desktop reliability work.
+**Commit/PR:** Branch `fix/safe-api-errors`.

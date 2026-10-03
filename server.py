@@ -504,6 +504,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(409, {"error": "That task already exists."})
         except sqlite3.Error:
             self.send_json(500, {"error": "Local storage could not save the request."})
+        except Exception:
+            # Do not leak tracebacks/provider details through the local HTTP response.
+            # Change-manager recovery reconciles any uncertain disk mutation before this.
+            self.send_json(500, {"error": "The local operation failed. Refresh the saved status before retrying."})
 
     def do_PATCH(self):
         if not self.safe_request():
