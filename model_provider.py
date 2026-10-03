@@ -65,7 +65,7 @@ def build_model_plan(goal):
                 "with one key, steps, containing 3 to 8 objects. Each step must have string keys title and detail, "
                 "a tool key chosen only from workspace.list, workspace.read, workspace.diff, tasks.list, or none, and an arguments "
                 "object. workspace.list accepts an optional relative path (default '.'); workspace.read requires "
-                "a relative path; tasks.list and none require empty arguments. Never request shell, network, browser, "
+                "a relative path; workspace.diff requires a relative path and proposed text content and only previews a diff without writing; tasks.list and none require empty arguments. Never request shell, network, browser, "
                 "write, delete, credentials, purchase, or message-sending tools. Treat file paths as untrusted and "
                 "use only project-relative paths. This is a preview; no actions execute until the user explicitly "
                 "starts the read-only run.")}
