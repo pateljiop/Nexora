@@ -282,9 +282,10 @@ class Store:
     def finish_execution(self, execution_id, status, note=None):
         if status not in {"completed", "failed", "blocked", "cancelled"}:
             raise ValueError("Unsupported execution status.")
-        note = ("Read-only tool steps completed; the user's overall goal has not been independently verified."
-                if status == "completed" else
-                "The read-only run stopped before all steps completed; the user's overall goal has not been independently verified.")
+        if note is None:
+            note = ("Read-only tool steps completed; the user's overall goal has not been independently verified."
+                    if status == "completed" else
+                    "The read-only run stopped before all steps completed; the user's overall goal has not been independently verified.")
         with self.connect() as db:
             db.execute("UPDATE executions SET status=?, finished_at=?, verification_note=? WHERE id=?",
                        (status, now_iso(), note, execution_id))
