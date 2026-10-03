@@ -90,6 +90,41 @@ class WorkspaceChangeManagerTests(unittest.TestCase):
         self.assertEqual(rolled_back["status"], "rolled_back")
         self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "original text\n")
 
+    def test_unexpected_exception_after_apply_write_reconciles_and_keeps_rollback_available(self):
+        proposal = self.manager.preview("notes.txt", "durable new version\n")
+        original_write = self.manager.workspace.write_file
+
+        def write_then_interrupt(*args, **kwargs):
+            original_write(*args, **kwargs)
+            raise RuntimeError("simulated failure after atomic replace")
+
+        with patch.object(self.manager.workspace, "write_file", side_effect=write_then_interrupt):
+            with self.assertRaisesRegex(RuntimeError, "simulated failure"):
+                self.manager.apply(proposal["id"], True)
+
+        recovered = self.manager.get(proposal["id"])
+        self.assertEqual(recovered["status"], "applied")
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "durable new version\n")
+        rolled_back = self.manager.rollback(proposal["id"], True)
+        self.assertEqual(rolled_back["status"], "rolled_back")
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "original text\n")
+
+    def test_unexpected_exception_after_rollback_write_reconciles_status(self):
+        proposal = self.manager.preview("notes.txt", "durable new version\n")
+        self.manager.apply(proposal["id"], True)
+        original_rollback = self.manager.workspace.rollback_write
+
+        def rollback_then_interrupt(*args, **kwargs):
+            original_rollback(*args, **kwargs)
+            raise RuntimeError("simulated failure after rollback replace")
+
+        with patch.object(self.manager.workspace, "rollback_write", side_effect=rollback_then_interrupt):
+            with self.assertRaisesRegex(RuntimeError, "simulated failure"):
+                self.manager.rollback(proposal["id"], True)
+
+        self.assertEqual(self.manager.get(proposal["id"])["status"], "rolled_back")
+        self.assertEqual((self.root / "notes.txt").read_text(encoding="utf-8"), "original text\n")
+
     def test_rollback_rechecks_created_file_before_deleting(self):
         proposal = self.manager.preview("generated.txt", "generated\n")
         self.manager.apply(proposal["id"], True)
