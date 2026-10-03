@@ -16,6 +16,7 @@ from planner import build_dry_run_plan, validate_plan
 from model_provider import ModelProviderError, build_model_plan, get_model_status
 from workspace_tools import Workspace, WorkspaceError
 from execution_engine import ExecutionError, run_plan_execution
+from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
 
 ROOT = Path(__file__).resolve().parent
 
@@ -335,6 +336,7 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "NexoraLocal/1.0"
     store = None
     workspace = None
+    changes = None
 
     def log_message(self, fmt, *args):
         print("[Nexora]", self.address_string(), fmt % args)
@@ -408,6 +410,11 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, self.workspace.read_file(relative))
                 except WorkspaceError as exc:
                     self.send_json(400, {"error": str(exc)})
+            elif path == "/api/workspace/changes":
+                self.send_json(200, {"changes": self.changes.list()})
+            elif re.fullmatch(r"/api/workspace/changes/[^/]+", path):
+                change = self.changes.get(unquote(path.rsplit("/", 1)[-1]))
+                self.send_json(200, {"change": change}) if change else self.send_json(404, {"error": "Change proposal not found."})
             elif path == "/api/executions":
                 self.send_json(200, {"executions": self.store.list_executions()})
             elif re.fullmatch(r"/api/executions/[^/]+", path):
@@ -444,6 +451,17 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     plan = self.store.create_plan(payload.get("goal"))
                 self.send_json(201, {"plan": plan})
+            elif path == "/api/workspace/changes":
+                change = self.changes.preview(payload.get("path"), payload.get("content"))
+                self.send_json(201, {"change": change})
+            elif re.fullmatch(r"/api/workspace/changes/[^/]+/(apply|rollback)", path):
+                parts = path.split("/")
+                change_id, operation = unquote(parts[-2]), parts[-1]
+                if operation == "apply":
+                    result = self.changes.apply(change_id, payload.get("approved"))
+                else:
+                    result = self.changes.rollback(change_id, payload.get("approved"))
+                self.send_json(200, {"change": result})
             elif path == "/api/executions":
                 plan_id = payload.get("planId")
                 plan = self.store.get_plan(plan_id)
@@ -559,6 +577,10 @@ def main():
     if recovered:
         print(f"Marked {recovered} interrupted run(s) for review; no automatic retry.")
     Handler.workspace = Workspace()
+    Handler.changes = WorkspaceChangeManager(Handler.store, Handler.workspace)
+    recovered_changes = Handler.changes.recover_interrupted_changes()
+    if recovered_changes:
+        print(f"Marked {recovered_changes} interrupted file change(s) for review; no automatic retry.")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
     print(f"Nexora local server ready at http://{HOST}:{PORT}")
