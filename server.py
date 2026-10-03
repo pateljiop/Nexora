@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from planner import build_dry_run_plan, validate_plan
-from model_provider import ModelProviderError, build_model_plan, get_model_status
+from model_provider import ModelProviderError, analyze_screen_frame, build_model_plan, get_model_status
 from workspace_tools import Workspace, WorkspaceError
 from execution_engine import ExecutionError, run_plan_execution
 from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
@@ -42,6 +42,7 @@ DB_PATH = DATA_DIR / "nexora.sqlite3"
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("NEXORA_PORT", "8765"))
 MAX_BODY = 64 * 1024
+MAX_SCREEN_BODY = 2_100_000
 MAX_TASKS = 500
 MAX_ACTIVITY = 30
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
@@ -365,12 +366,12 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def read_json(self):
+    def read_json(self, max_bytes=MAX_BODY):
         try:
             length = int(self.headers.get("Content-Length", ""))
         except ValueError:
             raise ValueError("A valid Content-Length header is required.")
-        if length < 0 or length > MAX_BODY:
+        if length < 0 or length > max_bytes:
             raise ValueError("Request body is too large.")
         try:
             value = json.loads(self.rfile.read(length).decode("utf-8"))
@@ -431,8 +432,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.safe_request():
             return
         try:
-            payload = self.read_json()
             path = urlparse(self.path).path
+            payload = self.read_json(max_bytes=MAX_SCREEN_BODY if path == "/api/screen/analyze" else MAX_BODY)
             if path == "/api/tasks":
                 task = self.store.create_task(payload.get("title"))
                 self.store.add_activity("Task added to your workspace", task["title"])
@@ -440,6 +441,15 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/import-local":
                 count = self.store.import_local(payload.get("tasks", []), payload.get("activities", []))
                 self.send_json(200, {"importedTasks": count, "status": "ok"})
+            elif path == "/api/screen/analyze":
+                model_status = get_model_status()
+                if not model_status.get("enabled"):
+                    raise ValueError("Model requests are not enabled in local server settings.")
+                if model_status.get("remote") and payload.get("remoteConsent") is not True:
+                    raise ValueError("Remote screen analysis requires per-frame consent.")
+                analysis = analyze_screen_frame(payload.get("imageDataUrl"))
+                self.send_json(200, {"analysis": analysis, "providerHost": model_status.get("providerHost"),
+                                     "model": model_status.get("model"), "remote": model_status.get("remote")})
             elif path == "/api/plans":
                 if payload.get("useModel") is True:
                     model_status = get_model_status()
