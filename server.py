@@ -40,7 +40,19 @@ load_local_env()
 DATA_DIR = ROOT / "data"
 DB_PATH = DATA_DIR / "nexora.sqlite3"
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("NEXORA_PORT", "8765"))
+
+
+def parse_local_port(value):
+    try:
+        port = int(value)
+    except (TypeError, ValueError):
+        raise ValueError("NEXORA_PORT must be an integer between 1024 and 65535.") from None
+    if not 1024 <= port <= 65535:
+        raise ValueError("NEXORA_PORT must be an integer between 1024 and 65535.")
+    return port
+
+
+PORT = parse_local_port(os.environ.get("NEXORA_PORT", "8765"))
 MAX_BODY = 64 * 1024
 MAX_TASKS = 500
 MAX_ACTIVITY = 30

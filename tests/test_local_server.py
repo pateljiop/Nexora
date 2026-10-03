@@ -15,6 +15,21 @@ from planner import build_dry_run_plan, build_remote_plan
 
 
 class StoreTests(unittest.TestCase):
+    def test_windows_launcher_uses_configured_loopback_health_endpoint(self):
+        launcher = (Path(__file__).resolve().parent.parent / "run-local.bat").read_text(encoding="utf-8")
+        self.assertIn("127.0.0.1:%NEXORA_PORT%/api/health", launcher)
+        self.assertIn("127.0.0.1:%NEXORA_PORT%", launcher)
+        self.assertIn("$health.status -eq 'ok'", launcher)
+        self.assertIn("$health.storage -eq 'sqlite'", launcher)
+        self.assertNotIn("0.0.0.0", launcher)
+
+    def test_local_port_configuration_is_bounded(self):
+        self.assertEqual(server.parse_local_port("8765"), 8765)
+        self.assertEqual(server.parse_local_port("65535"), 65535)
+        for value in ("", "abc", "0", "80", "65536", None):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                server.parse_local_port(value)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.store = server.Store(Path(self.temp.name) / "test.sqlite3")
