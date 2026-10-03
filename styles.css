@@ -36,7 +36,7 @@
 
 /* Read-only execution inspector */
 .plan-step .tool-chip{display:inline-flex;margin-top:7px;padding:4px 7px;border:1px solid rgba(130,155,212,.18);border-radius:5px;color:#a8b6e8;font:500 9px "DM Mono",monospace}
-.execution-actions{display:flex;justify-content:flex-end;margin-top:15px}
+.execution-actions{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:9px;margin-top:15px}
 .execution-actions [hidden]{display:none}
 .execution-result{margin-top:20px;padding-top:16px;border-top:1px solid rgba(126,145,184,.17)}
 .execution-result[hidden]{display:none}
