@@ -136,6 +136,42 @@ class ExecutionEngineTests(unittest.TestCase):
         self.assertFalse(result["goalVerified"])
         self.assertFalse(self.store.fail_unexpected_execution(execution["id"]))
 
+    def test_cancel_requested_before_finalization_wins_completion_race(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Read-only tasks.", "tool": "tasks.list", "arguments": {}},
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        for step in plan["steps"]:
+            self.store.set_execution_step_status(execution["id"], step["id"], "running")
+            self.store.finish_execution_step(execution["id"], step["id"], "completed", output={"ok": True})
+
+        cancel = self.store.request_execution_cancel(execution["id"])
+        self.assertTrue(cancel["cancelRequested"])
+        final_status = self.store.finish_execution(execution["id"], "completed")
+        result = self.store.get_execution(execution["id"])
+        self.assertEqual(final_status, "cancelled")
+        self.assertEqual(result["status"], "cancelled")
+        self.assertFalse(result["goalVerified"])
+        self.assertIn("Cancellation was requested", result["verificationNote"])
+
+    def test_cancel_request_after_terminal_state_does_not_set_control_flag(self):
+        plan = build_remote_plan("Inspect workspace", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        step = plan["steps"][0]
+        self.store.set_execution_step_status(execution["id"], step["id"], "running")
+        self.store.finish_execution_step(execution["id"], step["id"], "completed", output={"ok": True})
+        self.assertEqual(self.store.finish_execution(execution["id"], "completed"), "completed")
+
+        result = self.store.request_execution_cancel(execution["id"])
+        self.assertEqual(result, {"id": execution["id"], "status": "completed", "cancelRequested": False})
+        self.assertFalse(self.store.is_execution_cancel_requested(execution["id"]))
+
     def test_rejects_local_template_plan(self):
         from planner import build_dry_run_plan
         plan = build_dry_run_plan("Make progress")
