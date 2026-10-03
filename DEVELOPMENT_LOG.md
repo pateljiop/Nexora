@@ -551,3 +551,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The API's approval boolean is a local workflow guard, not a cryptographic boundary against other code already running as the same user. The desktop integration still needs current-head CI and a real Windows smoke test.
 **Next step:** Verify the UI integration, then update README/PR scope to distinguish agent-disabled writes from explicitly approved manual proposal application.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — desktop diff review, apply, rollback, and history
+**Goal:** Let the user review the full persisted diff and separately approve a reversible workspace change from the desktop interface.
+**Changes made:**
+- Added a dedicated Change review panel with the complete diff, proposal status, file path, and persistent change history.
+- Completed `workspace.diff` run reports now include a “Prepare change for approval” action. Preparing creates a saved proposal but does not alter files.
+- Added separate Apply and Roll back controls; each asks for confirmation, calls the local change API, refreshes status/history, and refreshes the workspace listing after success.
+- On startup, the UI restores the latest saved proposal and exposes actions only when its persisted status allows them.
+**Tests run:** JavaScript syntax and Node tests passed on the current UI commit; full API/SQLite tests are running on current head. Do not mark this milestone green until current-head CI succeeds.
+**Security/reliability impact:** The diff is displayed before Apply; apply verifies the target still matches the proposal and writes a backup first. Rollback verifies the exact written content and backup receipt. Mutating calls remain outside the model tool registry and require a separate explicit user action.
+**Known issues:** Final browser-level interaction and visual verification on Windows are still outstanding. This does not add shell, arbitrary delete, browser, or desktop-control tools.
+**Next step:** Verify current-head CI, fix any integration failures, then update README/PR status. Keep PR draft until Windows smoke test is completed.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
