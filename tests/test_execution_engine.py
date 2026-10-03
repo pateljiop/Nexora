@@ -86,18 +86,13 @@ class ExecutionEngineTests(unittest.TestCase):
         with self.assertRaises(ExecutionError):
             run_plan_execution(plan["id"], self.store, self.workspace)
 
-    def test_stops_safely_on_invalid_path(self):
-        plan = build_remote_plan("Inspect workspace", [
-            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
-            {"title": "Read path", "detail": "Must be rejected.", "tool": "workspace.read", "arguments": {"path": "../outside"}},
-            {"title": "List tasks", "detail": "Not reached after failure.", "tool": "tasks.list", "arguments": {}}
-        ])
-        self.store.save_plan(plan)
-        result = run_plan_execution(plan["id"], self.store, self.workspace)
-        self.assertEqual(result["status"], "failed")
-        self.assertEqual(result["steps"][0]["status"], "completed")
-        self.assertEqual(result["steps"][1]["status"], "failed")
-        self.assertEqual(result["steps"][2]["status"], "not_started")
+    def test_rejects_invalid_path_before_execution(self):
+        with self.assertRaises(ValueError):
+            build_remote_plan("Inspect workspace", [
+                {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+                {"title": "Read path", "detail": "Must be rejected before saving.", "tool": "workspace.read", "arguments": {"path": "../outside"}},
+                {"title": "List tasks", "detail": "Never reached.", "tool": "tasks.list", "arguments": {}}
+            ])
 
     def test_restart_marks_running_execution_failed_without_retry(self):
         plan = build_remote_plan("Inspect workspace", [
