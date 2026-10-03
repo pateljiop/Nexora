@@ -112,6 +112,10 @@ class ExecutionEngineTests(unittest.TestCase):
             self.store.finish_execution_step(execution["id"], step_id, "failed", error="must not overwrite")
         with self.assertRaises(ValueError):
             self.store.finish_execution(execution["id"], "completed")
+        self.store.finish_execution_step(execution["id"], plan["steps"][1]["id"], "skipped", error="test skip")
+        self.store.finish_execution_step(execution["id"], plan["steps"][2]["id"], "skipped", error="test skip")
+        with self.assertRaises(ValueError):
+            self.store.finish_execution(execution["id"], "completed")
         self.assertEqual(self.store.get_execution(execution["id"])["steps"][0]["status"], "completed")
         self.assertFalse(self.store.get_execution(execution["id"])["goalVerified"])
 
