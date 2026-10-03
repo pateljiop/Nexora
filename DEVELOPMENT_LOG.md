@@ -396,3 +396,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** A refresh can reconnect only while the local server is running and the execution remains in its persisted state. The UI polls for a bounded window and requires a manual refresh for runs that continue beyond it.
 **Next step:** Verify run #260 and all checks on the exact latest branch head; then update the PR verification section to the current green run.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — reviewed recovery path for saved read-only plans
+**Goal:** Let the user reuse a failed, cancelled, or completed read-only plan without silently replaying it.
+**Changes made:**
+- Added a read-only API endpoint to retrieve a saved plan by ID.
+- Added a “Review plan again” control to a saved execution report. It loads the plan back into the preview; a fresh execution still requires the user to review the exact tools/arguments and explicitly confirm.
+- Added API tests for retrieving saved plans and returning 404 for unknown IDs.
+- No run is automatically retried after a page refresh or server restart.
+**Security/reliability impact:** Saved plans remain in dry-run state with `executionEnabled: false`. The existing server-side plan validation, read-only tool allowlist, single-active-run guard, and per-run confirmation still apply.
+**Tests run:** Syntax and JavaScript unit tests passed on commit `51380adf86e7d7deed76cf004e1b93b5a701831c` (CI runs #260 and #261). The new saved-plan API test is included in the current head and awaits its completed CI result: https://github.com/pateljiop/Nexora/actions/runs/37151572791.
+**Known issues:** Reusing a plan creates a new execution; this is not checkpoint resume. Previously completed reads may run again only after explicit user confirmation.
+**Next step:** Verify current-head CI, then update the PR description with current run recovery behavior and keep the PR draft until the target Windows laptop smoke test is completed.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
