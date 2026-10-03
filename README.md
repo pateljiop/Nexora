@@ -33,7 +33,7 @@ Or start it manually from the repository directory:
 
 The SQLite database is created at `data/nexora.sqlite3`. Keep the `data` directory if you want to retain local tasks. It is runtime data and should not be committed.
 
-The workspace explorer defaults to this repository folder. To use a different existing project folder, set `NEXORA_WORKSPACE_ROOT` in `.env`; workspace tools remain read-only and are constrained to that root. The explorer does not expose the entire disk by default.
+The workspace explorer defaults to this repository folder. To use a different existing project folder, set `NEXORA_WORKSPACE_ROOT` in `.env`; explorer and model-run tools remain constrained to that root. The explorer does not expose the entire disk by default. Proposed changes use a separate review workflow.
 
 ## Verify the project
 
@@ -45,7 +45,7 @@ This runs JavaScript syntax checks, JavaScript unit tests, and Python tests for 
 
 ## Optional model planning
 
-The planner works without a provider by showing a clearly labelled deterministic local template. The optional workspace explorer can list and preview UTF-8 text files under the configured root, and a model-generated plan can run a bounded sequence of allowlisted read-only tools (`workspace.list`, `workspace.read`, `workspace.diff`, `tasks.list`). The diff tool compares proposed UTF-8 text with the current file and records a redacted preview only; it does not write, delete, or execute anything. Tool outputs are recorded locally, failures stop the sequence, and a completed tool run explicitly does **not** mean the overall goal was verified. No file writes, shell commands, browser actions, or desktop controls are enabled. To use a compatible model for plan drafts:
+The planner works without a provider by showing a clearly labelled deterministic local template. The optional workspace explorer can list and preview UTF-8 text files under the configured root, and a model-generated plan can run a bounded sequence of allowlisted read-only tools (`workspace.list`, `workspace.read`, `workspace.diff`, `tasks.list`). The diff tool compares proposed UTF-8 text with the current file and records a redacted preview only; it does not write, delete, or execute anything. Tool outputs are recorded locally, failures stop the sequence, and a completed tool run explicitly does **not** mean the overall goal was verified. The plan runner has no file-writing tool. After a `workspace.diff` step, the user can save the proposal, review the complete diff, and separately approve Apply or Roll back. Apply requires a fresh hash match and a backup; rollback refuses to overwrite later edits. No shell commands, browser actions, or desktop controls are enabled. To use a compatible model for plan drafts:
 
 1. Copy `.env.example` to `.env` in the repository root.
 2. Set `NEXORA_MODEL_BASE_URL`, `NEXORA_MODEL_NAME`, and (for remote providers) `NEXORA_MODEL_API_KEY`.
@@ -61,8 +61,8 @@ The provider adapter sends only the goal needed for planning and asks for struct
 This is an early local-first Virtual Hariom foundation. It can draft plans with an optional model, inspect a configured workspace with allowlisted read-only tools, and persist run reports. It is **not yet a full desktop-controlling AI agent**.
 
 - The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. Only model plans containing allowlisted read-only tool calls can run.
-- No file writes, shell execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
-- No approval-gated write actions yet. Read-only tool completion does not independently verify the user’s overall goal.
+- No direct model-driven file-write tool, arbitrary shell execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
+- User-approved file changes are limited to saved, reviewed proposals within the configured workspace. Read-only tool completion does not independently verify the user’s overall goal.
 - Read-only runs use a background worker, can be cancelled between steps, and are recorded in SQLite. On server restart, interrupted runs are marked failed for review rather than retried. General multi-task orchestration and checkpoint/resume are not implemented.
 - Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
 - Marking a task complete is a manual list update, not evidence of AI execution or verification.
@@ -87,5 +87,5 @@ Website/mobile access is deferred until the desktop experience is built and test
 
 ## Latest CI verification
 
-- [GitHub Actions run #346](https://github.com/pateljiop/Nexora/actions/runs/37152154585) passed on current branch head `fa72c6c1ccba69049a6ef3dc0cb3c6d4f2c602f7` (JavaScript syntax, Node unit tests, and Python API/SQLite/security tests, including safe-path validation for model-generated diff plans).
+- [GitHub Actions run #386](https://github.com/pateljiop/Nexora/actions/runs/37152569941) passed on code commit `8143a5a2767d61e7b71559349005e283c9e141b6` (JavaScript syntax, Node unit tests, and Python API/SQLite/security tests, including proposal API and diff-review UI checks).
 - The following documentation commits do not change application code; the current branch's latest-head CI is checked separately.
