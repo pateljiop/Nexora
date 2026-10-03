@@ -147,8 +147,15 @@ class ApiTests(unittest.TestCase):
         ])
         store.save_plan(plan)
         status, payload = self.request("/api/executions", "POST", {"planId": plan["id"]})
-        self.assertEqual(status, 201)
+        self.assertEqual(status, 202)
         execution = payload["execution"]
+        import time
+        for _ in range(60):
+            latest = self.request(f"/api/executions/{execution['id']}")[1]["execution"]
+            if latest["status"] != "running":
+                execution = latest
+                break
+            time.sleep(0.05)
         self.assertEqual(execution["status"], "completed")
         self.assertFalse(execution["goalVerified"])
         self.assertEqual(len(execution["steps"]), 3)
