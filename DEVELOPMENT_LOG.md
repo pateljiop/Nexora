@@ -591,3 +591,12 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** The desktop UI has not yet been smoke-tested on the target Windows laptop. Backup and restore behavior still requires a real local filesystem test.
 **Next step:** Verify current-head CI, then review Windows compatibility and update docs/PR verification links.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — clarify separate file-change approval in status UI
+**Goal:** Make the difference between read-only model-plan execution and separately approved file edits visible at the point of use.
+**Changes made:** Updated the local connection banner to state that model plans can only run allowlisted read-only tools, and file changes require a saved diff proposal plus separate approval. Device control remains disabled.
+**Tests run:** Rollback race-hardening and regression tests passed in CI run #400 on code commit `45b03ef835265608a5a5f181121407949f3e9303`: https://github.com/pateljiop/Nexora/actions/runs/37152826149. The banner copy change's CI is pending.
+**Known issues:** No target-Windows smoke test has been performed. Current-head CI must be green before this milestone is closed.
+**Next step:** Verify the banner change and refresh README/PR verification links to the latest green head.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
