@@ -2,3 +2,7 @@
 data/
 __pycache__/
 *.py[cod]
+
+# Private provider configuration
+.env
+!.env.example
