@@ -477,3 +477,13 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Diff-preview follow-up (2026-10-04):** CI initially exposed two integration issues: the planner's new path validator rejected a traversal-path test earlier than the old test expected, and the model prompt did not fully explain the new tool's arguments. The planner now rejects unsafe relative paths before a plan can be saved, the regression test asserts this earlier rejection, and the model prompt explicitly distinguishes diff preview from file-writing tools. The report renders unified diffs as readable text rather than escaped JSON. CI on commit `2c6f153d56d7b82913538c51b27a566276b1e6c1` is running: https://github.com/pateljiop/Nexora/actions/runs/37152064400. This milestone remains unverified until that run passes.
+
+
+### Entry: 2026-10-04 — validate sensitive paths before saving diff plans
+**Goal:** Ensure the planner rejects sensitive workspace paths before a model-generated diff plan can be saved or shown as executable.
+**Changes made:** The initial diff-preview tests caught that traversal checks were not yet applied in the structured plan validator. Added early path validation for traversal, absolute/Windows-style paths, hidden files, secret/config directories, generated-data folders, and key/certificate suffixes. Added regression tests for `.env`, `.git`, `data`, `node_modules`, and private-key paths.
+**Tests run:** CI had failed on the original traversal-validation test; the planner and tests have now been updated. Current-head CI is pending.
+**Security/reliability impact:** Invalid paths are rejected at plan construction/validation and still independently checked by the workspace filesystem layer at execution time.
+**Known issues:** Workspace roots can be configured to any existing directory; the user must choose a project/workspace root carefully. No mutation tool is enabled.
+**Next step:** Verify current-head CI, inspect any remaining failures, then refresh PR verification only after green checks.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
