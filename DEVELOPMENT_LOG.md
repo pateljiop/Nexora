@@ -723,7 +723,10 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run the branch CI, inspect any failing job logs, fix and rerun until green, then review the full diff and open a focused PR. After that, continue execution workflow cancellation/timeout and desktop UI error-state audits.
 
-**Commit/branch:** `fix/workspace-transaction-audit`; the audit follow-up before this log update is committed through `25b2a15ad0c5a7dbb43a91828dce612e52d9369d`.
+**Commit/branch:** PR #7 (`fix/workspace-transaction-audit`) merged into `main` as `f4fcbe876366417c6ddd597049a2fd3c45ba6c78`.
 
 
-**Audit follow-up (2026-10-04):** Review found that recovering every `applying` proposal from one operation's exception path could misclassify another concurrently active operation. Recovery is now scoped to the proposal that raised the exception; startup recovery still scans all in-flight records. Added a regression test to assert another in-flight proposal remains `applying`. Recovery hashing now streams 64 KiB chunks to avoid loading an unexpectedly large replacement file into memory. CI runs #471–#476 passed on earlier revisions; run #477 and the current-head run are pending before this audit can be called green.
+**Audit follow-up (2026-10-04):** Review found that recovering every `applying` proposal from one operation's exception path could misclassify another concurrently active operation. Recovery is now scoped to the proposal that raised the exception; startup recovery still scans all in-flight records. Added a regression test to assert another in-flight proposal remains `applying`. Recovery hashing now streams 64 KiB chunks to avoid loading an unexpectedly large replacement file into memory. PR-head CI run #479 passed on commit `6cde6c664859df053b57abf36eb7529f7b1f5984`; post-merge main CI run #480 also passed on merge commit `f4fcbe876366417c6ddd597049a2fd3c45ba6c78`.
+
+
+**Final verification (2026-10-04):** PR #7 merged after PR-head CI run #479 passed. Post-merge GitHub Actions run #480 passed on main commit `f4fcbe876366417c6ddd597049a2fd3c45ba6c78`, including Linux JavaScript/API/SQLite tests and the Windows JavaScript, Python compilation, and loopback-server smoke checks: https://github.com/pateljiop/Nexora/actions/runs/37156296666. This verifies CI on the merged commit; it does not replace the pending manual smoke test on the target laptop.
