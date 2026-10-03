@@ -55,6 +55,29 @@ class ExecutionEngineTests(unittest.TestCase):
         self.assertEqual(result["steps"][0]["status"], "completed")
         self.assertEqual(result["steps"][1]["status"], "skipped")
         self.assertEqual(result["steps"][2]["status"], "skipped")
+        self.assertTrue(result["steps"][1]["finishedAt"])
+        self.assertIn("cancellation was requested", result["steps"][1]["error"])
+
+    def test_cancel_requested_during_final_step_is_not_reported_as_completed(self):
+        plan = build_remote_plan("Inspect tasks", [
+            {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read readme", "detail": "Read-only preview.", "tool": "workspace.read", "arguments": {"path": "readme.txt"}},
+            {"title": "List tasks", "detail": "Request cancellation while final tool is in progress.", "tool": "tasks.list", "arguments": {}}
+        ])
+        self.store.save_plan(plan)
+        original_list_tasks = self.store.list_tasks
+
+        def list_tasks_and_cancel():
+            result = original_list_tasks()
+            active = self.store.list_executions()[0]
+            self.store.request_execution_cancel(active["id"])
+            return result
+
+        self.store.list_tasks = list_tasks_and_cancel
+        result = run_plan_execution(plan["id"], self.store, self.workspace)
+        self.assertEqual(result["status"], "cancelled")
+        self.assertTrue(all(step["status"] == "completed" for step in result["steps"]))
+        self.assertIn("final read-only step", result["verificationNote"])
 
     def test_rejects_local_template_plan(self):
         from planner import build_dry_run_plan
