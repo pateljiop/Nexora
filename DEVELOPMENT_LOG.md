@@ -490,3 +490,18 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Verification follow-up (2026-10-04):** The diff-preview and sensitive-path validation changes passed GitHub Actions run #342 on commit `e34d40c2c2b947d8af809461cfdfd05ecb99b16f`: https://github.com/pateljiop/Nexora/actions/runs/37152108435. JavaScript syntax, Node unit tests, and Python API/SQLite/security tests passed. The README and draft PR verification sections now point to that green run. No file-writing tool has been enabled; `workspace.diff` remains a read-only preview.
+
+
+### Entry: 2026-10-04 — isolated reversible workspace-change manager
+**Goal:** Build and test the backup/rollback safety layer before exposing any write action to the UI or model tool registry.
+**Changes made:**
+- Added `workspace_changes.py`, which persists proposed diffs and original/proposed hashes in SQLite without changing workspace files.
+- Applying a proposal requires an explicit boolean approval, a pending proposal, and an unchanged original hash. The existing workspace writer creates an atomic backup before replacement and refuses stale content.
+- Rollback uses the recorded write receipt and backup integrity checks; it refuses to overwrite a file that changed after the approved write. Newly created files are removed only when their current hash matches the receipt.
+- Interrupted apply/rollback records can be marked for review; they are never automatically retried.
+- Added isolated tests for non-mutating preview, explicit approval, backup + rollback, created-file rollback, stale proposal rejection, post-apply edits, and backup failure.
+**Tests run:** New tests are committed; current-head GitHub Actions result is pending. The manager is not yet connected to HTTP routes or the model execution registry, so no file-writing tool is currently exposed to the UI.
+**Security/reliability impact:** The transaction layer is isolated and default-deny. Backup failure or a stale target must stop the operation rather than overwrite user changes.
+**Known issues:** The UI review/apply/rollback flow and HTTP endpoint tests are not implemented yet. Crash recovery marks uncertain transactions for review instead of attempting an automatic repair.
+**Next step:** Verify current-head tests; then integrate local-only proposal/apply/rollback routes with explicit approval payloads and add API security tests before building the UI controls.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
