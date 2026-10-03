@@ -9,10 +9,11 @@ import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from planner import build_dry_run_plan, validate_plan
 from model_provider import ModelProviderError, build_model_plan, get_model_status
+from workspace_tools import Workspace, WorkspaceError
 
 ROOT = Path(__file__).resolve().parent
 
@@ -198,6 +199,7 @@ class Store:
 class Handler(BaseHTTPRequestHandler):
     server_version = "NexoraLocal/1.0"
     store = None
+    workspace = None
 
     def log_message(self, fmt, *args):
         print("[Nexora]", self.address_string(), fmt % args)
@@ -256,6 +258,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"plans": self.store.list_plans()})
             elif path == "/api/model/status":
                 self.send_json(200, get_model_status())
+            elif path == "/api/workspace":
+                relative = parse_qs(urlparse(self.path).query).get("path", ["."])[0]
+                try:
+                    self.send_json(200, self.workspace.list_files(relative))
+                except WorkspaceError as exc:
+                    self.send_json(400, {"error": str(exc)})
+            elif path == "/api/workspace/read":
+                relative = parse_qs(urlparse(self.path).query).get("path", [""])[0]
+                try:
+                    self.send_json(200, self.workspace.read_file(relative))
+                except WorkspaceError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path.startswith("/api/"):
                 self.send_json(404, {"error": "API route not found."})
             else:
@@ -360,6 +374,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     Handler.store = Store(DB_PATH)
+    Handler.workspace = Workspace()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
     print(f"Nexora local server ready at http://{HOST}:{PORT}")
