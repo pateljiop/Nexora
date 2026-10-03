@@ -837,4 +837,4 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 **Next step:** Run Linux/Windows CI, inspect failures, update the log, and merge only after the latest PR head is green.
 
-**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `c6de091d5ce2d3dd78e0db3bbf71570654da059d` before this log update.
+**Commit/branch:** `fix/windows-launcher-port`; implementation/test/documentation commits through `916946caeab375c706b4938fceb930e0349dce68` before this log update.
