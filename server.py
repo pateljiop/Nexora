@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from planner import build_dry_run_plan, validate_plan
-from model_provider import ModelProviderError, build_model_plan, get_model_status
+from model_provider import ModelProviderError, analyze_screen_frame, build_model_plan, get_model_status
 from workspace_tools import Workspace, WorkspaceError
 from execution_engine import ExecutionError, run_plan_execution
 from workspace_changes import WorkspaceChangeError, WorkspaceChangeManager
@@ -42,6 +42,7 @@ DB_PATH = DATA_DIR / "nexora.sqlite3"
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("NEXORA_PORT", "8765"))
 MAX_BODY = 64 * 1024
+MAX_SCREEN_BODY = 1_500_000
 MAX_TASKS = 500
 MAX_ACTIVITY = 30
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
@@ -365,12 +366,12 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    def read_json(self):
+    def read_json(self, max_body=MAX_BODY):
         try:
             length = int(self.headers.get("Content-Length", ""))
         except ValueError:
             raise ValueError("A valid Content-Length header is required.")
-        if length < 0 or length > MAX_BODY:
+        if length < 0 or length > max_body:
             raise ValueError("Request body is too large.")
         try:
             value = json.loads(self.rfile.read(length).decode("utf-8"))
@@ -430,10 +431,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self.safe_request():
             return
+        path = urlparse(self.path).path
         try:
-            payload = self.read_json()
-            path = urlparse(self.path).path
-            if path == "/api/tasks":
+            payload = self.read_json(MAX_SCREEN_BODY if path == "/api/screen/analyze" else MAX_BODY)
+            if path == "/api/screen/analyze":
+                if payload.get("consent") is not True:
+                    raise ValueError("Explicit screen-analysis confirmation is required.")
+                model_status = get_model_status()
+                if not model_status.get("enabled"):
+                    raise ValueError("Model requests are not enabled in local server settings.")
+                if model_status.get("remote") and payload.get("remoteConsent") is not True:
+                    raise ValueError("Sending screen content to a remote provider requires per-request consent.")
+                analysis = analyze_screen_frame(payload.get("imageDataUrl"), payload.get("question", ""))
+                self.send_json(200, {"analysis": analysis, "providerHost": model_status.get("providerHost"),
+                                     "model": model_status.get("model"), "remote": model_status.get("remote")})
+            elif path == "/api/tasks":
                 task = self.store.create_task(payload.get("title"))
                 self.store.add_activity("Task added to your workspace", task["title"])
                 self.send_json(201, {"task": task})
