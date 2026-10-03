@@ -691,3 +691,5 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CSP verification:** Updated the local page policy for the in-memory frame preview and added a response-header regression test. CI is pending.
+
+**UI follow-up:** Added an explicit hidden-video CSS rule so the live preview remains invisible until the browser share starts. The complete branch is awaiting CI.
