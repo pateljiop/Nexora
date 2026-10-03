@@ -69,6 +69,27 @@
           <p class="notice"><span>ⓘ</span> Preview mode: tasks save in this browser. AI responses, cloud sync, and device control are not connected yet.</p>
         </section>
 
+        <section class="surface screen-observer" id="screen-observer" aria-labelledby="screen-observer-title">
+          <div class="surface-heading">
+            <div><h2 id="screen-observer-title">Live screen view</h2><p>Share a screen only when you click Start. This is local observation; frames are not sent to a model or server.</p></div>
+            <span class="stream-mark" id="screen-share-status">NOT SHARING</span>
+          </div>
+          <div class="screen-observer-stage" id="screen-observer-stage">
+            <div class="screen-observer-placeholder" id="screen-observer-placeholder"><span class="screen-observer-icon">▣</span><strong>Your screen stays private by default</strong><span>Choose a window or display in the browser's own sharing prompt.</span></div>
+            <video id="screen-live-video" autoplay muted playsinline aria-label="Live shared screen preview" hidden></video>
+          </div>
+          <div class="screen-observer-actions">
+            <button class="primary-button" id="start-screen-share" type="button">Start screen view ↗</button>
+            <button class="plan-button" id="capture-screen-frame" type="button" disabled>Capture frame</button>
+            <button class="text-button" id="stop-screen-share" type="button" hidden>Stop sharing</button>
+          </div>
+          <p class="screen-observer-message" id="screen-observer-message" role="status">Nothing is being captured. The browser will ask you to choose what to share.</p>
+          <div class="screen-frame-result" id="screen-frame-result" hidden>
+            <div class="screen-frame-heading"><strong>Last captured frame</strong><span>Browser memory only</span></div>
+            <img id="screen-frame-image" alt="Last manually captured screen frame" />
+          </div>
+        </section>
+
         <section class="surface plan-preview" id="plan-preview" hidden aria-live="polite" aria-labelledby="plan-preview-title">
           <div class="surface-heading"><div><h2 id="plan-preview-title">Plan preview</h2><p id="plan-goal"></p></div><span class="stream-mark">DRY RUN</span></div>
           <p class="plan-disclaimer">Template preview only. No files, apps, or system actions have been touched.</p>

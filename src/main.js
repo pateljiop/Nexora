@@ -735,6 +735,108 @@ async function loadWorkspace(relativePath = ".") {
 
 $("#refresh-workspace").addEventListener("click", () => loadWorkspace("."));
 
+let screenStream = null;
+
+function setScreenObserverMessage(message, isError = false) {
+  const element = $("#screen-observer-message");
+  element.textContent = message;
+  element.classList.toggle("error", isError);
+}
+
+async function startScreenShare() {
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== "function") {
+    setScreenObserverMessage("Screen sharing is not supported by this browser. Open Nexora in a current desktop browser over localhost.", true);
+    return;
+  }
+  const start = $("#start-screen-share");
+  start.disabled = true;
+  try {
+    // Browser-managed picker and permission are required on every new share.
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    const video = $("#screen-live-video");
+    video.srcObject = screenStream;
+    video.hidden = false;
+    $("#screen-observer-placeholder").hidden = true;
+    await video.play();
+    $("#screen-share-status").textContent = "SHARING LOCALLY";
+    $("#stop-screen-share").hidden = false;
+    $("#capture-screen-frame").disabled = false;
+    start.hidden = true;
+    setScreenObserverMessage("Screen is visible in this browser only. No frames are uploaded or sent to an AI model.");
+    const [track] = screenStream.getVideoTracks();
+    if (track) track.addEventListener("ended", stopScreenShare, { once: true });
+  } catch (error) {
+    screenStream?.getTracks().forEach(track => track.stop());
+    screenStream = null;
+    $("#screen-live-video").srcObject = null;
+    $("#screen-live-video").hidden = true;
+    $("#screen-observer-placeholder").hidden = false;
+    $("#screen-share-status").textContent = "NOT SHARING";
+    $("#stop-screen-share").hidden = true;
+    $("#capture-screen-frame").disabled = true;
+    start.hidden = false;
+    setScreenObserverMessage(error?.name === "NotAllowedError"
+      ? "Screen sharing was cancelled or permission was denied. Nothing is being captured."
+      : "Could not start screen sharing. Check browser support and try again.", true);
+  } finally {
+    start.disabled = false;
+  }
+}
+
+function captureScreenFrame() {
+  const video = $("#screen-live-video");
+  if (!screenStream || !video.videoWidth || !video.videoHeight) {
+    setScreenObserverMessage("Wait until the shared screen is visible, then capture a frame.", true);
+    return;
+  }
+  const scale = Math.min(1, 1920 / video.videoWidth, 1080 / video.videoHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+  canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
+  try {
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+    $("#screen-frame-image").src = canvas.toDataURL("image/jpeg", 0.82);
+    $("#screen-frame-result").hidden = false;
+    setScreenObserverMessage("Frame captured in browser memory only. It is not saved to disk or sent to a model/server.");
+  } catch {
+    setScreenObserverMessage("Could not capture this frame. The active screen share remains unchanged.", true);
+  }
+}
+
+function stopScreenShare() {
+  const stream = screenStream;
+  screenStream = null;
+  stream?.getTracks().forEach(track => track.stop());
+  const video = $("#screen-live-video");
+  if (video) {
+    video.pause();
+    video.srcObject = null;
+    video.hidden = true;
+  }
+  const placeholder = $("#screen-observer-placeholder");
+  if (placeholder) placeholder.hidden = false;
+  const status = $("#screen-share-status");
+  if (status) status.textContent = "NOT SHARING";
+  const start = $("#start-screen-share");
+  if (start) start.hidden = false;
+  const stop = $("#stop-screen-share");
+  if (stop) stop.hidden = true;
+  const capture = $("#capture-screen-frame");
+  if (capture) capture.disabled = true;
+  if (document.querySelector("#screen-observer-message")) {
+    setScreenObserverMessage("Screen sharing stopped. Any last captured frame remains in browser memory until this page is closed.");
+  }
+}
+
+$("#start-screen-share").addEventListener("click", startScreenShare);
+$("#capture-screen-frame").addEventListener("click", captureScreenFrame);
+$("#stop-screen-share").addEventListener("click", stopScreenShare);
+window.addEventListener("pagehide", () => {
+  stopScreenShare();
+  $("#screen-frame-image").removeAttribute("src");
+  $("#screen-frame-result").hidden = true;
+});
+
 async function bootstrap() {
   try {
     const health = await api("/api/health");

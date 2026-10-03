@@ -12,6 +12,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - A transparent structured dry-run planner (`local_template` source), with bounded steps and explicit `executionEnabled: false`.
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Read-only workspace explorer for bounded UTF-8 file previews inside the configured project root; private paths, symlinks, binary files, and oversized files are excluded.
+- Explicit browser-based live screen observation and manual frame capture. Sharing starts only after a click and the browser's own picker/permission prompt; frames stay in browser memory and are not uploaded, persisted, or sent to a model.
 - Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, `workspace.diff`, and `tasks.list` only. `workspace.diff` previews a proposed text change but never writes it.
 - Persistent execution records with per-step status/output/error, cancellation, bounded status polling, page-refresh reconnection, and an explicit note that tool completion is not proof that the overall goal was verified.
 - Saved run history and a manual “Review plan again” path for failed/cancelled/completed read-only runs; re-running always creates a new run and requires fresh confirmation.

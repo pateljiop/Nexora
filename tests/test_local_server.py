@@ -229,6 +229,10 @@ class ApiTests(unittest.TestCase):
             with urlopen(self.base + path, timeout=2) as response:
                 self.assertEqual(response.status, 200, path)
                 self.assertGreater(len(response.read()), 0)
+                if path == "/":
+                    csp = response.headers.get("Content-Security-Policy", "")
+                    self.assertIn("img-src 'self' data:", csp)
+                    self.assertIn("media-src 'self' blob:", csp)
         for path in ("/server.py", "/model_provider.py", "/DEVELOPMENT_LOG.md", "/.env", "/.env.example", "/data/state.sqlite3"):
             self.assertEqual(self.request(path)[0], 404, path)
 
