@@ -816,4 +816,7 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Commit/branch:** `fix/execution-cancel-finalization`; implementation/test commits through `0741d0c6164bb63f3686a1e354cdff6b627b9ef2` before this log update.
 
 
-**CI failure/fix (2026-10-04):** Initial run #493 failed in one new regression test because its fixture used a one-step model plan, while the planner contract requires 3–8 steps. The production code and Windows smoke job passed; the fixture now uses three valid read-only steps and completes all of them before testing a post-terminal cancellation request. Rerun CI is required on commit `c9eb3014688dcf38051e1380b9741f60badadff4` before merge.
+**CI failure/fix (2026-10-04):** Initial run #493 failed in one new regression test because its fixture used a one-step model plan, while the planner contract requires 3–8 steps. The production code and Windows smoke job passed; the fixture now uses three valid read-only steps and completes all of them before testing a post-terminal cancellation request. Rerun #494 passed on commit `c9eb3014688dcf38051e1380b9741f60badadff4`; final PR-head run #495 passed on `d0aa2a08d5b2726888f83ae03df169463801133e`: https://github.com/pateljiop/Nexora/actions/runs/37156956814. PR #11 merged as `a02f205b04e82c98d04a5937b79b605b0d1398de`.
+
+
+**Post-merge verification (2026-10-04):** PR #11 merged after CI run #495 passed on its exact head. Merge commit: `a02f205b04e82c98d04a5937b79b605b0d1398de`. Main CI for the merged commit is pending; verify it after this log update. Cancellation remains cooperative during a running read-only tool, and laptop testing remains pending.
