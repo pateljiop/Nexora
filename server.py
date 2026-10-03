@@ -318,13 +318,14 @@ class Store:
             execution = db.execute("SELECT status FROM executions WHERE id=?", (execution_id,)).fetchone()
             if not execution or execution["status"] != "running":
                 raise ValueError("Only a running execution can transition to a terminal state.")
-            unfinished = db.execute(
-                "SELECT COUNT(*) AS count FROM execution_steps "
-                "WHERE execution_id=? AND status IN ('not_started','running')",
+            step_states = [row["status"] for row in db.execute(
+                "SELECT status FROM execution_steps WHERE execution_id=?",
                 (execution_id,),
-            ).fetchone()["count"]
-            if unfinished:
+            ).fetchall()]
+            if any(step_state in {"not_started", "running"} for step_state in step_states):
                 raise ValueError("Execution cannot finish while steps remain unfinished.")
+            if status == "completed" and any(step_state != "completed" for step_state in step_states):
+                raise ValueError("Execution cannot be completed when any step failed or was skipped.")
             cursor = db.execute(
                 "UPDATE executions SET status=?, finished_at=?, verification_note=? "
                 "WHERE id=? AND status='running'",
