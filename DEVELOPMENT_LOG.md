@@ -349,3 +349,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known issues:** A running read-only tool cannot be forcefully interrupted mid-call. Current tools remain read-only and do not control the OS.
 **Next step:** Verify current-head CI, then continue with desktop integration/security checks. Keep PR #1 in draft until a Windows smoke test can confirm the actual local launch and interaction flow.
 **Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
+
+
+### Entry: 2026-10-04 — Windows launcher readiness check
+**Goal:** Avoid opening the UI before the local API is actually ready on slower laptops.
+**Changes made:**
+- Updated `run-local.bat` to detect Python availability, launch the server in a separate terminal, poll `/api/health` for up to 30 seconds, and only then open the browser.
+- Added a clear timeout message for startup failures and port conflicts.
+- Clarified that Python is the runtime requirement; Node.js is only needed for the JavaScript test suite.
+**Tests run:** Current-head GitHub Actions run #237 passed on commit `e1293cc1c02b644bd25ae17f99e07851332874b2`: https://github.com/pateljiop/Nexora/actions/runs/37151332860. JavaScript syntax, Node tests, and Python API/SQLite tests passed. The batch launcher itself still needs smoke testing on the target Windows laptop.
+**Known issues:** No direct access to the user's laptop is available in this workflow, so the final visual/browser launch test remains outstanding. The app remains read-only for agent tools.
+**Next step:** Refresh the PR's verification link to this green run, then keep the PR draft until a Windows smoke test can be completed. Continue toward a tested, approval-gated write workflow only after backups/rollback and policy tests are implemented.
+**Commit/PR:** Branch `feat/desktop-web-foundation`; PR https://github.com/pateljiop/Nexora/pull/1.
