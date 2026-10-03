@@ -12,7 +12,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - A transparent structured dry-run planner (`local_template` source), with bounded steps and explicit `executionEnabled: false`.
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Read-only workspace explorer for bounded UTF-8 file previews inside the configured project root; private paths, symlinks, binary files, and oversized files are excluded.
-- Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, and `tasks.list` only.
+- Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, `workspace.diff`, and `tasks.list` only. `workspace.diff` previews a proposed text change but never writes it.
 - Persistent execution records with per-step status/output/error, cancellation, bounded status polling, page-refresh reconnection, and an explicit note that tool completion is not proof that the overall goal was verified.
 - Saved run history and a manual “Review plan again” path for failed/cancelled/completed read-only runs; re-running always creates a new run and requires fresh confirmation.
 - Host and Origin checks, request-body limit, parameterized SQL, path traversal protection, and restrictive response headers.
@@ -45,7 +45,7 @@ This runs JavaScript syntax checks, JavaScript unit tests, and Python tests for 
 
 ## Optional model planning
 
-The planner works without a provider by showing a clearly labelled deterministic local template. The optional workspace explorer can list and preview UTF-8 text files under the configured root, and a model-generated plan can run a bounded sequence of allowlisted read-only tools (`workspace.list`, `workspace.read`, `tasks.list`). Tool outputs are recorded locally, failures stop the sequence, and a completed tool run explicitly does **not** mean the overall goal was verified. No file writes, shell commands, browser actions, or desktop controls are enabled. To use a compatible model for plan drafts:
+The planner works without a provider by showing a clearly labelled deterministic local template. The optional workspace explorer can list and preview UTF-8 text files under the configured root, and a model-generated plan can run a bounded sequence of allowlisted read-only tools (`workspace.list`, `workspace.read`, `workspace.diff`, `tasks.list`). The diff tool compares proposed UTF-8 text with the current file and records a redacted preview only; it does not write, delete, or execute anything. Tool outputs are recorded locally, failures stop the sequence, and a completed tool run explicitly does **not** mean the overall goal was verified. No file writes, shell commands, browser actions, or desktop controls are enabled. To use a compatible model for plan drafts:
 
 1. Copy `.env.example` to `.env` in the repository root.
 2. Set `NEXORA_MODEL_BASE_URL`, `NEXORA_MODEL_NAME`, and (for remote providers) `NEXORA_MODEL_API_KEY`.
