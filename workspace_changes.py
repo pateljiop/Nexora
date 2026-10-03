@@ -20,9 +20,10 @@ class WorkspaceChangeError(ValueError):
 
 
 class WorkspaceChangeManager:
-    def __init__(self, store, workspace):
+    def __init__(self, store, workspace, backup_root=None):
         self.store = store
         self.workspace = workspace
+        self.backup_root = backup_root
         with self.store.connect() as db:
             db.execute("""CREATE TABLE IF NOT EXISTS workspace_changes (
                 id TEXT PRIMARY KEY, path TEXT NOT NULL, diff TEXT NOT NULL,
@@ -112,6 +113,7 @@ class WorkspaceChangeManager:
             receipt = self.workspace.write_file(
                 record["path"], proposed,
                 expected_sha256=record["original_sha256"] if record["original_exists"] else "missing",
+                backup_root=str(self.backup_root) if self.backup_root else None,
             )
             with self.store.connect() as db:
                 db.execute("""UPDATE workspace_changes
@@ -154,7 +156,7 @@ class WorkspaceChangeManager:
             record = dict(row)
         try:
             receipt = json.loads(record["receipt_json"])
-            result = self.workspace.rollback_write(receipt)
+            result = self.workspace.rollback_write(receipt, backup_root=str(self.backup_root) if self.backup_root else None)
             with self.store.connect() as db:
                 db.execute("""UPDATE workspace_changes SET status='rolled_back',rolled_back_at=?,error=NULL
                               WHERE id=? AND status='applying'""", (now_iso(), proposal_id))
