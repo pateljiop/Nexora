@@ -71,7 +71,7 @@
 
         <section class="surface screen-observer" id="screen-observer" aria-labelledby="screen-observer-title">
           <div class="surface-heading">
-            <div><h2 id="screen-observer-title">Live screen view</h2><p>Share only after you click Start. Frames stay local unless you explicitly analyze one; remote analysis asks for consent each time.</p></div>
+            <div><h2 id="screen-observer-title">Live screen view</h2><p>Share a screen only when you click Start. This is local observation; frames are not sent to a model or server.</p></div>
             <span class="stream-mark" id="screen-share-status">NOT SHARING</span>
           </div>
           <div class="screen-observer-stage" id="screen-observer-stage">
@@ -81,17 +81,12 @@
           <div class="screen-observer-actions">
             <button class="primary-button" id="start-screen-share" type="button">Start screen view ↗</button>
             <button class="plan-button" id="capture-screen-frame" type="button" disabled>Capture frame</button>
-            <button class="plan-button" id="analyze-screen-frame" type="button" hidden>Analyze captured frame</button>
             <button class="text-button" id="stop-screen-share" type="button" hidden>Stop sharing</button>
           </div>
           <p class="screen-observer-message" id="screen-observer-message" role="status">Nothing is being captured. The browser will ask you to choose what to share.</p>
           <div class="screen-frame-result" id="screen-frame-result" hidden>
             <div class="screen-frame-heading"><strong>Last captured frame</strong><span>Browser memory only</span></div>
             <img id="screen-frame-image" alt="Last manually captured screen frame" />
-          </div>
-          <div class="screen-analysis-result" id="screen-analysis-result" hidden aria-live="polite">
-            <div class="screen-frame-heading"><strong>Visual analysis</strong><span>Observation only · no actions taken</span></div>
-            <pre id="screen-analysis-text"></pre>
           </div>
         </section>
 
