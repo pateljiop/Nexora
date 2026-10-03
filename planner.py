@@ -8,7 +8,7 @@ MAX_GOAL_LENGTH = 1200
 MAX_PLAN_STEPS = 8
 PLAN_MODE = "dry_run"
 PLAN_SOURCE = "local_template"
-ALLOWED_PLAN_SOURCES = {"local_template", "remote_model"}
+ALLOWED_PLAN_SOURCES = {"local_template", "remote_model", "local_model"}
 
 
 def now_iso():
@@ -42,7 +42,7 @@ def build_dry_run_plan(goal, created_at=None):
     return validate_plan(plan)
 
 
-def build_remote_plan(goal, model_steps, created_at=None):
+def build_remote_plan(goal, model_steps, created_at=None, source="remote_model"):
     if not isinstance(goal, str):
         raise ValueError("Goal must be a string.")
     goal = goal.strip()
@@ -62,7 +62,9 @@ def build_remote_plan(goal, model_steps, created_at=None):
             raise ValueError("Model plan step detail is invalid.")
         steps.append({"id": f"step-{index}", "title": title.strip(), "detail": detail.strip(),
                       "status": "not_started", "risk": "low", "sideEffects": False})
-    plan = {"id": str(uuid.uuid4()), "goal": goal, "mode": PLAN_MODE, "source": "remote_model",
+    if source not in {"remote_model", "local_model"}:
+        raise ValueError("Model plan source is invalid.")
+    plan = {"id": str(uuid.uuid4()), "goal": goal, "mode": PLAN_MODE, "source": source,
             "status": "preview", "createdAt": created_at or now_iso(),
             "executionEnabled": False, "steps": steps}
     return validate_plan(plan)
