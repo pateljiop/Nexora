@@ -53,6 +53,8 @@ test("screen observation is opt-in and model analysis requires explicit consent"
   assert.match(stopBody, /removeAttribute\("src"\)/);
   assert.match(stopBody, /screen-frame-result/);
   assert.match(stopBody, /captured frame and analysis preview were cleared/);
+  assert.match(stopBody, /screen-analysis-question/);
+  assert.match(stopBody, /analysisText\.textContent = ""/);
   assert.doesNotMatch(stopBody, /remains in browser memory/);
   assert.match(html, /sent for analysis only after you click Analyze and confirm/);
   assert.match(main, /api\("\/api\/screen\/analyze"/);
