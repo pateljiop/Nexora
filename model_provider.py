@@ -8,7 +8,7 @@ import os
 import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from planner import build_remote_plan
 
@@ -22,6 +22,18 @@ JPEG_DATA_URL = re.compile(r"^data:image/jpeg;base64,([A-Za-z0-9+/]*={0,2})$")
 
 class ModelProviderError(RuntimeError):
     pass
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    """Keep credentials and private screen frames bound to the explicitly configured host."""
+
+    def redirect_request(self, request, file_pointer, code, message, headers, new_url):
+        # Never forward model prompts, authorization headers, or screenshots to a redirect target.
+        return None
+
+
+def _open_provider_request(request):
+    return build_opener(_NoRedirectHandler()).open(request, timeout=TIMEOUT_SECONDS)
 
 
 def _configuration():
@@ -90,7 +102,7 @@ def build_model_plan(goal):
         headers["Authorization"] = f"Bearer {config['api_key']}"
     request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), method="POST", headers=headers)
     try:
-        with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with _open_provider_request(request) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except HTTPError as exc:
         # Never expose provider response bodies; they may contain sensitive details.
@@ -170,7 +182,7 @@ def analyze_screen_frame(image_data_url, question=""):
         headers["Authorization"] = f"Bearer {config['api_key']}"
     request = Request(endpoint, data=json.dumps(payload).encode("utf-8"), method="POST", headers=headers)
     try:
-        with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with _open_provider_request(request) as response:
             raw = response.read(MAX_RESPONSE_BYTES + 1)
     except HTTPError as exc:
         raise ModelProviderError(f"Model provider returned HTTP {exc.code}.") from None
