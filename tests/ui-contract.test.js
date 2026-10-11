@@ -29,11 +29,15 @@ test("workspace proposal review has separate apply and rollback controls", () =>
 });
 
 
-test("screen observation is opt-in, stoppable, and not uploaded by the current UI", () => {
+test("screen observation is opt-in and model analysis requires explicit consent", () => {
   for (const id of [
     "screen-observer",
     "start-screen-share",
     "capture-screen-frame",
+    "analyze-screen-frame",
+    "screen-analysis-question",
+    "screen-analysis-result",
+    "screen-analysis-text",
     "stop-screen-share",
     "screen-frame-image",
     "screen-observer-message"
@@ -48,10 +52,13 @@ test("screen observation is opt-in, stoppable, and not uploaded by the current U
   assert.match(stopBody, /screen-frame-image/);
   assert.match(stopBody, /removeAttribute\("src"\)/);
   assert.match(stopBody, /screen-frame-result/);
-  assert.match(stopBody, /captured frame was cleared/);
+  assert.match(stopBody, /captured frame and analysis preview were cleared/);
   assert.doesNotMatch(stopBody, /remains in browser memory/);
-  assert.match(html, /frames are not sent to a model or server/);
-  assert.doesNotMatch(main, /imageDataUrl|fetch\([^)]*screen-frame-image/);
+  assert.match(html, /sent for analysis only after you click Analyze and confirm/);
+  assert.match(main, /api\("\/api\/screen\/analyze"/);
+  assert.match(main, /if \(!window\.confirm\(consentMessage\)\)/);
+  assert.match(main, /imageDataUrl: capturedFrameDataUrl/);
+  assert.match(main, /capturedFrameDataUrl = null/);
 });
 
 
@@ -106,4 +113,13 @@ test("execution report exposes checkpoint progress and forbids automatic resume"
   assert.match(main, /Next candidate after review/);
   assert.match(main, /Uncertain outcome needs review/);
   assert.match(css, /\.execution-checkpoint/);
+});
+
+
+test("screen analysis API requires consent and does not persist frames", () => {
+  assert.match(main, /consent: true/);
+  assert.match(main, /remoteConsent: modelStatus\.remote \? true : false/);
+  assert.match(main, /screen-analysis-result/);
+  assert.match(html, /Observation only/);
+  assert.match(html, /remote providers require a separate confirmation/);
 });
