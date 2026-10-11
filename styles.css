@@ -184,3 +184,13 @@
 .execution-checkpoint p{margin:7px 0 0;color:var(--muted);font-size:10px;line-height:1.65;overflow-wrap:anywhere}
 .execution-checkpoint .checkpoint-warning{color:#ffd0a0}
 .execution-checkpoint .checkpoint-safety{color:var(--cyan)}
+
+
+.screen-analysis-label{display:block;margin:13px 0 6px;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+#screen-analysis-question{display:block;width:100%;min-height:58px;resize:vertical;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:rgba(5,8,18,.48);color:var(--text);font:12px/1.6 Manrope,sans-serif}
+#screen-analysis-question:focus{outline:1px solid rgba(120,228,238,.55);border-color:rgba(120,228,238,.5)}
+#analyze-screen-frame:disabled{opacity:.45;cursor:not-allowed}
+.screen-analysis-result{margin-top:15px;padding:14px;border:1px solid var(--line-strong);border-radius:10px;background:rgba(120,228,238,.035)}
+.screen-analysis-result[hidden]{display:none}
+.screen-analysis-result #screen-analysis-text{margin:10px 0;color:var(--text);font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}
+.screen-analysis-warning{margin:10px 0 0;color:var(--muted);font-size:10px;line-height:1.6}
