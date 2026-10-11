@@ -395,9 +395,32 @@ class Store:
                           "arguments": json.loads(item["arguments_json"]), "status": item["status"],
                           "output": json.loads(item["output_json"]) if item["output_json"] else None,
                           "error": item["error"], "startedAt": item["started_at"], "finishedAt": item["finished_at"]})
+        completed_steps = [step for step in steps if step["status"] == "completed"]
+        uncertain_steps = [step for step in steps if step["status"] == "failed" and step["error"] and
+                           ("restarted" in step["error"].lower() or "outcome requires review" in step["error"].lower())]
+        next_steps = [step for step in steps if step["status"] in {"not_started", "skipped"}]
+        recovery_checkpoint = {
+            "completedStepCount": len(completed_steps),
+            "totalStepCount": len(steps),
+            "lastCompletedStep": ({"title": completed_steps[-1]["title"],
+                                   "ordinal": next(i for i, step in enumerate(steps, start=1)
+                                                   if step["id"] == completed_steps[-1]["id"])}
+                                  if completed_steps else None),
+            "nextStep": ({"title": next_steps[0]["title"],
+                          "ordinal": next(i for i, step in enumerate(steps, start=1)
+                                          if step["id"] == next_steps[0]["id"])}
+                         if next_steps else None),
+            "uncertainStepTitles": [step["title"] for step in uncertain_steps],
+            "reviewRequired": row["status"] in {"failed", "cancelled", "blocked"},
+            "automaticResumeAllowed": False,
+            "recommendation": ("review_before_new_run" if row["status"] in {"failed", "cancelled", "blocked"}
+                               else "monitor_current_run" if row["status"] == "running"
+                               else "no_recovery_needed")
+        }
         return {"id": row["id"], "planId": row["plan_id"], "goal": row["goal"], "status": row["status"],
                 "goalVerified": bool(row["goal_verified"]), "verificationNote": row["verification_note"],
-                "createdAt": row["created_at"], "finishedAt": row["finished_at"], "steps": steps}
+                "createdAt": row["created_at"], "finishedAt": row["finished_at"], "steps": steps,
+                "recoveryCheckpoint": recovery_checkpoint}
 
     def recover_interrupted_executions(self):
         """Never resume a run automatically after restart; mark uncertain work for review."""
