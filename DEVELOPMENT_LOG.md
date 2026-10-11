@@ -885,3 +885,19 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CI failure/fix (2026-10-12):** Initial checks caught an escaped template-literal delimiter in the new model-status UI. Corrected the JavaScript source, then both workflow runs passed on implementation commit 23af203ab254a9618a830fbacede512b86248a02: Linux/API/UI tests and Windows syntax, browser-state tests, Python compilation, and local loopback health/entry-page smoke. Runs: https://github.com/pateljiop/Nexora/actions/runs/38169839462 and https://github.com/pateljiop/Nexora/actions/runs/38169836529. The log-only follow-up commit still needs its own final PR-head CI confirmation before merge.
+
+
+### Entry: 2026-10-11 — first-run model configuration visibility
+**Goal:** Make it clear whether an optional model is configured and provide safe setup guidance without collecting secrets in the UI.
+
+**Inspection:** Reviewed current main at 67f4811d34871c70face8a5b3c8add5f2b4d6f46, including server.py, model_provider.py, index.html, src/main.js, Python API tests, UI contract tests, and the Windows/Linux CI workflow. The backend already exposed /api/model/status, but the desktop UI only queried it when the user requested a plan.
+
+**Changes made:** Added a sidebar model status card and a first-run setup dialog. The dialog explains local versus remote model configuration, .env setup, restart/refresh steps, remote data-sharing confirmation, and that model output remains untrusted. The UI does not collect or display API keys. Added UI contract checks and an API regression test that asserts status metadata does not expose credential fields.
+
+**Safety/reliability impact:** Model configuration is read from the local server only. Remote planning still requires explicit per-request consent; no model requests are made merely by opening the setup dialog. The local template remains available without a model.
+
+**Verification:** Changes are committed on branch feat/model-first-run-status; CI has not yet run on the completed branch head. No local test execution is claimed. The target Windows laptop still needs manual end-to-end verification.
+
+**Known limitations:** This improves setup visibility but does not install a model, edit .env automatically, or implement voice/wake-word, browser automation, or general mouse/keyboard control.
+
+**Next step:** Open a PR, inspect Linux and Windows CI, repair failures, then merge only after the final PR head is green.
