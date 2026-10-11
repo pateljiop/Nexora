@@ -902,3 +902,17 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CI verification (2026-10-12):** Exact PR-head commit dd08a9df9d2eba7b786adb55660cba33ab94927c passed the Linux JavaScript syntax, JavaScript unit, and Python API/SQLite test jobs, plus Windows syntax, browser-state tests, Python compilation, and loopback server/entry-page smoke: https://github.com/pateljiop/Nexora/actions/runs/38170012654. This verifies CI behavior only; it is not a manual restart test on the target laptop. The log-only follow-up commit needs a fresh PR-head CI confirmation before merge.
+
+
+### Entry: 2026-10-12 — explicitly consented screen-frame vision
+**Goal:** Let Virtual Hariom explain a manually captured screen frame without turning screen sharing into automatic surveillance or enabling computer control.
+
+**Inspection:** A prior unmerged vision branch contained an API concept but was based on older code. Ported the feature into the current mainline rather than merging the stale branch, preserving current Host/Origin protections, model configuration rules, and execution safety boundaries.
+
+**Changes made:** Added an OpenAI-compatible vision request for bounded JPEG frames, strict data-URL/base64 validation, a 1 MB decoded-image limit, a 1000-character question limit, response-size/time limits, and a dedicated 1.5 MB request-body allowance. Added a local API route that requires explicit screen-analysis consent and a separate remote-provider consent flag. The desktop UI now offers Analyze with model after manual frame capture, explains the destination before sending, displays the observation without executing actions, and clears the image and analysis preview when screen sharing stops. Frames, questions, and responses are not written to SQLite or the activity log. Added API/provider/UI regression tests and updated README capability/privacy statements.
+
+**Safety boundary:** The model is instructed to treat screen contents as untrusted data and only describe visible evidence; it cannot click, type, submit, execute commands, or claim to have changed anything. Remote vision is only available when remote model use is enabled in .env and the user confirms each analysis. Local vision also requires a confirmation. No screenshot is sent merely by starting sharing or capturing a frame.
+
+**Verification:** CI is pending for this branch. No local test execution is claimed. Verify JavaScript syntax, provider image validation tests, API consent gates, UI privacy contracts, and Windows smoke checks on the exact PR head. Manual screen-share/vision behavior on Hariom's laptop remains outstanding.
+
+**Next work:** After CI, inspect and improve the first real desktop workflow; browser navigation/actions and mouse/keyboard control remain disabled until separately permissioned and tested. Voice/wake-word and phone/public access remain deferred.
