@@ -916,3 +916,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Verification:** CI is pending for this branch. No local test execution is claimed. Verify JavaScript syntax, provider image validation tests, API consent gates, UI privacy contracts, and Windows smoke checks on the exact PR head. Manual screen-share/vision behavior on Hariom's laptop remains outstanding.
 
 **Next work:** After CI, inspect and improve the first real desktop workflow; browser navigation/actions and mouse/keyboard control remain disabled until separately permissioned and tested. Voice/wake-word and phone/public access remain deferred.
+
+
+**CI failure/fix (2026-10-12):** An initial provider test used the plan-test helper, which JSON-encodes text content and therefore produced quoted text in the simulated vision response. Replaced it with a plain-text chat response fixture. The exact implementation head d74fd508661c55cfa62a2899a536b3b42739e2 passed Linux syntax/unit/API tests and Windows syntax, browser-state, Python compilation, and local loopback smoke: https://github.com/pateljiop/Nexora/actions/runs/38170353083. A log-only follow-up commit needs its own final CI confirmation before merge.
