@@ -97,7 +97,7 @@ class StoreTests(unittest.TestCase):
         self.store.save_plan(plan)
         execution = self.store.start_execution(plan, plan["steps"])
         self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "running")
-        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "completed")
+        self.store.finish_execution_step(execution["id"], plan["steps"][0]["id"], "completed", output={"ok": True})
         self.store.set_execution_step_status(execution["id"], plan["steps"][1]["id"], "running")
 
         self.assertEqual(self.store.recover_interrupted_executions(), 1)
