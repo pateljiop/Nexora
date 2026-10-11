@@ -85,7 +85,7 @@ class ModelProviderTests(unittest.TestCase):
 
     def test_screen_analysis_sends_only_valid_bounded_jpeg_and_returns_text(self):
         image = "data:image/jpeg;base64," + __import__("base64").b64encode(bytes([255, 216, 255]) + b"sample").decode("ascii")
-        with patch("model_provider.urlopen", return_value=FakeResponse(model_response("A settings window is visible."))) as mocked:
+        with patch("model_provider.urlopen", return_value=FakeResponse({"choices": [{"message": {"content": "A settings window is visible."}}]})) as mocked:
             result = analyze_screen_frame(image, "Explain the visible error")
         self.assertEqual(result, "A settings window is visible.")
         request = mocked.call_args.args[0]
