@@ -15,6 +15,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - Explicit browser-based live screen observation and manual frame capture. Sharing starts only after a click and the browser's own picker/permission prompt; frames stay in browser memory and are not uploaded, persisted, or sent to a model.
 - Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, `workspace.diff`, and `tasks.list` only. `workspace.diff` previews a proposed text change but never writes it.
 - Persistent execution records with per-step status/output/error, cancellation, bounded status polling, page-refresh reconnection, and an explicit note that tool completion is not proof that the overall goal was verified.
+- Explicit recovery checkpoint summary: completed-step count, last confirmed step, next candidate after review, and uncertain interrupted steps. Restarted runs are never auto-resumed; inspect saved results and explicitly review the plan before starting a fresh run.
 - Saved run history and a manual “Review plan again” path for failed/cancelled/completed read-only runs; re-running always creates a new run and requires fresh confirmation.
 - Host and Origin checks, request-body limit, parameterized SQL, path traversal protection, and restrictive response headers.
 - JavaScript and Python automated tests in GitHub Actions.
