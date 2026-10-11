@@ -947,3 +947,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Verification:** Branch test/provider-redirect-wiring; CI pending on this exact branch head. No local test execution is claimed.
 
 **Next step:** Run Linux and Windows CI, repair any failure, and merge only after the exact PR head is green.
+
+
+### Entry: 2026-10-12 — verify provider HTTP errors redact upstream bodies
+**Goal:** Prevent model-provider error details from leaking sensitive response content into user-visible errors.
+
+**Inspection:** The provider wrapper maps HTTP failures to a status-only `ModelProviderError`; added regression coverage for an upstream HTTP error body that echoes a configured API key.
+
+**Changes made:** Added a test asserting a 502 error exposes only the generic status message, not the upstream body or test API key. No runtime behavior changed.
+
+**Verification:** Awaiting Linux tests and Windows smoke for the exact PR head. No local test execution is claimed.
+
+**Next step:** Merge only after both checks pass; then continue desktop workflow reliability review.
