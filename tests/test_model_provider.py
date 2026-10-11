@@ -38,6 +38,17 @@ class ModelProviderTests(unittest.TestCase):
     def tearDown(self):
         self.env.stop()
 
+    def test_provider_request_opener_installs_no_redirect_handler(self):
+        sentinel = object()
+        with patch("model_provider.build_opener", return_value=sentinel) as build_opener:
+            self.assertIs(model_provider._open_provider_request(
+                model_provider.Request("https://models.example/v1/chat/completions")
+            ), sentinel)
+        build_opener.assert_called_once()
+        handlers = build_opener.call_args.args
+        self.assertEqual(len(handlers), 1)
+        self.assertIsInstance(handlers[0], model_provider._NoRedirectHandler)
+
     def test_provider_redirects_are_disabled(self):
         handler = model_provider._NoRedirectHandler()
         request = model_provider.Request("https://models.example/v1/chat/completions")
