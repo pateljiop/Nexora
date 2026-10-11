@@ -38,6 +38,13 @@ class ModelProviderTests(unittest.TestCase):
     def tearDown(self):
         self.env.stop()
 
+    def test_provider_redirects_are_disabled(self):
+        handler = model_provider._NoRedirectHandler()
+        request = model_provider.Request("https://models.example/v1/chat/completions")
+        self.assertIsNone(handler.redirect_request(
+            request, None, 302, "Found", {}, "https://unexpected.example/collect"
+        ))
+
     def test_status_never_exposes_api_key(self):
         status = get_model_status()
         self.assertTrue(status["configured"])
@@ -46,7 +53,7 @@ class ModelProviderTests(unittest.TestCase):
 
     def test_remote_plan_is_validated_and_never_executable(self):
         steps = [{"title": f"Step {i}", "detail": "No action is performed in preview."} for i in range(1, 4)]
-        with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": steps}))) as mocked:
+        with patch("model_provider._open_provider_request", return_value=FakeResponse(model_response({"steps": steps}))) as mocked:
             plan = build_model_plan("Plan a project")
         self.assertEqual(plan["source"], "remote_model")
         self.assertFalse(plan["executionEnabled"])
@@ -71,7 +78,7 @@ class ModelProviderTests(unittest.TestCase):
             status = get_model_status()
             self.assertTrue(status["enabled"])
             self.assertEqual(status["dataSharing"], "local_goal_stays_on_laptop")
-            with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": local_steps}))) as mocked:
+            with patch("model_provider._open_provider_request", return_value=FakeResponse(model_response({"steps": local_steps}))) as mocked:
                 plan = build_model_plan("Plan locally")
             self.assertEqual(plan["source"], "local_model")
             request = mocked.call_args.args[0]
@@ -79,13 +86,13 @@ class ModelProviderTests(unittest.TestCase):
             self.assertNotIn("authorization", request.headers)
 
     def test_rejects_invalid_model_output(self):
-        with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": [{"title": "Only one", "detail": ""}]}))):
+        with patch("model_provider._open_provider_request", return_value=FakeResponse(model_response({"steps": [{"title": "Only one", "detail": ""}]}))):
             with self.assertRaises(ModelProviderError):
                 build_model_plan("Plan something")
 
     def test_screen_analysis_sends_only_valid_bounded_jpeg_and_returns_text(self):
         image = "data:image/jpeg;base64," + __import__("base64").b64encode(bytes([255, 216, 255]) + b"sample").decode("ascii")
-        with patch("model_provider.urlopen", return_value=FakeResponse({"choices": [{"message": {"content": "A settings window is visible."}}]})) as mocked:
+        with patch("model_provider._open_provider_request", return_value=FakeResponse({"choices": [{"message": {"content": "A settings window is visible."}}]})) as mocked:
             result = analyze_screen_frame(image, "Explain the visible error")
         self.assertEqual(result, "A settings window is visible.")
         request = mocked.call_args.args[0]

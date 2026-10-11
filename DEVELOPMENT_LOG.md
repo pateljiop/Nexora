@@ -919,3 +919,19 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CI failure/fix (2026-10-12):** An initial provider test used the plan-test helper, which JSON-encodes text content and therefore produced quoted text in the simulated vision response. Replaced it with a plain-text chat response fixture. The exact implementation head d74fd508661c55cfa62a2899a536b3b42739e2 passed Linux syntax/unit/API tests and Windows syntax, browser-state, Python compilation, and local loopback smoke: https://github.com/pateljiop/Nexora/actions/runs/38170353083. A log-only follow-up commit needs its own final CI confirmation before merge.
+
+
+### Entry: 2026-10-12 — prevent model-provider redirect data leaks
+**Goal:** Ensure prompts, API authorization headers, and manually selected screen frames are sent only to the configured model endpoint, not silently forwarded to a redirect destination.
+
+**Inspection:** Reviewed the OpenAI-compatible request path used by both structured plan generation and screen-frame vision analysis. The adapter used urllib's default redirect handling, which could follow a provider redirect even though the UI's consent names the configured provider host.
+
+**Changes made:** Added a no-redirect HTTP handler and routed both model request types through it. Redirect responses now surface as bounded provider HTTP errors rather than triggering a second request to a new destination. Added a regression test asserting redirect requests are refused.
+
+**Safety/reliability impact:** Keeps the consent boundary aligned with the configured endpoint and avoids silently forwarding request bodies to redirect targets. The endpoint URL remains user-configured; HTTPS is still required for non-loopback providers. No new action capability was added.
+
+**Verification:** Changes are on branch fix/provider-redirect-privacy. CI has not yet run on the completed branch head; inspect both Linux tests and Windows smoke before merge. No local test execution is claimed.
+
+**Known limitations:** This does not verify the model provider's retention policy or protect data intentionally sent to the configured provider. Screen analysis remains opt-in and non-persistent. Manual laptop testing is still pending.
+
+**Next step:** Open PR, inspect CI and logs, fix failures, and merge only when the exact PR head passes.
