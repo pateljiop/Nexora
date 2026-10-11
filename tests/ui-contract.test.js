@@ -73,3 +73,27 @@ test("help dialog accurately describes current local and approval boundaries", (
   assert.match(html, /Captured frames stay in browser memory and are cleared when sharing stops/);
   assert.doesNotMatch(html, /does not call an AI model or control your laptop yet/);
 });
+
+
+test("first-run model status is visible and setup never asks for a browser-side API key", () => {
+  for (const id of [
+    "model-status-dot",
+    "model-status-state",
+    "model-status-summary",
+    "model-setup-button",
+    "model-setup-dialog",
+    "model-setup-status",
+    "model-setup-detail",
+    "refresh-model-status",
+    "close-model-setup",
+    "close-model-setup-footer"
+  ]) {
+    assert.match(html, new RegExp('\\bid="' + id + '"'));
+  }
+  assert.match(main, /api\("\/api\/model\/status"\)/);
+  assert.match(main, /remote requests need per-goal confirmation/i);
+  assert.match(html, /Never paste API keys into this page or commit/);
+  assert.match(html, /NEXORA_MODEL_BASE_URL/);
+  assert.match(html, /NEXORA_ALLOW_REMOTE_MODEL=0/);
+  assert.doesNotMatch(html, /<input[^>]+(?:api.?key|password)/i);
+});
