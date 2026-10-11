@@ -176,3 +176,11 @@
 .model-setup-warning{padding:10px 12px;border-left:2px solid var(--cyan);background:rgba(120,228,238,.045);color:var(--muted);font-size:11px;line-height:1.65}
 .model-setup-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:16px}
 .model-setup-actions button{min-height:38px}
+
+
+.execution-checkpoint{margin:12px 0;padding:12px 14px;border:1px solid var(--line-strong);border-radius:10px;background:rgba(120,228,238,.035)}
+.execution-checkpoint[hidden]{display:none}
+.execution-checkpoint strong{display:block;color:var(--text);font-size:11px}
+.execution-checkpoint p{margin:7px 0 0;color:var(--muted);font-size:10px;line-height:1.65;overflow-wrap:anywhere}
+.execution-checkpoint .checkpoint-warning{color:#ffd0a0}
+.execution-checkpoint .checkpoint-safety{color:var(--cyan)}
