@@ -91,7 +91,8 @@ class StoreTests(unittest.TestCase):
     def test_startup_recovery_is_idempotent_and_preserves_completed_steps(self):
         plan = build_remote_plan("Inspect safely", [
             {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
-            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "README.md"}}
+            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "README.md"}},
+            {"title": "Tasks", "detail": "Read only", "tool": "tasks.list", "arguments": {}}
         ])
         self.store.save_plan(plan)
         execution = self.store.start_execution(plan, plan["steps"])
