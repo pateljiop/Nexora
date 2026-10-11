@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 import model_provider
-from model_provider import ModelProviderError, build_model_plan, get_model_status
+from model_provider import ModelProviderError, analyze_screen_frame, build_model_plan, get_model_status
 
 
 class FakeResponse:
@@ -82,6 +82,25 @@ class ModelProviderTests(unittest.TestCase):
         with patch("model_provider.urlopen", return_value=FakeResponse(model_response({"steps": [{"title": "Only one", "detail": ""}]}))):
             with self.assertRaises(ModelProviderError):
                 build_model_plan("Plan something")
+
+    def test_screen_analysis_sends_only_valid_bounded_jpeg_and_returns_text(self):
+        image = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\\xff\\xd8\\xffsample").decode("ascii")
+        with patch("model_provider.urlopen", return_value=FakeResponse(model_response("A settings window is visible."))) as mocked:
+            result = analyze_screen_frame(image, "Explain the visible error")
+        self.assertEqual(result, "A settings window is visible.")
+        request = mocked.call_args.args[0]
+        payload = json.loads(request.data.decode("utf-8"))
+        user_content = payload["messages"][1]["content"]
+        self.assertEqual(user_content[0]["text"], "Explain the visible error")
+        self.assertEqual(user_content[1]["image_url"]["url"], image)
+        self.assertNotIn("test-secret-never-return", json.dumps(payload))
+
+    def test_screen_analysis_rejects_invalid_jpeg_and_oversized_question(self):
+        with self.assertRaises(ModelProviderError):
+            analyze_screen_frame("data:image/png;base64,AAAA", "Describe")
+        image = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\\xff\\xd8\\xffsample").decode("ascii")
+        with self.assertRaises(ModelProviderError):
+            analyze_screen_frame(image, "q" * 1001)
 
     def test_remote_planning_requires_explicit_opt_in(self):
         with patch.dict(os.environ, {"NEXORA_MODEL_BASE_URL": "https://models.example/v1", "NEXORA_MODEL_API_KEY": "test-secret", "NEXORA_MODEL_NAME": "test-model", "NEXORA_ALLOW_REMOTE_MODEL": "0"}):
