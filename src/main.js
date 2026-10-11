@@ -437,6 +437,32 @@ function renderExecution(execution, scroll = true) {
   $("#execution-note").textContent = execution.verificationNote;
   $("#execution-note").classList.remove("error");
   $("#execution-status").textContent = execution.status.toUpperCase();
+  const checkpointPanel = $("#execution-checkpoint");
+  const checkpoint = execution.recoveryCheckpoint;
+  checkpointPanel.replaceChildren();
+  if (checkpoint) {
+    const summary = makeElement("strong", "", `Checkpoint: ${checkpoint.completedStepCount} of ${checkpoint.totalStepCount} steps completed`);
+    const details = makeElement("p", "", checkpoint.lastCompletedStep
+      ? `Last confirmed step: ${checkpoint.lastCompletedStep.title} (step ${checkpoint.lastCompletedStep.ordinal}).`
+      : "No step has a confirmed completed result.");
+    checkpointPanel.append(summary, details);
+    if (checkpoint.nextStep && checkpoint.reviewRequired) {
+      checkpointPanel.append(makeElement("p", "", `Next candidate after review: ${checkpoint.nextStep.title} (step ${checkpoint.nextStep.ordinal}).`));
+    }
+    if (checkpoint.uncertainStepTitles.length) {
+      checkpointPanel.append(makeElement("p", "checkpoint-warning", `Uncertain outcome needs review: ${checkpoint.uncertainStepTitles.join(", ")}.`));
+    }
+    checkpointPanel.append(makeElement("p", "checkpoint-safety", checkpoint.automaticResumeAllowed
+      ? "Recovery policy permits continuation."
+      : checkpoint.reviewRequired
+        ? "Automatic resume is disabled. Review the saved plan and start a fresh run only after checking the recorded results."
+        : checkpoint.recommendation === "monitor_current_run"
+          ? "Run is active. Refresh status to observe progress; no duplicate run was started."
+          : "No recovery action is needed. The overall goal remains unverified unless separate evidence says otherwise."));
+    checkpointPanel.hidden = false;
+  } else {
+    checkpointPanel.hidden = true;
+  }
   const list = $("#execution-steps");
   list.replaceChildren();
   for (const step of execution.steps) {
