@@ -866,3 +866,19 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **Post-merge verification (2026-10-04):** PR #13 merged after CI run #511 passed on its exact head. Merge commit: `658f3fd572e505ecfec2b791ea13aa861a8abdcc`. Main CI for the merge and this log update is pending; verify the current main HEAD. Help copy is now aligned with implemented capabilities, but the actual laptop smoke test remains pending.
+
+
+### Entry: 2026-10-12 — first-run model status and setup guidance
+**Goal:** Make optional model configuration discoverable without putting credentials in the browser or implying that model availability enables unrestricted actions.
+
+**Inspection:** Verified that the model-status API already returns non-secret metadata and that plan creation already requires explicit per-request consent for remote providers. The sidebar only showed local storage status, so a first-time user could not easily see whether model planning was configured.
+
+**Changes made:** Added a desktop sidebar model-status card and a setup dialog with refreshable live status, local-versus-remote privacy explanation, .env setup steps, a restart instruction, and a warning never to paste API keys into the page. Added UI contract checks for the new controls and secret-safe instructions, plus an API regression test that the status payload omits credential fields. Files: index.html, src/main.js, styles.css, tests/ui-contract.test.js, tests/test_local_server.py.
+
+**Safety boundary:** No browser-side credential entry or new execution capability was added. Remote model requests remain gated by the existing confirmation per goal; model-generated plans remain untrusted and restricted to the existing allowlist. This feature does not configure a provider or install a local model automatically.
+
+**Verification:** Automated tests have not been run in a local runtime during this editing session. CI is required before merge; do not mark this change green until the exact PR head passes both Linux checks and the Windows smoke job. Actual interactive testing on Hariom's laptop remains outstanding.
+
+**Next work:** After CI, continue with bounded checkpoint/recovery orchestration and desktop verification. Browser actions, mouse/keyboard control, voice, phone access, and public deployment remain deferred until their safety design and desktop validation are complete.
+
+**Branch:** feat/model-first-run-status. CI/PR status pending.
