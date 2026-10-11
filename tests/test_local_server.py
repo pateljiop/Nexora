@@ -88,6 +88,28 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(checkpoint["recommendation"], "review_before_new_run")
         self.assertEqual(checkpoint["nextStep"]["title"], "Read")
 
+    def test_startup_recovery_is_idempotent_and_preserves_completed_steps(self):
+        plan = build_remote_plan("Inspect safely", [
+            {"title": "List", "detail": "Read only", "tool": "workspace.list", "arguments": {"path": "."}},
+            {"title": "Read", "detail": "Read only", "tool": "workspace.read", "arguments": {"path": "README.md"}}
+        ])
+        self.store.save_plan(plan)
+        execution = self.store.start_execution(plan, plan["steps"])
+        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "running")
+        self.store.set_execution_step_status(execution["id"], plan["steps"][0]["id"], "completed")
+        self.store.set_execution_step_status(execution["id"], plan["steps"][1]["id"], "running")
+
+        self.assertEqual(self.store.recover_interrupted_executions(), 1)
+        recovered = self.store.get_execution(execution["id"])
+        self.assertEqual(recovered["steps"][0]["status"], "completed")
+        self.assertEqual(recovered["steps"][1]["status"], "failed")
+        self.assertFalse(recovered["recoveryCheckpoint"]["automaticResumeAllowed"])
+
+        self.assertEqual(self.store.recover_interrupted_executions(), 0)
+        recovered_again = self.store.get_execution(execution["id"])
+        self.assertEqual(recovered_again["status"], "failed")
+        self.assertEqual([step["status"] for step in recovered_again["steps"]], ["completed", "failed"])
+
     def test_only_one_read_only_execution_can_be_active(self):
         plan = build_remote_plan("Inspect workspace", [
             {"title": "List files", "detail": "Read-only list.", "tool": "workspace.list", "arguments": {"path": "."}},
