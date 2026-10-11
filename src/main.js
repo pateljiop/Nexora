@@ -1014,6 +1014,8 @@ function stopScreenShare() {
   if (analysisResult) analysisResult.hidden = true;
   const analysisText = $("#screen-analysis-text");
   if (analysisText) analysisText.textContent = "";
+  const analysisQuestion = $("#screen-analysis-question");
+  if (analysisQuestion) analysisQuestion.value = "";
   if (document.querySelector("#screen-observer-message")) {
     setScreenObserverMessage("Screen sharing stopped. The captured frame and analysis preview were cleared.");
   }
