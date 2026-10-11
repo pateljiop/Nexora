@@ -109,7 +109,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.recover_interrupted_executions(), 0)
         recovered_again = self.store.get_execution(execution["id"])
         self.assertEqual(recovered_again["status"], "failed")
-        self.assertEqual([step["status"] for step in recovered_again["steps"]], ["completed", "failed"])
+        self.assertEqual([step["status"] for step in recovered_again["steps"]], ["completed", "failed", "skipped"])
 
     def test_only_one_read_only_execution_can_be_active(self):
         plan = build_remote_plan("Inspect workspace", [
