@@ -2,7 +2,7 @@ import io
 import json
 import os
 import unittest
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from unittest.mock import MagicMock, patch
 
 import model_provider
@@ -60,6 +60,23 @@ class ModelProviderTests(unittest.TestCase):
         self.assertIsNone(handler.redirect_request(
             request, None, 302, "Found", {}, "https://unexpected.example/collect"
         ))
+
+    def test_provider_connection_errors_are_generic(self):
+        failures = (
+            URLError("connection failed with test-secret-never-return"),
+            TimeoutError("timed out for test-secret-never-return"),
+            OSError("socket failure: test-secret-never-return"),
+        )
+        for failure in failures:
+            with self.subTest(failure=type(failure).__name__):
+                with patch("model_provider._open_provider_request", side_effect=failure):
+                    with self.assertRaises(ModelProviderError) as raised:
+                        build_model_plan("Summarize the workspace")
+                self.assertEqual(
+                    str(raised.exception),
+                    "Could not reach the configured model provider before timeout.",
+                )
+                self.assertNotIn("test-secret-never-return", str(raised.exception))
 
     def test_provider_http_error_does_not_expose_response_body_or_api_key(self):
         error = HTTPError(

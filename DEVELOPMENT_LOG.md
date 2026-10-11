@@ -959,3 +959,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Verification:** Awaiting Linux tests and Windows smoke for the exact PR head. No local test execution is claimed.
 
 **Next step:** Merge only after both checks pass; then continue desktop workflow reliability review.
+
+
+### Entry: 2026-10-12 — verify connection failures stay generic
+**Goal:** Extend provider error-redaction coverage beyond HTTP responses to network failures.
+
+**Inspection:** HTTP error body redaction is now covered. Added regression cases for URL errors, timeouts, and OS-level connection failures whose exception text contains a test secret.
+
+**Changes made:** Tests assert each failure maps to the same generic provider connectivity message without exception detail. Runtime behavior unchanged.
+
+**Verification:** CI pending for this branch; no local test execution is claimed.
+
+**Next step:** Merge only after Linux verification and Windows smoke both pass; confirm the post-merge main run.
