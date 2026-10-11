@@ -76,7 +76,7 @@
 
         <section class="surface screen-observer" id="screen-observer" aria-labelledby="screen-observer-title">
           <div class="surface-heading">
-            <div><h2 id="screen-observer-title">Live screen view</h2><p>Share a screen only when you click Start. This is local observation; frames are not sent to a model or server.</p></div>
+            <div><h2 id="screen-observer-title">Live screen view</h2><p>Share a screen only when you click Start. Captured frames stay local unless you explicitly choose Analyze and confirm; remote providers require a separate confirmation.</p></div>
             <span class="stream-mark" id="screen-share-status">NOT SHARING</span>
           </div>
           <div class="screen-observer-stage" id="screen-observer-stage">
@@ -86,12 +86,20 @@
           <div class="screen-observer-actions">
             <button class="primary-button" id="start-screen-share" type="button">Start screen view ↗</button>
             <button class="plan-button" id="capture-screen-frame" type="button" disabled>Capture frame</button>
+            <button class="plan-button" id="analyze-screen-frame" type="button" disabled>Analyze with model ↗</button>
             <button class="text-button" id="stop-screen-share" type="button" hidden>Stop sharing</button>
           </div>
           <p class="screen-observer-message" id="screen-observer-message" role="status">Nothing is being captured. The browser will ask you to choose what to share.</p>
+          <label class="screen-analysis-label" for="screen-analysis-question">Question about this frame (optional)</label>
+          <textarea id="screen-analysis-question" rows="2" maxlength="1000" placeholder="What is visible on screen? Explain an error, but do not take actions."></textarea>
           <div class="screen-frame-result" id="screen-frame-result" hidden>
-            <div class="screen-frame-heading"><strong>Last captured frame</strong><span>Browser memory only</span></div>
+            <div class="screen-frame-heading"><strong>Last captured frame</strong><span>Browser memory only · not sent automatically</span></div>
             <img id="screen-frame-image" alt="Last manually captured screen frame" />
+          </div>
+          <div class="screen-analysis-result" id="screen-analysis-result" hidden aria-live="polite">
+            <div class="screen-frame-heading"><strong>Model observation</strong><span id="screen-analysis-source">Not analyzed</span></div>
+            <p id="screen-analysis-text"></p>
+            <p class="screen-analysis-warning">Observation only. The model cannot click, type, execute commands, or verify a change from this screenshot alone.</p>
           </div>
         </section>
 
@@ -179,7 +187,7 @@
     <p class="model-setup-warning">Never paste API keys into this page or commit <code>.env</code>. Remote planning sends your goal to the named provider only after a separate confirmation for each request. Model output is an untrusted plan, not permission to execute actions.</p>
     <div class="model-setup-actions"><button class="plan-button" id="refresh-model-status" type="button">Refresh status ↻</button><button class="primary-button" id="close-model-setup-footer" type="button">Done</button></div>
   </dialog>
-  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Nexora stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops; they are not uploaded or sent to a model.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
+  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Nexora stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops. They are sent for analysis only after you click Analyze and confirm; remote providers require a separate confirmation.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>

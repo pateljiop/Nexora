@@ -229,11 +229,11 @@ function renderModelStatus(status = modelStatusSnapshot) {
     ? (status.remote ? "Remote requests need per-goal confirmation." : "Local planning is enabled.")
     : status.configured ? "Settings found, but model requests are disabled." : "Optional: configure a local or remote model.";
   dialogStatus.textContent = status.enabled
-    ? `Model planning is enabled (\${status.remote ? "remote provider" : "local endpoint"}).`
+    ? `Model planning is enabled (${status.remote ? "remote provider" : "local endpoint"}).`
     : status.configured ? "Model settings are present but requests are disabled." : "No usable model configuration detected. The local template planner still works.";
   const details = [];
-  if (status.providerHost) details.push(`Endpoint host: \${status.providerHost}`);
-  if (status.model) details.push(`Model: \${status.model}`);
+  if (status.providerHost) details.push(`Endpoint host: ${status.providerHost}`);
+  if (status.model) details.push(`Model: ${status.model}`);
   details.push(status.remote
     ? "Privacy: the goal is sent externally only after per-request confirmation."
     : status.enabled ? "Privacy: goal stays on this laptop at the configured loopback endpoint." : "Privacy: no model request is currently enabled.");
@@ -851,6 +851,7 @@ async function loadWorkspace(relativePath = ".") {
 $("#refresh-workspace").addEventListener("click", () => loadWorkspace("."));
 
 let screenStream = null;
+let capturedFrameDataUrl = null;
 
 function setScreenObserverMessage(message, isError = false) {
   const element = $("#screen-observer-message");
@@ -877,7 +878,7 @@ async function startScreenShare() {
     $("#stop-screen-share").hidden = false;
     $("#capture-screen-frame").disabled = false;
     start.hidden = true;
-    setScreenObserverMessage("Screen is visible in this browser only. No frames are uploaded or sent to an AI model.");
+    setScreenObserverMessage("Screen is visible in this browser only. Nothing is sent to a model unless you click Analyze and confirm.");
     const [track] = screenStream.getVideoTracks();
     if (track) track.addEventListener("ended", stopScreenShare, { once: true });
   } catch (error) {
@@ -904,17 +905,81 @@ function captureScreenFrame() {
     setScreenObserverMessage("Wait until the shared screen is visible, then capture a frame.", true);
     return;
   }
-  const scale = Math.min(1, 1920 / video.videoWidth, 1080 / video.videoHeight);
+  const scale = Math.min(1, 1280 / video.videoWidth, 720 / video.videoHeight);
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
   canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
   try {
     canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-    $("#screen-frame-image").src = canvas.toDataURL("image/jpeg", 0.82);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+    if (dataUrl.length > 1_300_000) {
+      setScreenObserverMessage("Captured frame is too large to analyze safely. Reduce the shared display resolution and capture again.", true);
+      return;
+    }
+    capturedFrameDataUrl = dataUrl;
+    $("#screen-frame-image").src = dataUrl;
     $("#screen-frame-result").hidden = false;
-    setScreenObserverMessage("Frame captured in browser memory only. It is not saved to disk or sent to a model/server.");
+    $("#analyze-screen-frame").disabled = false;
+    $("#screen-analysis-result").hidden = true;
+    setScreenObserverMessage("Frame captured in browser memory. It is not saved or sent unless you choose Analyze and confirm.");
   } catch {
+    capturedFrameDataUrl = null;
+    $("#analyze-screen-frame").disabled = true;
     setScreenObserverMessage("Could not capture this frame. The active screen share remains unchanged.", true);
+  }
+}
+
+async function analyzeScreenFrame() {
+  if (!capturedFrameDataUrl) {
+    setScreenObserverMessage("Capture a frame first, then choose Analyze with model.", true);
+    return;
+  }
+  if (!backendAvailable) {
+    setScreenObserverMessage("Start Nexora with run-local.bat before requesting model analysis.", true);
+    return;
+  }
+  let modelStatus;
+  try {
+    modelStatus = await api("/api/model/status");
+  } catch {
+    setScreenObserverMessage("Could not check model configuration. No screenshot was sent.", true);
+    return;
+  }
+  if (!modelStatus.enabled) {
+    setScreenObserverMessage("Model analysis is disabled. Configure a local model or explicitly enable a remote provider in .env, then restart Nexora.", true);
+    return;
+  }
+  const question = $("#screen-analysis-question").value.trim();
+  const destination = modelStatus.remote
+    ? `external provider ${modelStatus.providerHost} (${modelStatus.model})`
+    : `local model endpoint ${modelStatus.providerHost} (${modelStatus.model})`;
+  const consentMessage = modelStatus.remote
+    ? `This sends the captured screenshot and your question to the ${destination}. The image may contain private information. Continue?`
+    : `This sends the captured screenshot and your question to the ${destination}. The frame will not be saved by Nexora. Continue?`;
+  if (!window.confirm(consentMessage)) {
+    setScreenObserverMessage("Analysis cancelled. The screenshot remains in browser memory and was not sent.");
+    return;
+  }
+  const button = $("#analyze-screen-frame");
+  button.disabled = true;
+  button.textContent = "Analyzing…";
+  try {
+    const result = await api("/api/screen/analyze", {
+      method: "POST",
+      body: JSON.stringify({ consent: true, remoteConsent: modelStatus.remote ? true : false,
+        imageDataUrl: capturedFrameDataUrl, question })
+    });
+    $("#screen-analysis-text").textContent = result.analysis;
+    $("#screen-analysis-source").textContent = result.remote
+      ? `Remote · ${result.providerHost} · ${result.model}`
+      : `Local · ${result.providerHost} · ${result.model}`;
+    $("#screen-analysis-result").hidden = false;
+    setScreenObserverMessage("Analysis finished. The frame and response were not saved to Nexora's database or activity log.");
+  } catch (error) {
+    setScreenObserverMessage(error instanceof Error ? error.message : "Screen analysis failed. No action was performed.", true);
+  } finally {
+    button.textContent = "Analyze with model ↗";
+    button.disabled = !capturedFrameDataUrl;
   }
 }
 
@@ -938,17 +1003,27 @@ function stopScreenShare() {
   if (stop) stop.hidden = true;
   const capture = $("#capture-screen-frame");
   if (capture) capture.disabled = true;
+  capturedFrameDataUrl = null;
   const frameImage = $("#screen-frame-image");
   if (frameImage) frameImage.removeAttribute("src");
   const frameResult = $("#screen-frame-result");
   if (frameResult) frameResult.hidden = true;
+  const analyzeButton = $("#analyze-screen-frame");
+  if (analyzeButton) analyzeButton.disabled = true;
+  const analysisResult = $("#screen-analysis-result");
+  if (analysisResult) analysisResult.hidden = true;
+  const analysisText = $("#screen-analysis-text");
+  if (analysisText) analysisText.textContent = "";
+  const analysisQuestion = $("#screen-analysis-question");
+  if (analysisQuestion) analysisQuestion.value = "";
   if (document.querySelector("#screen-observer-message")) {
-    setScreenObserverMessage("Screen sharing stopped. The captured frame was cleared from the preview.");
+    setScreenObserverMessage("Screen sharing stopped. The captured frame and analysis preview were cleared.");
   }
 }
 
 $("#start-screen-share").addEventListener("click", startScreenShare);
 $("#capture-screen-frame").addEventListener("click", captureScreenFrame);
+$("#analyze-screen-frame").addEventListener("click", analyzeScreenFrame);
 $("#stop-screen-share").addEventListener("click", stopScreenShare);
 window.addEventListener("pagehide", () => {
   stopScreenShare();

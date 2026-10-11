@@ -12,7 +12,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 - A transparent structured dry-run planner (`local_template` source), with bounded steps and explicit `executionEnabled: false`.
 - Task creation, completion/reopening, deletion, and one-time import of existing browser-local tasks.
 - Read-only workspace explorer for bounded UTF-8 file previews inside the configured project root; private paths, symlinks, binary files, and oversized files are excluded.
-- Explicit browser-based live screen observation and manual frame capture. Sharing starts only after a click and the browser's own picker/permission prompt; frames stay in browser memory and are not uploaded, persisted, or sent to a model.
+- Explicit browser-based live screen observation, manual frame capture, and opt-in vision analysis. Sharing starts only after a click and the browser's own picker/permission prompt; frames stay in browser memory and are not uploaded or persisted. Sending a frame to a configured model requires clicking Analyze and confirming; remote providers require explicit per-request consent. Analysis is observation-only and cannot control the computer.
 - Explicit, sequential read-only tool execution for model-generated plans: `workspace.list`, `workspace.read`, `workspace.diff`, and `tasks.list` only. `workspace.diff` previews a proposed text change but never writes it.
 - Persistent execution records with per-step status/output/error, cancellation, bounded status polling, page-refresh reconnection, and an explicit note that tool completion is not proof that the overall goal was verified.
 - Explicit recovery checkpoint summary: completed-step count, last confirmed step, next candidate after review, and uncertain interrupted steps. Restarted runs are never auto-resumed; inspect saved results and explicitly review the plan before starting a fresh run.
@@ -63,9 +63,9 @@ The provider adapter sends only the goal needed for planning and asks for struct
 This is an early local-first Virtual Hariom foundation. It can draft plans with an optional model, inspect a configured workspace with allowlisted read-only tools, and persist run reports. It is **not yet a full desktop-controlling AI agent**.
 
 - The optional model adapter can draft structured plans when explicitly configured; otherwise the deterministic template is used. Only model plans containing allowlisted read-only tool calls can run.
-- No direct model-driven file-write tool, arbitrary shell execution, browser automation, Windows screen/mouse/keyboard control, or voice wake-word.
+- No direct model-driven file-write tool, arbitrary shell execution, browser automation, Windows mouse/keyboard control, or voice wake-word. Screen vision is a separate, explicitly consented observation step only.
 - User-approved file changes are limited to saved, reviewed proposals within the configured workspace. Read-only tool completion does not independently verify the user’s overall goal.
-- Read-only runs use a background worker, can be cancelled between steps, and are recorded in SQLite. On server restart, interrupted runs are marked failed for review rather than retried. General multi-task orchestration and checkpoint/resume are not implemented.
+- Read-only runs use a background worker, can be cancelled between steps, and are recorded in SQLite. Checkpoint summaries show confirmed progress and uncertain interrupted steps. On server restart, interrupted runs are marked failed for review rather than retried; checkpoint-based resume and general multi-task orchestration are not implemented.
 - Plan previews use a deterministic local template, not an LLM. They are not personalized AI reasoning and do not execute actions.
 - Marking a task complete is a manual list update, not evidence of AI execution or verification.
 - If the local server is unavailable, the UI falls back to browser storage; the connection panel explains which mode is active.
@@ -89,4 +89,4 @@ Website/mobile access is deferred until the desktop experience is built and test
 
 ## Latest CI verification
 
-- [GitHub Actions run #461](https://github.com/pateljiop/Nexora/actions/runs/37155410413) passed on main commit `fe6fe4dc1d437bc21093afa2bd010fd2ec65c9e2`, including Ubuntu and Windows checks, UI privacy-contract tests, API/SQLite tests, and local server smoke testing.
+- [GitHub Actions run](https://github.com/pateljiop/Nexora/actions/runs/38170105738) passed on main commit `558ddb2fe1b369a631ab96b79e3017b2e152b283`, including Linux tests and Windows syntax, browser-state, Python compilation, and local loopback smoke checks.

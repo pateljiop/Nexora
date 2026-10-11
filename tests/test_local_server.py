@@ -167,6 +167,36 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.request(f"/api/tasks/{task_id}", "DELETE")[0], 200)
         self.assertEqual(self.request("/api/tasks")[1]["tasks"], [])
 
+    def test_screen_analysis_requires_explicit_consent(self):
+        status, result = self.request("/api/screen/analyze", "POST", {"imageDataUrl": "data:image/jpeg;base64,/9j/"})
+        self.assertEqual(status, 400)
+        self.assertIn("Explicit screen-analysis confirmation", result["error"])
+
+    def test_screen_analysis_remote_provider_requires_separate_consent(self):
+        with patch("server.get_model_status", return_value={
+            "enabled": True, "remote": True, "providerHost": "models.example", "model": "vision-model"
+        }), patch("server.analyze_screen_frame") as analyze:
+            status, result = self.request("/api/screen/analyze", "POST", {
+                "consent": True, "remoteConsent": False,
+                "imageDataUrl": "data:image/jpeg;base64,/9j/", "question": "Describe this"
+            })
+        self.assertEqual(status, 400)
+        self.assertIn("remote provider requires per-request consent", result["error"])
+        analyze.assert_not_called()
+
+    def test_screen_analysis_local_endpoint_returns_non_persisted_result(self):
+        with patch("server.get_model_status", return_value={
+            "enabled": True, "remote": False, "providerHost": "127.0.0.1", "model": "local-vision"
+        }), patch("server.analyze_screen_frame", return_value="A dialog is visible.") as analyze:
+            status, result = self.request("/api/screen/analyze", "POST", {
+                "consent": True, "remoteConsent": False,
+                "imageDataUrl": "data:image/jpeg;base64,/9j/", "question": "What is visible?"
+            })
+        self.assertEqual(status, 200)
+        self.assertEqual(result["analysis"], "A dialog is visible.")
+        self.assertFalse(result["remote"])
+        analyze.assert_called_once_with("data:image/jpeg;base64,/9j/", "What is visible?")
+
     def test_plan_endpoint_persists_preview_without_execution(self):
         status, payload = self.request("/api/plans", "POST", {"goal": "Review my project"})
         self.assertEqual(status, 201)
