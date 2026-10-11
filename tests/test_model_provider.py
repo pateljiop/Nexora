@@ -1,6 +1,8 @@
+import io
 import json
 import os
 import unittest
+from urllib.error import HTTPError
 from unittest.mock import MagicMock, patch
 
 import model_provider
@@ -58,6 +60,21 @@ class ModelProviderTests(unittest.TestCase):
         self.assertIsNone(handler.redirect_request(
             request, None, 302, "Found", {}, "https://unexpected.example/collect"
         ))
+
+    def test_provider_http_error_does_not_expose_response_body_or_api_key(self):
+        error = HTTPError(
+            "https://models.example/v1/chat/completions",
+            502,
+            "Bad Gateway",
+            {},
+            io.BytesIO(b"upstream echoed test-secret-never-return"),
+        )
+        with patch("model_provider._open_provider_request", side_effect=error):
+            with self.assertRaises(ModelProviderError) as raised:
+                build_model_plan("Summarize the workspace")
+        self.assertEqual(str(raised.exception), "Model provider returned HTTP 502.")
+        self.assertNotIn("test-secret-never-return", str(raised.exception))
+        self.assertNotIn("upstream echoed", str(raised.exception))
 
     def test_status_never_exposes_api_key(self):
         status = get_model_status()
