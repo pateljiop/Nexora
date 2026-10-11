@@ -971,3 +971,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Verification:** CI pending for this branch; no local test execution is claimed.
 
 **Next step:** Merge only after Linux verification and Windows smoke both pass; confirm the post-merge main run.
+
+
+### Entry: 2026-10-12 — strengthen restart recovery regression coverage
+**Goal:** Check that restart recovery preserves completed work and is idempotent.
+
+**Inspection:** Existing recovery coverage asserted that active work is marked failed and later steps are skipped. Added a scenario with a completed step followed by an in-progress step.
+
+**Changes made:** Regression test asserts completed steps remain completed, the interrupted step becomes failed, automatic resume remains disabled, and a second recovery pass makes no additional state changes.
+
+**Verification:** CI pending for exact PR head; no local test execution is claimed.
+
+**Next step:** Merge only after Linux verification and Windows smoke pass, then continue the desktop workflow audit.
