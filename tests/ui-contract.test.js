@@ -97,3 +97,13 @@ test("first-run model status is visible and setup never asks for a browser-side 
   assert.match(html, /NEXORA_ALLOW_REMOTE_MODEL=0/);
   assert.doesNotMatch(html, /<input[^>]+(?:api.?key|password)/i);
 });
+
+
+test("execution report exposes checkpoint progress and forbids automatic resume", () => {
+  assert.match(html, /\bid="execution-checkpoint"/);
+  assert.match(main, /execution\.recoveryCheckpoint/);
+  assert.match(main, /Automatic resume is disabled/);
+  assert.match(main, /Next candidate after review/);
+  assert.match(main, /Uncertain outcome needs review/);
+  assert.match(css, /\.execution-checkpoint/);
+});

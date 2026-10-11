@@ -885,3 +885,20 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 
 
 **CI failure/fix (2026-10-12):** Initial checks caught an escaped template-literal delimiter in the new model-status UI. Corrected the JavaScript source, then both workflow runs passed on implementation commit 23af203ab254a9618a830fbacede512b86248a02: Linux/API/UI tests and Windows syntax, browser-state tests, Python compilation, and local loopback health/entry-page smoke. Runs: https://github.com/pateljiop/Nexora/actions/runs/38169839462 and https://github.com/pateljiop/Nexora/actions/runs/38169836529. The log-only follow-up commit still needs its own final PR-head CI confirmation before merge.
+
+
+### Entry: 2026-10-12 — explicit execution recovery checkpoints
+**Goal:** Make persisted step progress and restart uncertainty visible, without silently retrying or resuming interrupted work.
+
+**Inspection:** The runner already persists each step's status, output, error, and timestamps. Startup recovery marks an in-flight step failed and remaining steps skipped. The report did not expose a compact checkpoint summary for the user to decide what to review next.
+
+**Changes made:** Added derived recovery metadata to saved execution records: completed-step count, last confirmed completed step, next candidate step, uncertain interrupted step titles, review-required state, and a fixed automatic-resume-disabled policy. Added a visible checkpoint panel to the execution report, regression tests for server-restart recovery and UI visibility, and README documentation. Files: server.py, index.html, src/main.js, styles.css, tests/test_local_server.py, tests/ui-contract.test.js, README.md.
+
+**Safety boundary:** This does not resume or retry any tool automatically. Failed, cancelled, and blocked runs require plan review before a fresh run; completed read-only steps remain recorded as evidence, not proof of goal completion. No shell, browser, mouse, or keyboard action was added.
+
+**Verification:** CI is pending for this branch. No local test execution is claimed. The exact PR head must pass Linux tests and the Windows smoke job before merge. Actual desktop restart/recovery interaction on Hariom's laptop remains outstanding.
+
+**Next work:** After CI, continue the desktop reliability pass and assess a separately permissioned, read-only browser observer. General desktop control, voice, phone access, and public deployment remain deferred.
+
+
+**CI verification (2026-10-12):** Exact PR-head commit dd08a9df9d2eba7b786adb55660cba33ab94927c passed the Linux JavaScript syntax, JavaScript unit, and Python API/SQLite test jobs, plus Windows syntax, browser-state tests, Python compilation, and loopback server/entry-page smoke: https://github.com/pateljiop/Nexora/actions/runs/38170012654. This verifies CI behavior only; it is not a manual restart test on the target laptop. The log-only follow-up commit needs a fresh PR-head CI confirmation before merge.

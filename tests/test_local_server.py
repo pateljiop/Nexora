@@ -79,6 +79,14 @@ class StoreTests(unittest.TestCase):
         self.assertIn("Server restarted", recovered["verificationNote"])
         self.assertEqual(recovered["steps"][0]["status"], "failed")
         self.assertEqual(recovered["steps"][1]["status"], "skipped")
+        checkpoint = recovered["recoveryCheckpoint"]
+        self.assertEqual(checkpoint["completedStepCount"], 0)
+        self.assertEqual(checkpoint["totalStepCount"], 3)
+        self.assertEqual(checkpoint["uncertainStepTitles"], ["List"])
+        self.assertTrue(checkpoint["reviewRequired"])
+        self.assertFalse(checkpoint["automaticResumeAllowed"])
+        self.assertEqual(checkpoint["recommendation"], "review_before_new_run")
+        self.assertEqual(checkpoint["nextStep"]["title"], "Read")
 
     def test_only_one_read_only_execution_can_be_active(self):
         plan = build_remote_plan("Inspect workspace", [
