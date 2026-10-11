@@ -935,3 +935,15 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Known limitations:** This does not verify the model provider's retention policy or protect data intentionally sent to the configured provider. Screen analysis remains opt-in and non-persistent. Manual laptop testing is still pending.
 
 **Next step:** Open PR, inspect CI and logs, fix failures, and merge only when the exact PR head passes.
+
+
+### Entry: 2026-10-12 — verify redirect protection is wired into provider requests
+**Goal:** Make the redirect hardening regression test cover both policy and actual request-path wiring.
+
+**Inspection:** After the provider redirect fix merged, reviewed its regression test. The existing test asserted that the no-redirect handler refuses a redirect, but did not independently prove the provider request helper installs that handler.
+
+**Changes made:** Added a unit test for `_open_provider_request` that verifies it builds an opener with `_NoRedirectHandler` and routes the request through that opener. No runtime behavior changed.
+
+**Verification:** Branch test/provider-redirect-wiring; CI pending on this exact branch head. No local test execution is claimed.
+
+**Next step:** Run Linux and Windows CI, repair any failure, and merge only after the exact PR head is green.

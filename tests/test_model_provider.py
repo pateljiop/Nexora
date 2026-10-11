@@ -1,7 +1,7 @@
 import json
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import model_provider
 from model_provider import ModelProviderError, analyze_screen_frame, build_model_plan, get_model_status
@@ -37,6 +37,20 @@ class ModelProviderTests(unittest.TestCase):
 
     def tearDown(self):
         self.env.stop()
+
+    def test_provider_request_opener_installs_no_redirect_handler(self):
+        sentinel = object()
+        opener = MagicMock()
+        opener.open.return_value = sentinel
+        with patch("model_provider.build_opener", return_value=opener) as build_opener:
+            self.assertIs(model_provider._open_provider_request(
+                model_provider.Request("https://models.example/v1/chat/completions")
+            ), sentinel)
+        opener.open.assert_called_once()
+        build_opener.assert_called_once()
+        handlers = build_opener.call_args.args
+        self.assertEqual(len(handlers), 1)
+        self.assertIsInstance(handlers[0], model_provider._NoRedirectHandler)
 
     def test_provider_redirects_are_disabled(self):
         handler = model_provider._NoRedirectHandler()
