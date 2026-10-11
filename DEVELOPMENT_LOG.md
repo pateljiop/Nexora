@@ -899,3 +899,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Verification:** CI is pending for this branch. No local test execution is claimed. The exact PR head must pass Linux tests and the Windows smoke job before merge. Actual desktop restart/recovery interaction on Hariom's laptop remains outstanding.
 
 **Next work:** After CI, continue the desktop reliability pass and assess a separately permissioned, read-only browser observer. General desktop control, voice, phone access, and public deployment remain deferred.
+
+
+**CI verification (2026-10-12):** Exact PR-head commit dd08a9df9d2eba7b786adb55660cba33ab94927c passed the Linux JavaScript syntax, JavaScript unit, and Python API/SQLite test jobs, plus Windows syntax, browser-state tests, Python compilation, and loopback server/entry-page smoke: https://github.com/pateljiop/Nexora/actions/runs/38170012654. This verifies CI behavior only; it is not a manual restart test on the target laptop. The log-only follow-up commit needs a fresh PR-head CI confirmation before merge.
