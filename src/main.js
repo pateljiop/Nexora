@@ -11,6 +11,8 @@ const activityList = $("#activity-list");
 const toast = $("#toast");
 const sidebar = $("#sidebar");
 const aboutDialog = $("#about-dialog");
+const modelSetupDialog = $("#model-setup-dialog");
+let modelStatusSnapshot = null;
 let currentView = "overview";
 let backendAvailable = false;
 let currentPlan = null;
@@ -196,6 +198,67 @@ function renderConnection() {
   if (footer) footer.lastChild.textContent = backendAvailable ? " LOCAL SQLITE" : " PREVIEW MODE";
 }
 
+function renderModelStatus(status = modelStatusSnapshot) {
+  const dot = $("#model-status-dot");
+  const state = $("#model-status-state");
+  const summary = $("#model-status-summary");
+  const detail = $("#model-setup-detail");
+  const dialogStatus = $("#model-setup-status");
+  if (!backendAvailable) {
+    dot.classList.add("muted");
+    state.textContent = "Offline";
+    summary.textContent = "Start run-local.bat to check model settings.";
+    dialogStatus.textContent = "The local server is not connected. Start Nexora, then refresh status.";
+    detail.textContent = "No model configuration was read by this page.";
+    return;
+  }
+  if (!status) {
+    dot.classList.add("muted");
+    state.textContent = "Unknown";
+    summary.textContent = "Model status has not been checked yet.";
+    dialogStatus.textContent = "Model status is not available yet.";
+    detail.textContent = "Select Refresh status to query the local server.";
+    return;
+  }
+  dot.classList.toggle("muted", !status.enabled);
+  const label = status.enabled
+    ? (status.remote ? "Remote enabled" : "Local enabled")
+    : status.configured ? "Disabled" : "Not configured";
+  state.textContent = label;
+  summary.textContent = status.enabled
+    ? (status.remote ? "Remote requests need per-goal confirmation." : "Local planning is enabled.")
+    : status.configured ? "Settings found, but model requests are disabled." : "Optional: configure a local or remote model.";
+  dialogStatus.textContent = status.enabled
+    ? `Model planning is enabled (\${status.remote ? "remote provider" : "local endpoint"}).`
+    : status.configured ? "Model settings are present but requests are disabled." : "No usable model configuration detected. The local template planner still works.";
+  const details = [];
+  if (status.providerHost) details.push(`Endpoint host: \${status.providerHost}`);
+  if (status.model) details.push(`Model: \${status.model}`);
+  details.push(status.remote
+    ? "Privacy: the goal is sent externally only after per-request confirmation."
+    : status.enabled ? "Privacy: goal stays on this laptop at the configured loopback endpoint." : "Privacy: no model request is currently enabled.");
+  if (status.configurationError) details.push(status.configurationError);
+  detail.replaceChildren(...details.map(line => makeElement("p", "", line)));
+}
+
+async function refreshModelStatus() {
+  if (!backendAvailable) {
+    modelStatusSnapshot = null;
+    renderModelStatus(null);
+    return;
+  }
+  try {
+    modelStatusSnapshot = await api("/api/model/status");
+    renderModelStatus();
+  } catch {
+    modelStatusSnapshot = null;
+    $("#model-status-state").textContent = "Unavailable";
+    $("#model-status-summary").textContent = "Could not read model status. Refresh to retry.";
+    $("#model-setup-status").textContent = "Could not read model status from the local server.";
+    $("#model-setup-detail").textContent = "No model request was made.";
+  }
+}
+
 async function refreshFromServer() {
   const [taskPayload, activityPayload] = await Promise.all([api("/api/tasks"), api("/api/activity")]);
   tasks = normalizeTasks(taskPayload.tasks);
@@ -300,6 +363,13 @@ async function requestPlanPreview() {
   }
 }
 
+$("#model-setup-button").addEventListener("click", async () => {
+  modelSetupDialog.showModal();
+  await refreshModelStatus();
+});
+$("#close-model-setup").addEventListener("click", () => modelSetupDialog.close());
+$("#close-model-setup-footer").addEventListener("click", () => modelSetupDialog.close());
+$("#refresh-model-status").addEventListener("click", refreshModelStatus);
 $("#plan-button").addEventListener("click", requestPlanPreview);
 $("#run-plan-button").addEventListener("click", runCurrentPlan);
 $("#cancel-run-button").addEventListener("click", cancelCurrentExecution);
@@ -883,7 +953,9 @@ async function bootstrap() {
     activities = normalizeActivities(readJson(ACTIVITY_KEY, []));
   }
   renderConnection();
+  renderModelStatus();
   render();
+  await refreshModelStatus();
   await loadWorkspace(".");
   await loadExecutionHistory();
   await loadWorkspaceChanges();

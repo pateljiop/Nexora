@@ -156,3 +156,23 @@
 .screen-frame-heading span{font-size:10px;color:var(--muted)}
 .screen-frame-result img{display:block;max-width:100%;max-height:520px;object-fit:contain;border:1px solid var(--line-strong);border-radius:9px;background:#050812}
 @media(max-width:640px){.screen-observer-stage{min-height:190px}.screen-observer-actions{align-items:stretch}.screen-observer-actions button{flex:1}.screen-frame-heading{align-items:flex-start;flex-direction:column}}
+
+
+/* First-run model configuration: status only; secrets stay in the local .env file. */
+.model-status-card{padding:12px;margin-bottom:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.model-status-heading{display:flex;align-items:center;gap:7px;min-width:0}
+.model-status-heading strong{font-size:11px;font-weight:700}
+.model-status-state{margin-left:auto;color:var(--muted);font-size:9px;text-align:right}
+.model-status-card p{margin:7px 0 9px;color:var(--muted);font-size:10px;line-height:1.55}
+.model-setup-button{width:100%;padding:8px 9px;border:1px solid var(--line-strong);border-radius:8px;background:rgba(120,228,238,.055);color:var(--cyan);font:600 10px Manrope,sans-serif;text-align:left;cursor:pointer}
+.model-setup-button:hover{background:rgba(120,228,238,.11)}
+.model-setup-dialog{width:min(620px,calc(100vw - 32px));max-height:min(86vh,780px);overflow:auto}
+.model-setup-dialog h3{margin:20px 0 9px;font-size:13px}
+.model-setup-status-detail{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.025)}
+.model-setup-status-detail p{margin:4px 0;color:var(--muted);font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.model-setup-steps{padding-left:20px;color:var(--muted);font-size:11px;line-height:1.7}
+.model-setup-steps li{padding-left:3px;margin:7px 0}
+.model-setup-dialog code{font-family:"DM Mono",monospace;color:var(--cyan);font-size:.94em;overflow-wrap:anywhere}
+.model-setup-warning{padding:10px 12px;border-left:2px solid var(--cyan);background:rgba(120,228,238,.045);color:var(--muted);font-size:11px;line-height:1.65}
+.model-setup-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:16px}
+.model-setup-actions button{min-height:38px}

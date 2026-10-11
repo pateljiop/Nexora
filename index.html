@@ -31,6 +31,11 @@
         <button class="quick-prompt" data-prompt="Help me debug an issue. First ask me for the error and relevant code, then suggest safe next steps."><span>⌁</span> Debug something</button>
       </div>
       <div class="sidebar-bottom">
+        <div class="model-status-card" aria-live="polite">
+          <div class="model-status-heading"><span class="status-dot muted" id="model-status-dot"></span><strong>AI model</strong><span class="model-status-state" id="model-status-state">Checking…</span></div>
+          <p id="model-status-summary">Checking local model configuration.</p>
+          <button class="model-setup-button" id="model-setup-button" type="button">Model setup & status ↗</button>
+        </div>
         <div class="connection-card">
           <span class="status-dot muted" id="connection-dot"></span>
           <div><strong id="connection-title">Execution not connected</strong><small id="connection-subtitle">Local preview mode</small></div>
@@ -158,6 +163,21 @@
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="model-setup-dialog" class="about-dialog model-setup-dialog" aria-labelledby="model-setup-title">
+    <div class="dialog-top"><span class="brand-mini">NEXORA / MODEL SETUP</span><button id="close-model-setup" class="icon-button" aria-label="Close model setup">×</button></div>
+    <h2 id="model-setup-title">Choose how Virtual Hariom plans</h2>
+    <p id="model-setup-status" role="status" aria-live="polite">Checking model configuration…</p>
+    <div class="model-setup-status-detail" id="model-setup-detail"></div>
+    <h3>First-time setup</h3>
+    <ol class="model-setup-steps">
+      <li>Stop Nexora, then copy <code>.env.example</code> to <code>.env</code> in the repository folder.</li>
+      <li>For a local model, install/start Ollama and choose a model already downloaded on your laptop. Set <code>NEXORA_MODEL_BASE_URL=http://127.0.0.1:11434/v1</code> and <code>NEXORA_MODEL_NAME</code> to that installed model name.</li>
+      <li>For a remote provider, set its HTTPS base URL, model name, and API key in <code>.env</code>; keep <code>NEXORA_ALLOW_REMOTE_MODEL=0</code> until you deliberately enable remote requests.</li>
+      <li>Save the file and restart <code>run-local.bat</code>, then select Refresh status below.</li>
+    </ol>
+    <p class="model-setup-warning">Never paste API keys into this page or commit <code>.env</code>. Remote planning sends your goal to the named provider only after a separate confirmation for each request. Model output is an untrusted plan, not permission to execute actions.</p>
+    <div class="model-setup-actions"><button class="plan-button" id="refresh-model-status" type="button">Refresh status ↻</button><button class="primary-button" id="close-model-setup-footer" type="button">Done</button></div>
+  </dialog>
   <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Nexora stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops; they are not uploaded or sent to a model.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
   <script type="module" src="./src/main.js"></script>
 </body>

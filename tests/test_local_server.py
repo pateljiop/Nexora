@@ -137,6 +137,16 @@ class ApiTests(unittest.TestCase):
                 payload = raw
             return exc.code, payload
 
+    def test_model_status_endpoint_reports_safe_configuration_metadata(self):
+        status, payload = self.request("/api/model/status")
+        self.assertEqual(status, 200)
+        self.assertIn("configured", payload)
+        self.assertIn("enabled", payload)
+        self.assertIn("remote", payload)
+        self.assertIn("dataSharing", payload)
+        self.assertNotIn("api_key", payload)
+        self.assertNotIn("NEXORA_MODEL_API_KEY", json.dumps(payload))
+
     def test_health_and_task_crud(self):
         status, health = self.request("/api/health")
         self.assertEqual(status, 200)
