@@ -229,11 +229,11 @@ function renderModelStatus(status = modelStatusSnapshot) {
     ? (status.remote ? "Remote requests need per-goal confirmation." : "Local planning is enabled.")
     : status.configured ? "Settings found, but model requests are disabled." : "Optional: configure a local or remote model.";
   dialogStatus.textContent = status.enabled
-    ? \`Model planning is enabled (\${status.remote ? "remote provider" : "local endpoint"}).\`
+    ? `Model planning is enabled (\${status.remote ? "remote provider" : "local endpoint"}).`
     : status.configured ? "Model settings are present but requests are disabled." : "No usable model configuration detected. The local template planner still works.";
   const details = [];
-  if (status.providerHost) details.push(\`Endpoint host: \${status.providerHost}\`);
-  if (status.model) details.push(\`Model: \${status.model}\`);
+  if (status.providerHost) details.push(`Endpoint host: \${status.providerHost}`);
+  if (status.model) details.push(`Model: \${status.model}`);
   details.push(status.remote
     ? "Privacy: the goal is sent externally only after per-request confirmation."
     : status.enabled ? "Privacy: goal stays on this laptop at the configured loopback endpoint." : "Privacy: no model request is currently enabled.");
