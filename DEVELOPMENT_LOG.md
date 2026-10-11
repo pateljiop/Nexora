@@ -882,3 +882,6 @@ Implement a local-only backend with SQLite and tests after inspecting existing U
 **Next work:** After CI, continue with bounded checkpoint/recovery orchestration and desktop verification. Browser actions, mouse/keyboard control, voice, phone access, and public deployment remain deferred until their safety design and desktop validation are complete.
 
 **Branch:** feat/model-first-run-status. CI/PR status pending.
+
+
+**CI failure/fix (2026-10-12):** Initial checks caught an escaped template-literal delimiter in the new model-status UI. Corrected the JavaScript source, then both workflow runs passed on implementation commit 23af203ab254a9618a830fbacede512b86248a02: Linux/API/UI tests and Windows syntax, browser-state tests, Python compilation, and local loopback health/entry-page smoke. Runs: https://github.com/pateljiop/Nexora/actions/runs/38169839462 and https://github.com/pateljiop/Nexora/actions/runs/38169836529. The log-only follow-up commit still needs its own final PR-head CI confirmation before merge.
