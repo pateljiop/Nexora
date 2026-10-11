@@ -84,7 +84,7 @@ class ModelProviderTests(unittest.TestCase):
                 build_model_plan("Plan something")
 
     def test_screen_analysis_sends_only_valid_bounded_jpeg_and_returns_text(self):
-        image = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\\xff\\xd8\\xffsample").decode("ascii")
+        image = "data:image/jpeg;base64," + __import__("base64").b64encode(bytes([255, 216, 255]) + b"sample").decode("ascii")
         with patch("model_provider.urlopen", return_value=FakeResponse(model_response("A settings window is visible."))) as mocked:
             result = analyze_screen_frame(image, "Explain the visible error")
         self.assertEqual(result, "A settings window is visible.")
@@ -98,7 +98,7 @@ class ModelProviderTests(unittest.TestCase):
     def test_screen_analysis_rejects_invalid_jpeg_and_oversized_question(self):
         with self.assertRaises(ModelProviderError):
             analyze_screen_frame("data:image/png;base64,AAAA", "Describe")
-        image = "data:image/jpeg;base64," + __import__("base64").b64encode(b"\\xff\\xd8\\xffsample").decode("ascii")
+        image = "data:image/jpeg;base64," + __import__("base64").b64encode(bytes([255, 216, 255]) + b"sample").decode("ascii")
         with self.assertRaises(ModelProviderError):
             analyze_screen_frame(image, "q" * 1001)
 
