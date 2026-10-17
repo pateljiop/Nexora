@@ -1,4 +1,4 @@
-"""Local-only HTTP API and static server for Nexora / Virtual Hariom."""
+"""Local-only HTTP API and static server for Komio / Virtual Hariom."""
 from __future__ import annotations
 
 import json
@@ -453,13 +453,13 @@ class Store:
         return [self.get_execution(row["id"]) for row in rows]
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "NexoraLocal/1.0"
+    server_version = "KomioLocal/1.0"
     store = None
     workspace = None
     changes = None
 
     def log_message(self, fmt, *args):
-        print("[Nexora]", self.address_string(), fmt % args)
+        print("[Komio]", self.address_string(), fmt % args)
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -717,12 +717,12 @@ def main():
         print(f"Marked {recovered_changes} interrupted file change(s) for review; no automatic retry.")
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
-    print(f"Nexora local server ready at http://{HOST}:{PORT}")
+    print(f"Komio local server ready at http://{HOST}:{PORT}")
     print("SQLite persistence enabled. Read-only agent tools are available; file changes require separate review and explicit approval. Shell/device execution remains disabled.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nStopping Nexora local server.")
+        print("\nStopping Komio local server.")
     finally:
         server.server_close()
 
