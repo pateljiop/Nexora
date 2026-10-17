@@ -1,12 +1,12 @@
-# Nexora local-first architecture
+# Komio local-first architecture
 
 ## Product decision
 
-Nexora / Virtual Hariom is intended to run on Hariom's own Windows laptop. Cloud hosting and Supabase are not prerequisites. GitHub is for source control and CI only; it is not the runtime host.
+Komio / Virtual Hariom is intended to run on Hariom's own Windows laptop. Cloud hosting and Supabase are not prerequisites. GitHub is for source control and CI only; it is not the runtime host.
 
 ## Target topology
 
-Phone browser (same trusted Wi-Fi, optional later) -> explicit secure access -> Windows laptop running the Nexora local server.
+Phone browser (same trusted Wi-Fi, optional later) -> explicit secure access -> Windows laptop running the Komio local server.
 
 The local server will host the responsive web UI, local API, task orchestrator, SQLite database, event logs/checkpoints, optional model router, and later a permission-gated Windows companion.
 
