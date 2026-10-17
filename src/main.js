@@ -193,7 +193,7 @@ function renderConnection() {
   $(".orb-caption small").textContent = backendAvailable ? "LOCAL STORAGE READY" : "PREVIEW MODE";
   $(".notice").innerHTML = backendAvailable
     ? '<span>ⓘ</span> Local SQLite is connected. Model plans can only run allowlisted read-only tools. File changes require a saved diff proposal and separate approval; device control is disabled.'
-    : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Nexora with run-local.bat. Model planning needs local configuration; device control is not connected.';
+    : '<span>ⓘ</span> Local server unavailable: tasks use this browser only. Start Komio with run-local.bat. Model planning needs local configuration; device control is not connected.';
   const footer = $(".footer-state");
   if (footer) footer.lastChild.textContent = backendAvailable ? " LOCAL SQLITE" : " PREVIEW MODE";
 }
@@ -208,7 +208,7 @@ function renderModelStatus(status = modelStatusSnapshot) {
     dot.classList.add("muted");
     state.textContent = "Offline";
     summary.textContent = "Start run-local.bat to check model settings.";
-    dialogStatus.textContent = "The local server is not connected. Start Nexora, then refresh status.";
+    dialogStatus.textContent = "The local server is not connected. Start Komio, then refresh status.";
     detail.textContent = "No model configuration was read by this page.";
     return;
   }
@@ -424,7 +424,7 @@ $("#view-all").addEventListener("click", () => {
 $("#menu-toggle").addEventListener("click", () => sidebar.classList.toggle("open"));
 $("#help-button").addEventListener("click", () => {
   if (typeof aboutDialog.showModal === "function") aboutDialog.showModal();
-  else showToast("Nexora is in local preview mode. Tasks are saved in this browser only.");
+  else showToast("Komio is in local preview mode. Tasks are saved in this browser only.");
 });
 $("#close-dialog").addEventListener("click", () => aboutDialog.close());
 aboutDialog.addEventListener("click", event => {
@@ -751,7 +751,7 @@ async function applyWorkspaceChange() {
   const change = currentChangeProposal;
   const approved = window.confirm(
     "Apply the complete diff currently shown for " + change.path + "?\n\n" +
-    "Nexora will verify the file has not changed since this preview and create a backup before replacing it. " +
+    "Komio will verify the file has not changed since this preview and create a backup before replacing it. " +
     "If the file changed, the operation will stop. Continue?"
   );
   if (!approved) return;
@@ -776,8 +776,8 @@ async function rollbackWorkspaceChange() {
   if (!currentChangeProposal || currentChangeProposal.status !== "applied") return;
   const change = currentChangeProposal;
   const approved = window.confirm(
-    "Roll back Nexora's change to " + change.path + "?\n\n" +
-    "Rollback will proceed only if the file still matches the exact content Nexora wrote. Later edits will be preserved."
+    "Roll back Komio's change to " + change.path + "?\n\n" +
+    "Rollback will proceed only if the file still matches the exact content Komio wrote. Later edits will be preserved."
   );
   if (!approved) return;
   $("#rollback-workspace-change").disabled = true;
@@ -861,7 +861,7 @@ function setScreenObserverMessage(message, isError = false) {
 
 async function startScreenShare() {
   if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== "function") {
-    setScreenObserverMessage("Screen sharing is not supported by this browser. Open Nexora in a current desktop browser over localhost.", true);
+    setScreenObserverMessage("Screen sharing is not supported by this browser. Open Komio in a current desktop browser over localhost.", true);
     return;
   }
   const start = $("#start-screen-share");
@@ -935,7 +935,7 @@ async function analyzeScreenFrame() {
     return;
   }
   if (!backendAvailable) {
-    setScreenObserverMessage("Start Nexora with run-local.bat before requesting model analysis.", true);
+    setScreenObserverMessage("Start Komio with run-local.bat before requesting model analysis.", true);
     return;
   }
   let modelStatus;
@@ -946,7 +946,7 @@ async function analyzeScreenFrame() {
     return;
   }
   if (!modelStatus.enabled) {
-    setScreenObserverMessage("Model analysis is disabled. Configure a local model or explicitly enable a remote provider in .env, then restart Nexora.", true);
+    setScreenObserverMessage("Model analysis is disabled. Configure a local model or explicitly enable a remote provider in .env, then restart Komio.", true);
     return;
   }
   const question = $("#screen-analysis-question").value.trim();
@@ -955,7 +955,7 @@ async function analyzeScreenFrame() {
     : `local model endpoint ${modelStatus.providerHost} (${modelStatus.model})`;
   const consentMessage = modelStatus.remote
     ? `This sends the captured screenshot and your question to the ${destination}. The image may contain private information. Continue?`
-    : `This sends the captured screenshot and your question to the ${destination}. The frame will not be saved by Nexora. Continue?`;
+    : `This sends the captured screenshot and your question to the ${destination}. The frame will not be saved by Komio. Continue?`;
   if (!window.confirm(consentMessage)) {
     setScreenObserverMessage("Analysis cancelled. The screenshot remains in browser memory and was not sent.");
     return;
@@ -974,7 +974,7 @@ async function analyzeScreenFrame() {
       ? `Remote · ${result.providerHost} · ${result.model}`
       : `Local · ${result.providerHost} · ${result.model}`;
     $("#screen-analysis-result").hidden = false;
-    setScreenObserverMessage("Analysis finished. The frame and response were not saved to Nexora's database or activity log.");
+    setScreenObserverMessage("Analysis finished. The frame and response were not saved to Komio's database or activity log.");
   } catch (error) {
     setScreenObserverMessage(error instanceof Error ? error.message : "Screen analysis failed. No action was performed.", true);
   } finally {
