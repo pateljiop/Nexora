@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
-  <meta name="description" content="Nexora — a personal AI workspace built around Virtual Hariom. Plan, act, verify.">
-  <title>Nexora — Virtual Hariom</title>
+  <meta name="description" content="Komio — a personal AI workspace built around Virtual Hariom. Plan, act, verify.">
+  <title>Komio — Virtual Hariom</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,9 +14,9 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <a class="brand" href="#" aria-label="Nexora home">
+      <a class="brand" href="#" aria-label="Komio home">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span><strong>NEXORA</strong><small>PERSONAL INTELLIGENCE</small></span>
+        <span><strong>KOMIO</strong><small>PERSONAL INTELLIGENCE</small></span>
       </a>
       <div class="workspace-label">YOUR SPACE</div>
       <nav class="nav-list" aria-label="Main navigation">
@@ -179,7 +179,7 @@
     <div class="model-setup-status-detail" id="model-setup-detail"></div>
     <h3>First-time setup</h3>
     <ol class="model-setup-steps">
-      <li>Stop Nexora, then copy <code>.env.example</code> to <code>.env</code> in the repository folder.</li>
+      <li>Stop Komio, then copy <code>.env.example</code> to <code>.env</code> in the repository folder.</li>
       <li>For a local model, install/start Ollama and choose a model already downloaded on your laptop. Set <code>NEXORA_MODEL_BASE_URL=http://127.0.0.1:11434/v1</code> and <code>NEXORA_MODEL_NAME</code> to that installed model name.</li>
       <li>For a remote provider, set its HTTPS base URL, model name, and API key in <code>.env</code>; keep <code>NEXORA_ALLOW_REMOTE_MODEL=0</code> until you deliberately enable remote requests.</li>
       <li>Save the file and restart <code>run-local.bat</code>, then select Refresh status below.</li>
@@ -187,7 +187,7 @@
     <p class="model-setup-warning">Never paste API keys into this page or commit <code>.env</code>. Remote planning sends your goal to the named provider only after a separate confirmation for each request. Model output is an untrusted plan, not permission to execute actions.</p>
     <div class="model-setup-actions"><button class="plan-button" id="refresh-model-status" type="button">Refresh status ↻</button><button class="primary-button" id="close-model-setup-footer" type="button">Done</button></div>
   </dialog>
-  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Nexora stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops. They are sent for analysis only after you click Analyze and confirm; remote providers require a separate confirmation.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
+  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Komio stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops. They are sent for analysis only after you click Analyze and confirm; remote providers require a separate confirmation.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
