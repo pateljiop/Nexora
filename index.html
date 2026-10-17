@@ -167,13 +167,13 @@
             <div class="security-note"><span class="shield">⬡</span><div><strong>You stay in control</strong><p>No hidden device actions. Real execution will need explicit permissions and verification.</p></div></div>
           </aside>
         </div>
-        <footer class="page-footer"><span>© NEXORA <span id="year"></span></span><span>PLAN <b>·</b> ACT <b>·</b> VERIFY</span><span class="footer-state"><i></i> PREVIEW MODE</span></footer>
+        <footer class="page-footer"><span>© KOMIO <span id="year"></span></span><span>PLAN <b>·</b> ACT <b>·</b> VERIFY</span><span class="footer-state"><i></i> PREVIEW MODE</span></footer>
       </section>
     </main>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <dialog id="model-setup-dialog" class="about-dialog model-setup-dialog" aria-labelledby="model-setup-title">
-    <div class="dialog-top"><span class="brand-mini">NEXORA / MODEL SETUP</span><button id="close-model-setup" class="icon-button" aria-label="Close model setup">×</button></div>
+    <div class="dialog-top"><span class="brand-mini">KOMIO / MODEL SETUP</span><button id="close-model-setup" class="icon-button" aria-label="Close model setup">×</button></div>
     <h2 id="model-setup-title">Choose how Virtual Hariom plans</h2>
     <p id="model-setup-status" role="status" aria-live="polite">Checking model configuration…</p>
     <div class="model-setup-status-detail" id="model-setup-detail"></div>
@@ -187,7 +187,7 @@
     <p class="model-setup-warning">Never paste API keys into this page or commit <code>.env</code>. Remote planning sends your goal to the named provider only after a separate confirmation for each request. Model output is an untrusted plan, not permission to execute actions.</p>
     <div class="model-setup-actions"><button class="plan-button" id="refresh-model-status" type="button">Refresh status ↻</button><button class="primary-button" id="close-model-setup-footer" type="button">Done</button></div>
   </dialog>
-  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">NEXORA / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Komio stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops. They are sent for analysis only after you click Analyze and confirm; remote providers require a separate confirmation.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
+  <dialog id="about-dialog" class="about-dialog"><div class="dialog-top"><span class="brand-mini">KOMIO / VIRTUAL HARIOM</span><button id="close-dialog" class="icon-button" aria-label="Close dialog">×</button></div><h2>Your personal assistant, built around your workflow.</h2><p>Komio stores tasks and execution history locally when its local server is running; browser-only fallback is available while disconnected. Optional model planning is configured by you. Local model endpoints keep your goal on this laptop; remote providers receive it only after you confirm each request.</p><p>Read-only runs can inspect only allowlisted workspace and task data. Proposed file changes require a separate full-diff review, explicit approval, and backup. Shell commands, deletion, automatic retries, and general mouse/keyboard control are not enabled.</p><p>Live screen view starts only after you choose a window or display in the browser's permission prompt. Captured frames stay in browser memory and are cleared when sharing stops. They are sent for analysis only after you click Analyze and confirm; remote providers require a separate confirmation.</p><div class="dialog-foot">PLAN. ACT. VERIFY.</div></dialog>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
