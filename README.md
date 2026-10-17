@@ -1,8 +1,8 @@
-# Nexora — Virtual Hariom
+# Komio — Virtual Hariom
 
 **PLAN. ACT. VERIFY.**
 
-Nexora is the local-first personal AI workstation for Hariom's Windows laptop. Its identity is **Virtual Hariom**: a persistent assistant that will plan work, explain what it is doing, ask before sensitive actions, execute through controlled tools, and verify outcomes.
+Komio is the local-first personal AI workstation for Hariom's Windows laptop. Its identity is **Virtual Hariom**: a persistent assistant that will plan work, explain what it is doing, ask before sensitive actions, execute through controlled tools, and verify outcomes.
 
 ## Current milestone: local desktop workspace
 
@@ -27,7 +27,7 @@ Nexora is the local-first personal AI workstation for Hariom's Windows laptop. I
 2. Download/clone this repository to your laptop.
 3. Double-click `run-local.bat`.
 4. The launcher waits up to 30 seconds for `/api/health` before opening `http://127.0.0.1:8765`; if startup fails, inspect the server terminal for Python errors or a port conflict.
-5. Keep the server terminal open while using Nexora. Press Ctrl+C in that window to stop it.
+5. Keep the server terminal open while using Komio. Press Ctrl+C in that window to stop it.
 
 Or start it manually from the repository directory:
 
@@ -89,4 +89,4 @@ Website/mobile access is deferred until the desktop experience is built and test
 
 ## Latest CI verification
 
-- [GitHub Actions run](https://github.com/pateljiop/Nexora/actions/runs/38170105738) passed on main commit `558ddb2fe1b369a631ab96b79e3017b2e152b283`, including Linux tests and Windows syntax, browser-state, Python compilation, and local loopback smoke checks.
+- [GitHub Actions run](https://github.com/pateljiop/Komio/actions/runs/38170105738) passed on main commit `558ddb2fe1b369a631ab96b79e3017b2e152b283`, including Linux tests and Windows syntax, browser-state, Python compilation, and local loopback smoke checks.

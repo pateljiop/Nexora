@@ -96,7 +96,7 @@ def build_model_plan(goal):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "Nexora-Virtual-Hariom/0.1"
+        "User-Agent": "Komio-Virtual-Hariom/0.1"
     }
     if config["api_key"]:
         headers["Authorization"] = f"Bearer {config['api_key']}"
@@ -176,7 +176,7 @@ def analyze_screen_frame(image_data_url, question=""):
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "Nexora-Virtual-Hariom/0.1"
+        "User-Agent": "Komio-Virtual-Hariom/0.1"
     }
     if config["api_key"]:
         headers["Authorization"] = f"Bearer {config['api_key']}"

@@ -1,4 +1,4 @@
-name: Nexora checks
+name: Komio checks
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
       - name: Start local server and smoke-test loopback API
         shell: pwsh
         run: |
-          $server = Start-Process -FilePath python -ArgumentList "server.py" -WorkingDirectory $pwd -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/nexora-server.log" -RedirectStandardError "$env:RUNNER_TEMP/nexora-server-error.log"
+          $server = Start-Process -FilePath python -ArgumentList "server.py" -WorkingDirectory $pwd -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/komio-server.log" -RedirectStandardError "$env:RUNNER_TEMP/komio-server-error.log"
           try {
             $ready = $false
             for ($i = 0; $i -lt 30; $i++) {
@@ -64,9 +64,9 @@ jobs:
               if ($server.HasExited) { break }
             }
             if (-not $ready) {
-              Get-Content "$env:RUNNER_TEMP/nexora-server.log" -ErrorAction SilentlyContinue
-              Get-Content "$env:RUNNER_TEMP/nexora-server-error.log" -ErrorAction SilentlyContinue
-              throw "Nexora local server did not become healthy on Windows."
+              Get-Content "$env:RUNNER_TEMP/komio-server.log" -ErrorAction SilentlyContinue
+              Get-Content "$env:RUNNER_TEMP/komio-server-error.log" -ErrorAction SilentlyContinue
+              throw "Komio local server did not become healthy on Windows."
             }
             $page = Invoke-WebRequest -Uri "http://127.0.0.1:8765/" -TimeoutSec 5
             if ($page.StatusCode -ne 200 -or $page.Content -notmatch "NEXORA") { throw "Desktop entry page smoke test failed." }
