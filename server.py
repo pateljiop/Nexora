@@ -613,7 +613,7 @@ class Handler(BaseHTTPRequestHandler):
                         self.store.fail_unexpected_execution(execution["id"])
                         self.store.add_activity("Read-only run failed unexpectedly", plan["goal"])
 
-                threading.Thread(target=worker, name="nexora-readonly-run", daemon=True).start()
+                threading.Thread(target=worker, name="komio-readonly-run", daemon=True).start()
                 self.send_json(202, {"execution": execution})
             elif re.fullmatch(r"/api/executions/[^/]+/cancel", path):
                 execution_id = unquote(path.split("/")[-2])
